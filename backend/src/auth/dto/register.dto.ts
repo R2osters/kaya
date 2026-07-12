@@ -34,6 +34,13 @@ export class RegisterDto {
   @MaxLength(72) // bcrypt hard limit
   password!: string;
 
+  @ApiProperty({
+    description: 'Firebase Phone Auth ID token proving ownership of `phone`.',
+  })
+  @IsString()
+  @MinLength(20)
+  firebaseIdToken!: string;
+
   @ApiProperty({ example: 'Kofi Mensah' })
   @IsString()
   @MinLength(2)

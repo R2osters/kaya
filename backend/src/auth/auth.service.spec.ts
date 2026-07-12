@@ -1,8 +1,24 @@
 import { BadRequestException, ConflictException, UnauthorizedException } from '@nestjs/common';
-import { CountryCode, OtpPurpose } from '@prisma/client';
+import { CountryCode } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
-import { AuthService } from './auth.service';
 import { RegisterRole } from './dto/register.dto';
+
+// AuthService imports FirebaseAdminService, which imports the real
+// firebase-admin/auth SDK (pulls in the ESM-only `jose` package via
+// jwks-rsa, which Jest's CommonJS transform can't parse). This suite
+// never exercises the real SDK — a plain mock stands in for
+// `firebaseAdmin` below — so stub these modules before importing
+// AuthService, matching firebase-admin.service.spec.ts.
+jest.mock('firebase-admin/app', () => ({
+  initializeApp: jest.fn(() => ({})),
+  cert: jest.fn((c: unknown) => c),
+}));
+jest.mock('firebase-admin/auth', () => ({
+  getAuth: jest.fn(() => ({ verifyIdToken: jest.fn() })),
+}));
+
+// eslint-disable-next-line import/first
+import { AuthService } from './auth.service';
 
 // Minimal typed mocks for the collaborators AuthService depends on.
 type Mocked<T> = { [K in keyof T]: jest.Mock };
@@ -29,7 +45,7 @@ const TOKEN_PAIR = {
 describe('AuthService', () => {
   let prisma: ReturnType<typeof createPrismaMock>;
   let tokens: Mocked<{ issueTokenPair: unknown; rotate: unknown; revoke: unknown }>;
-  let otp: Mocked<{ send: unknown; verify: unknown }>;
+  let firebaseAdmin: Mocked<{ assertPhoneMatches: unknown }>;
   let storage: Mocked<{ upload: unknown; resolvePhoto: unknown }>;
   let redis: Mocked<{ getValue: unknown; incrWithTtl: unknown; setValueEx: unknown; del: unknown }>;
   let service: AuthService;
@@ -48,6 +64,7 @@ describe('AuthService', () => {
     countryCode: CountryCode.GHA,
     driverLicenseNumber: 'PCSRC-2024-001234',
     driverQrCode: 'data:image/png;base64,abc',
+    firebaseIdToken: 'test-firebase-id-token-0000000000',
   };
 
   beforeEach(() => {
@@ -57,7 +74,7 @@ describe('AuthService', () => {
       rotate: jest.fn().mockResolvedValue(TOKEN_PAIR),
       revoke: jest.fn().mockResolvedValue(undefined),
     };
-    otp = { send: jest.fn(), verify: jest.fn() };
+    firebaseAdmin = { assertPhoneMatches: jest.fn().mockResolvedValue(undefined) };
     storage = {
       upload: jest.fn(),
       resolvePhoto: jest.fn().mockImplementation((value: string | null | undefined) =>
@@ -75,7 +92,7 @@ describe('AuthService', () => {
       prisma as never,
       config as never,
       tokens as never,
-      otp as never,
+      firebaseAdmin as never,
       storage as never,
       redis as never,
     );
@@ -128,6 +145,7 @@ describe('AuthService', () => {
         fullName: 'Ama Client',
         role: RegisterRole.client,
         countryCode: CountryCode.GHA,
+        firebaseIdToken: 'test-firebase-id-token-0000000000',
       } as never);
 
       expect(result.user.driverLicenseNumber).toBeNull();
@@ -136,6 +154,29 @@ describe('AuthService', () => {
     it('rejects a duplicate email/phone with a conflict', async () => {
       prisma.user.findFirst.mockResolvedValue({ email: 'kofi@example.com', phone: 'x' });
       await expect(service.register(baseDriver as never)).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
+  describe('register - Firebase phone verification', () => {
+    it('rejects when the Firebase token phone does not match the submitted phone', async () => {
+      firebaseAdmin.assertPhoneMatches.mockRejectedValue(new BadRequestException('mismatch'));
+      prisma.user.findFirst.mockResolvedValue(null);
+      await expect(service.register(baseDriver as never)).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.user.create).not.toHaveBeenCalled();
+    });
+
+    it('marks the new user verified once Firebase confirms the phone', async () => {
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.user.create.mockImplementation(({ data }: { data: Record<string, unknown> }) =>
+        Promise.resolve({ id: 'u1', passwordHash: 'x', ...data }),
+      );
+      const result = await service.register(baseDriver as never);
+      expect(firebaseAdmin.assertPhoneMatches).toHaveBeenCalledWith(
+        baseDriver.firebaseIdToken,
+        baseDriver.phone,
+      );
+      expect(prisma.user.create.mock.calls[0][0].data.isVerified).toBe(true);
+      expect(result.user.driverLicenseNumber).toBe('PCSRC-2024-001234');
     });
   });
 
@@ -183,38 +224,6 @@ describe('AuthService', () => {
       await expect(
         service.login({ identifier: 'kofi@example.com', password: 'SecurePass123!' }),
       ).rejects.toBeInstanceOf(UnauthorizedException);
-    });
-  });
-
-  describe('otp', () => {
-    it('delegates OTP send to the OTP service', async () => {
-      const expiresAt = new Date();
-      otp.send.mockResolvedValue({ expiresAt });
-      const res = await service.sendOtp({ phone: '+233201234567' }, OtpPurpose.phone_verification);
-      expect(otp.send).toHaveBeenCalledWith(
-        { phone: '+233201234567' },
-        OtpPurpose.phone_verification,
-      );
-      expect(res.expiresAt).toBe(expiresAt);
-    });
-
-    it('marks the account verified on a successful phone verification', async () => {
-      otp.verify.mockResolvedValue(true);
-      prisma.user.updateMany.mockResolvedValue({ count: 1 });
-      const res = await service.verifyOtp(
-        { phone: '+233201234567' },
-        '123456',
-        OtpPurpose.phone_verification,
-      );
-      expect(res.verified).toBe(true);
-      expect(prisma.user.updateMany).toHaveBeenCalled();
-    });
-
-    it('throws on an invalid OTP code', async () => {
-      otp.verify.mockResolvedValue(false);
-      await expect(
-        service.verifyOtp({ phone: '+233201234567' }, '000000', OtpPurpose.login),
-      ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 
