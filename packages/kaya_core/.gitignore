@@ -1,0 +1,11 @@
+# Miscellaneous
+*.log
+.DS_Store
+
+# Flutter/Dart/Pub related
+.dart_tool/
+.packages
+build/
+
+# Packages don't commit a lockfile (apps do) — kaya_core is a shared library.
+pubspec.lock

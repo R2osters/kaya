@@ -1,0 +1,15 @@
+# Root-level secrets (docker compose reads .env from here — never commit).
+.env
+.env.local
+.env.*.local
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# JVM crash artifacts (Android Studio/Gradle daemon crashes) and stray captures
+*.log
+hs_err_pid*.log
+replay_pid*.log

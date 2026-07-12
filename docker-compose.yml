@@ -1,0 +1,92 @@
+# Kaya - development stack (Milestone 1).
+# All secrets come from the environment with sane dev defaults (see backend/.env.example).
+# Bring up with: docker compose up -d
+name: kaya
+
+services:
+  api:
+    build: ./backend
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3000
+      APP_NAME: ${APP_NAME:-Kaya}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-kaya}:${POSTGRES_PASSWORD:-kaya}@postgres:5432/${POSTGRES_DB:-kaya}?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:-./keys/jwt-private.pem}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-./keys/jwt-public.pem}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-900}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-604800}
+      JWT_ISSUER: ${JWT_ISSUER:-kaya-api}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-kaya-app}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:8080}
+      THROTTLE_TTL: ${THROTTLE_TTL:-60000}
+      THROTTLE_LIMIT: ${THROTTLE_LIMIT:-100}
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-kaya-minio}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-kaya-minio-secret}
+      S3_BUCKET: ${S3_BUCKET:-kaya-uploads}
+      S3_FORCE_PATH_STYLE: "true"
+      S3_PUBLIC_URL: ${S3_PUBLIC_URL:-http://localhost:9000/kaya-uploads}
+      UPLOAD_MAX_BYTES: ${UPLOAD_MAX_BYTES:-5242880}
+      OTP_PROVIDER: ${OTP_PROVIDER:-dev}
+      OTP_LENGTH: ${OTP_LENGTH:-6}
+      OTP_TTL_MIN: ${OTP_TTL_MIN:-5}
+      OTP_SEND_MAX: ${OTP_SEND_MAX:-5}
+      OTP_SEND_WINDOW_MIN: ${OTP_SEND_WINDOW_MIN:-15}
+      BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-12}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      minio:
+        condition: service_started
+
+  postgres:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-kaya}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kaya}
+      POSTGRES_DB: ${POSTGRES_DB:-kaya}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kaya} -d ${POSTGRES_DB:-kaya}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+
+  minio:
+    image: minio/minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-kaya-minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-kaya-minio-secret}
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  minio_data:
