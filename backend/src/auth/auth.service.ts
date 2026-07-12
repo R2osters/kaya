@@ -3,6 +3,7 @@ import {
   ConflictException,
   HttpException,
   HttpStatus,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -16,6 +17,7 @@ import { validateDriverFields } from './driver-validation';
 import { RegisterDto, RegisterRole } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { FirebaseAdminService } from './firebase-admin.service';
 import { OtpService } from './otp/otp.service';
 import { TokenPair, TokenService } from './token.service';
 
@@ -24,11 +26,19 @@ export type PublicUser = Omit<User, 'passwordHash'>;
 
 @Injectable()
 export class AuthService {
+  // Property-injected (not a constructor param) so the constructor's shape
+  // matches what Firebase-phone-auth migration Task 2 fixed as `(prisma,
+  // config, tokens, firebaseAdmin, storage, redis)`. `sendOtp`/`verifyOtp`
+  // below still depend on it; Task 5 removes this field together with them
+  // and the rest of the OTP stack.
+  @Inject(OtpService)
+  private readonly otp!: OtpService;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: AppConfigService,
     private readonly tokens: TokenService,
-    private readonly otp: OtpService,
+    private readonly firebaseAdmin: FirebaseAdminService,
     private readonly storage: StorageService,
     private readonly redis: RedisService,
   ) {}
@@ -47,6 +57,7 @@ export class AuthService {
       }
     }
 
+    await this.firebaseAdmin.assertPhoneMatches(dto.firebaseIdToken, dto.phone);
     await this.assertUnique(dto.email, dto.phone);
 
     const passwordHash = await bcrypt.hash(dto.password, this.config.get('BCRYPT_ROUNDS'));
@@ -63,6 +74,7 @@ export class AuthService {
           role: dto.role as unknown as Role,
           countryCode: dto.countryCode,
           city: dto.city,
+          isVerified: true,
           driverLicenseNumber: includesLivreur ? dto.driverLicenseNumber : null,
           driverQrCode: includesLivreur ? dto.driverQrCode : null,
           vehicleType: includesLivreur ? dto.vehicleType : null,

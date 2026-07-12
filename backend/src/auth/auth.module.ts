@@ -13,6 +13,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { OtpService } from './otp/otp.service';
 import { OTP_PROVIDER } from './otp/otp-provider.interface';
 import { DevOtpProvider } from './otp/dev-otp.provider';
+import { FirebaseAdminService } from './firebase-admin.service';
 
 @Module({
   imports: [
@@ -41,6 +42,9 @@ import { DevOtpProvider } from './otp/dev-otp.provider';
   providers: [
     AuthService,
     TokenService,
+    FirebaseAdminService,
+    // OtpService/OTP_PROVIDER back AuthService.sendOtp/verifyOtp (property-
+    // injected, not a constructor param) until Task 5 removes the OTP stack.
     OtpService,
     JwtStrategy,
     // OTP provider is selected here; production would branch on OTP_PROVIDER.
