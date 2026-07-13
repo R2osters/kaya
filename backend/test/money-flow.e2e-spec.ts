@@ -5,12 +5,19 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { API_PREFIX } from '../src/common/constants';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { FirebaseAdminService } from '../src/auth/firebase-admin.service';
 
 /**
  * Full money path (register -> auction -> escrow -> lifecycle -> settlement ->
  * ratings -> withdrawal). Requires a reachable Postgres; the suite skips itself
  * when the DB is unreachable so `npm run test:e2e` stays green without the stack.
  */
+
+// Real FirebaseAdminService verifies genuine Firebase-signed tokens, which the
+// e2e suite doesn't have. Stub it so register() treats the fake token as valid.
+const fakeFirebaseAdmin = {
+  assertPhoneMatches: async (_idToken: string, _phone: string) => undefined,
+};
 
 async function dbReachable(): Promise<boolean> {
   const probe = new PrismaClient();
@@ -41,6 +48,7 @@ describe('Money flow (e2e)', () => {
     fullName: 'E2E Client',
     role: 'client',
     countryCode: 'GHA',
+    firebaseIdToken: 'e2e-fake-firebase-id-token',
   };
   const driver = {
     email: `driver_${suffix}@example.com`,
@@ -52,6 +60,7 @@ describe('Money flow (e2e)', () => {
     driverLicenseNumber: 'PCSRC-2024-001234',
     driverQrCode: 'data:image/png;base64,abc',
     vehicleType: 'moto',
+    firebaseIdToken: 'e2e-fake-firebase-id-token',
   };
 
   let clientToken = '';
@@ -68,7 +77,10 @@ describe('Money flow (e2e)', () => {
       console.warn('[e2e] DB unreachable - skipping money-flow suite.');
       return;
     }
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(FirebaseAdminService)
+      .useValue(fakeFirebaseAdmin)
+      .compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix(API_PREFIX);
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
