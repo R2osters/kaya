@@ -16,6 +16,7 @@ import { StorageService } from '../storage/storage.service';
 import { validateDriverFields } from './driver-validation';
 import { RegisterDto, RegisterRole } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { LoginOtpDto } from './dto/login-otp.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { FirebaseAdminService } from './firebase-admin.service';
 import { OtpService } from './otp/otp.service';
@@ -116,6 +117,21 @@ export class AuthService {
     }
 
     await this.clearLoginFailures(idKey);
+    const pair = await this.tokens.issueTokenPair(user);
+    return { user: await this.toPublic(user), ...pair };
+  }
+
+  async loginWithOtp(dto: LoginOtpDto): Promise<{ user: PublicUser } & TokenPair> {
+    await this.firebaseAdmin.assertPhoneMatches(dto.firebaseIdToken, dto.phone);
+
+    const user = await this.prisma.user.findFirst({ where: { phone: dto.phone } });
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials.');
+    }
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account is suspended.');
+    }
+
     const pair = await this.tokens.issueTokenPair(user);
     return { user: await this.toPublic(user), ...pair };
   }
