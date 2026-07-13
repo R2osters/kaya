@@ -37,14 +37,6 @@ export const envSchema = z.object({
   S3_PUBLIC_URL: z.string().min(1),
   UPLOAD_MAX_BYTES: z.coerce.number().int().positive().default(5_242_880),
 
-  // "dev" logs the code (never allowed in production - see refine below);
-  // "sms" is the real provider (wire a Twilio/SMS adapter before production).
-  OTP_PROVIDER: z.enum(['dev', 'sms']).default('dev'),
-  OTP_LENGTH: z.coerce.number().int().min(4).max(10).default(6),
-  OTP_TTL_MIN: z.coerce.number().int().positive().default(5),
-  OTP_SEND_MAX: z.coerce.number().int().positive().default(5),
-  OTP_SEND_WINDOW_MIN: z.coerce.number().int().positive().default(15),
-
   BCRYPT_ROUNDS: z.coerce.number().int().min(8).max(15).default(12),
 
   // --- Maps / distance (M2) ---
@@ -84,17 +76,7 @@ export const envSchema = z.object({
   LOGIN_BACKOFF_AFTER: z.coerce.number().int().positive().default(5),
   LOGIN_LOCK_AFTER: z.coerce.number().int().positive().default(10),
   LOGIN_LOCK_MIN: z.coerce.number().int().positive().default(15),
-})
-  // Production must not run the dev OTP provider (it logs codes to the console).
-  .superRefine((val, ctx) => {
-    if (val.NODE_ENV === 'production' && val.OTP_PROVIDER === 'dev') {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['OTP_PROVIDER'],
-        message: 'OTP_PROVIDER must not be "dev" when NODE_ENV=production.',
-      });
-    }
-  });
+});
 
 export type Env = z.infer<typeof envSchema>;
 

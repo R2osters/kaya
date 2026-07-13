@@ -187,8 +187,9 @@ Admin mutations (verify, suspend/reactivate, config, dispute) write an **`audit_
 
 ## Notes for later milestones
 
-- OTP delivery is behind `OtpProvider` (`OTP_PROVIDER` token). `DevOtpProvider` logs
-  the code. Add Twilio/SendGrid providers without touching auth logic.
+- Phone verification (registration, OTP login, password reset) is Firebase Phone
+  Auth: the app verifies the code with Firebase directly and sends the resulting
+  ID token to the backend, which checks it via `FirebaseAdminService`.
 - Object storage is behind `StorageService` (S3 SDK → MinIO in dev, R2/S3 in prod).
 - Distance is behind `DistanceProvider` (`MAPS_PROVIDER`): keyless haversine by
   default, Google Distance Matrix when `GOOGLE_MAPS_API_KEY` is set (auto-fallback).
