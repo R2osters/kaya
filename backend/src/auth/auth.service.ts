@@ -17,6 +17,7 @@ import { validateDriverFields } from './driver-validation';
 import { RegisterDto, RegisterRole } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { LoginOtpDto } from './dto/login-otp.dto';
+import { PasswordResetDto } from './dto/password-reset.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { FirebaseAdminService } from './firebase-admin.service';
 import { OtpService } from './otp/otp.service';
@@ -134,6 +135,23 @@ export class AuthService {
 
     const pair = await this.tokens.issueTokenPair(user);
     return { user: await this.toPublic(user), ...pair };
+  }
+
+  async resetPassword(dto: PasswordResetDto): Promise<{ success: boolean }> {
+    await this.firebaseAdmin.assertPhoneMatches(dto.firebaseIdToken, dto.phone);
+
+    const user = await this.prisma.user.findFirst({ where: { phone: dto.phone } });
+    if (!user) {
+      throw new BadRequestException('Invalid request.');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, this.config.get('BCRYPT_ROUNDS'));
+    await this.prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
+    await this.prisma.refreshToken.updateMany({
+      where: { userId: user.id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    return { success: true };
   }
 
   // --- login brute-force protection ---------------------------------------
