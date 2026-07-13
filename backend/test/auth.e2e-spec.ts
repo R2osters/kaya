@@ -4,26 +4,16 @@ import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { API_PREFIX } from '../src/common/constants';
-import { OTP_PROVIDER } from '../src/auth/otp/otp-provider.interface';
 import { FirebaseAdminService } from '../src/auth/firebase-admin.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 
 /**
- * End-to-end happy path: register -> OTP send/verify -> login.
+ * End-to-end happy path: register -> login.
  *
  * Requires a reachable Postgres (DATABASE_URL). We probe the database first;
  * when it is unreachable the whole suite is skipped so `npm test` / this e2e run
  * still passes on a machine without the stack running.
  */
-
-// Captures the OTP code the service would have delivered, so the test can read it.
-const otpCapture: { lastCode?: string } = {};
-const capturingOtpProvider = {
-  name: 'test',
-  send: async (_target: unknown, code: string) => {
-    otpCapture.lastCode = code;
-  },
-};
 
 // Real FirebaseAdminService verifies genuine Firebase-signed tokens, which the
 // e2e suite doesn't have. Stub it so register() treats the fake token as valid.
@@ -51,7 +41,7 @@ const ready = databaseReachable().then((v) => {
   dbAvailable = v;
 });
 
-describe('Auth (e2e): register -> otp -> login', () => {
+describe('Auth (e2e): register -> login', () => {
   let app: INestApplication;
   let prisma: PrismaService;
 
@@ -78,8 +68,6 @@ describe('Auth (e2e): register -> otp -> login', () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     })
-      .overrideProvider(OTP_PROVIDER)
-      .useValue(capturingOtpProvider)
       .overrideProvider(FirebaseAdminService)
       .useValue(fakeFirebaseAdmin)
       .compile();
@@ -126,21 +114,6 @@ describe('Auth (e2e): register -> otp -> login', () => {
     refreshToken = res.body.refreshToken;
   });
 
-  maybe('sends and verifies an OTP for the phone', async () => {
-    await request(app.getHttpServer())
-      .post(`/${API_PREFIX}/auth/otp/send`)
-      .send({ phone: user.phone, purpose: 'phone_verification' })
-      .expect(200);
-
-    expect(otpCapture.lastCode).toMatch(/^\d{6}$/);
-
-    const verifyRes = await request(app.getHttpServer())
-      .post(`/${API_PREFIX}/auth/otp/verify`)
-      .send({ phone: user.phone, code: otpCapture.lastCode, purpose: 'phone_verification' })
-      .expect(200);
-    expect(verifyRes.body.verified).toBe(true);
-  });
-
   maybe('logs in with email + password', async () => {
     const res = await request(app.getHttpServer())
       .post(`/${API_PREFIX}/auth/login`)
@@ -155,7 +128,7 @@ describe('Auth (e2e): register -> otp -> login', () => {
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
     expect(res.body.email).toBe(user.email);
-    expect(res.body.isVerified).toBe(true); // set by the OTP verification above
+    expect(res.body.isVerified).toBe(true); // set at registration via Firebase phone verification
   });
 
   maybe('rotates the refresh token', async () => {

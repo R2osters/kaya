@@ -24,7 +24,6 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { LoginOtpDto } from './dto/login-otp.dto';
-import { OtpSendDto, OtpVerifyDto } from './dto/otp.dto';
 import { PasswordResetDto } from './dto/password-reset.dto';
 import { LogoutDto, RefreshDto } from './dto/refresh.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -74,24 +73,6 @@ export class AuthController {
   @ApiOperation({ summary: 'Reset the account password after Firebase phone verification.' })
   resetPassword(@Body() dto: PasswordResetDto) {
     return this.auth.resetPassword(dto);
-  }
-
-  @Public()
-  // Per-IP cap on OTP sends, on top of the per-identity window in OtpService.
-  @Throttle({ default: { limit: 5, ttl: 900_000 } })
-  @Post('otp/send')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Send an OTP code (dev provider logs it to the console).' })
-  sendOtp(@Body() dto: OtpSendDto) {
-    return this.auth.sendOtp({ phone: dto.phone, email: dto.email }, dto.purpose);
-  }
-
-  @Public()
-  @Post('otp/verify')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Verify an OTP code.' })
-  verifyOtp(@Body() dto: OtpVerifyDto) {
-    return this.auth.verifyOtp({ phone: dto.phone, email: dto.email }, dto.code, dto.purpose);
   }
 
   @Public()
