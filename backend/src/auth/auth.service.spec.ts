@@ -32,6 +32,9 @@ function createPrismaMock() {
       update: jest.fn(),
       updateMany: jest.fn(),
     },
+    refreshToken: {
+      updateMany: jest.fn(),
+    },
   };
 }
 
@@ -256,6 +259,42 @@ describe('AuthService', () => {
       await expect(
         service.loginWithOtp({ phone: '+233201234567', firebaseIdToken: 'tok' } as never),
       ).rejects.toBeInstanceOf(UnauthorizedException);
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('updates the password and revokes existing refresh tokens', async () => {
+      firebaseAdmin.assertPhoneMatches.mockResolvedValue(undefined);
+      prisma.user.findFirst.mockResolvedValue({ id: 'u1', phone: '+233201234567' });
+      prisma.user.update = jest.fn().mockResolvedValue({});
+      prisma.refreshToken = { updateMany: jest.fn().mockResolvedValue({ count: 1 }) };
+
+      const result = await service.resetPassword({
+        phone: '+233201234567',
+        firebaseIdToken: 'tok',
+        newPassword: 'NewSecurePass123!',
+      } as never);
+
+      expect(result.success).toBe(true);
+      expect(prisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'u1' } }),
+      );
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { userId: 'u1', revokedAt: null },
+        data: { revokedAt: expect.any(Date) },
+      });
+    });
+
+    it('rejects an unknown phone number', async () => {
+      firebaseAdmin.assertPhoneMatches.mockResolvedValue(undefined);
+      prisma.user.findFirst.mockResolvedValue(null);
+      await expect(
+        service.resetPassword({
+          phone: '+233200000000',
+          firebaseIdToken: 'tok',
+          newPassword: 'NewSecurePass123!',
+        } as never),
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 

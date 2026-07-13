@@ -25,6 +25,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { LoginOtpDto } from './dto/login-otp.dto';
 import { OtpSendDto, OtpVerifyDto } from './dto/otp.dto';
+import { PasswordResetDto } from './dto/password-reset.dto';
 import { LogoutDto, RefreshDto } from './dto/refresh.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -64,6 +65,15 @@ export class AuthController {
   @ApiOperation({ summary: 'Log in via a Firebase-verified phone code (passwordless).' })
   loginWithOtp(@Body() dto: LoginOtpDto) {
     return this.auth.loginWithOtp(dto);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 900_000 } })
+  @Post('password-reset')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset the account password after Firebase phone verification.' })
+  resetPassword(@Body() dto: PasswordResetDto) {
+    return this.auth.resetPassword(dto);
   }
 
   @Public()
