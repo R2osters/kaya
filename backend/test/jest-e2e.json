@@ -6,6 +6,7 @@
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
+  "transformIgnorePatterns": ["node_modules/(?!(jose|jwks-rsa|firebase-admin)/)"],
   "moduleNameMapper": {
     "^src/(.*)$": "<rootDir>/../src/$1"
   }
