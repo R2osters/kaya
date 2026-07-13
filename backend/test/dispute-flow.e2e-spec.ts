@@ -6,12 +6,20 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { API_PREFIX } from '../src/common/constants';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { FirebaseAdminService } from '../src/auth/firebase-admin.service';
 
 /**
  * Dispute path: open a dispute after pickup, then an admin resolves it as
  * refund_client — asserting the escrow is refunded and the order is cancelled.
  * Skips itself when Postgres is unreachable.
  */
+
+// Real FirebaseAdminService verifies genuine Firebase-signed tokens, which the
+// e2e suite doesn't have. Stub it so register() treats the fake token as valid.
+const fakeFirebaseAdmin = {
+  assertPhoneMatches: async (_idToken: string, _phone: string) => undefined,
+};
+
 async function dbReachable(): Promise<boolean> {
   const probe = new PrismaClient();
   try {
@@ -34,8 +42,8 @@ describe('Dispute flow (e2e)', () => {
   const url = (p: string) => `/${API_PREFIX}${p}`;
 
   const s = Date.now().toString().slice(-8);
-  const client = { email: `dc_${s}@ex.com`, phone: `+2334${s}`, password: 'SecurePass123!', fullName: 'DC', role: 'client', countryCode: 'GHA' };
-  const driver = { email: `dd_${s}@ex.com`, phone: `+2335${s}`, password: 'SecurePass123!', fullName: 'DD', role: 'livreur', countryCode: 'GHA', driverLicenseNumber: 'PCSRC-2024-001234', driverQrCode: 'x', vehicleType: 'moto' };
+  const client = { email: `dc_${s}@ex.com`, phone: `+2334${s}`, password: 'SecurePass123!', fullName: 'DC', role: 'client', countryCode: 'GHA', firebaseIdToken: 'e2e-fake-firebase-id-token' };
+  const driver = { email: `dd_${s}@ex.com`, phone: `+2335${s}`, password: 'SecurePass123!', fullName: 'DD', role: 'livreur', countryCode: 'GHA', driverLicenseNumber: 'PCSRC-2024-001234', driverQrCode: 'x', vehicleType: 'moto', firebaseIdToken: 'e2e-fake-firebase-id-token' };
   const adminEmail = `admin_${s}@ex.com`;
 
   let clientToken = '', driverToken = '', adminToken = '', orderId = '', deliveryId = '';
@@ -47,7 +55,10 @@ describe('Dispute flow (e2e)', () => {
       console.warn('[e2e] DB unreachable - skipping dispute-flow suite.');
       return;
     }
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(FirebaseAdminService)
+      .useValue(fakeFirebaseAdmin)
+      .compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix(API_PREFIX);
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
