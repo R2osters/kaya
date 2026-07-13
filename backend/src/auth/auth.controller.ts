@@ -23,6 +23,7 @@ import {
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { LoginOtpDto } from './dto/login-otp.dto';
 import { OtpSendDto, OtpVerifyDto } from './dto/otp.dto';
 import { LogoutDto, RefreshDto } from './dto/refresh.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -54,6 +55,15 @@ export class AuthController {
   @ApiOperation({ summary: 'Log in with email or phone + password.' })
   login(@Body() dto: LoginDto) {
     return this.auth.login(dto);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('login/otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Log in via a Firebase-verified phone code (passwordless).' })
+  loginWithOtp(@Body() dto: LoginOtpDto) {
+    return this.auth.loginWithOtp(dto);
   }
 
   @Public()

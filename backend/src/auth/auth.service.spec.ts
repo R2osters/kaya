@@ -227,6 +227,38 @@ describe('AuthService', () => {
     });
   });
 
+  describe('loginWithOtp', () => {
+    it('logs in an active user once Firebase confirms the phone', async () => {
+      firebaseAdmin.assertPhoneMatches.mockResolvedValue(undefined);
+      prisma.user.findFirst.mockResolvedValue({
+        id: 'u1',
+        phone: '+233201234567',
+        isActive: true,
+      });
+      const result = await service.loginWithOtp({
+        phone: '+233201234567',
+        firebaseIdToken: 'tok',
+      } as never);
+      expect(result.accessToken).toBe(TOKEN_PAIR.accessToken);
+    });
+
+    it('rejects an unknown phone number', async () => {
+      firebaseAdmin.assertPhoneMatches.mockResolvedValue(undefined);
+      prisma.user.findFirst.mockResolvedValue(null);
+      await expect(
+        service.loginWithOtp({ phone: '+233200000000', firebaseIdToken: 'tok' } as never),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+    });
+
+    it('rejects a suspended account', async () => {
+      firebaseAdmin.assertPhoneMatches.mockResolvedValue(undefined);
+      prisma.user.findFirst.mockResolvedValue({ id: 'u1', isActive: false });
+      await expect(
+        service.loginWithOtp({ phone: '+233201234567', firebaseIdToken: 'tok' } as never),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+    });
+  });
+
   describe('refresh / logout', () => {
     it('rotates via the token service', async () => {
       const res = await service.refresh('refresh-id.secret');
