@@ -5,6 +5,7 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { API_PREFIX } from '../src/common/constants';
 import { OTP_PROVIDER } from '../src/auth/otp/otp-provider.interface';
+import { FirebaseAdminService } from '../src/auth/firebase-admin.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 
 /**
@@ -22,6 +23,12 @@ const capturingOtpProvider = {
   send: async (_target: unknown, code: string) => {
     otpCapture.lastCode = code;
   },
+};
+
+// Real FirebaseAdminService verifies genuine Firebase-signed tokens, which the
+// e2e suite doesn't have. Stub it so register() treats the fake token as valid.
+const fakeFirebaseAdmin = {
+  assertPhoneMatches: async (_idToken: string, _phone: string) => undefined,
 };
 
 async function databaseReachable(): Promise<boolean> {
@@ -57,6 +64,7 @@ describe('Auth (e2e): register -> otp -> login', () => {
     role: 'client',
     countryCode: 'GHA',
     city: 'Accra',
+    firebaseIdToken: 'e2e-fake-firebase-id-token',
   };
 
   beforeAll(async () => {
@@ -72,6 +80,8 @@ describe('Auth (e2e): register -> otp -> login', () => {
     })
       .overrideProvider(OTP_PROVIDER)
       .useValue(capturingOtpProvider)
+      .overrideProvider(FirebaseAdminService)
+      .useValue(fakeFirebaseAdmin)
       .compile();
 
     app = moduleRef.createNestApplication();
