@@ -131,30 +131,6 @@ class AuthApi {
           body: {'identifier': identifier, 'password': password},
           skipAuth: true));
 
-  Future<void> sendOtp(
-          {String? phone, String? email, required OtpPurpose purpose}) =>
-      _api._postMap('/auth/otp/send',
-          body: {
-            if (phone != null) 'phone': phone,
-            if (email != null) 'email': email,
-            'purpose': purpose.name,
-          },
-          skipAuth: true);
-
-  Future<Map<String, dynamic>> verifyOtp(
-          {String? phone,
-          String? email,
-          required String code,
-          required OtpPurpose purpose}) =>
-      _api._postMap('/auth/otp/verify',
-          body: {
-            if (phone != null) 'phone': phone,
-            if (email != null) 'email': email,
-            'code': code,
-            'purpose': purpose.name,
-          },
-          skipAuth: true);
-
   Future<User> me() async => User.fromJson(await _api._getMap('/auth/me'));
 
   Future<User> updateProfile(Map<String, dynamic> body) async =>

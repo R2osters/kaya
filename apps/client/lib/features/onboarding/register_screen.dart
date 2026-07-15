@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kaya_core/kaya_core.dart';
 
-import '../../providers/core_providers.dart';
 import 'otp_screen.dart';
 
 /// Client registration. On submit we request an OTP, then hand the payload to
@@ -47,10 +46,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       'countryCode': _country.wire,
     };
     try {
-      await ref.read(kayaApiProvider).auth.sendOtp(
-            phone: _phone.text.trim(),
-            purpose: OtpPurpose.registration,
-          );
       if (!mounted) return;
       context.push('/otp',
           extra: OtpArgs(phone: _phone.text.trim(), registerBody: body));
