@@ -62,6 +62,9 @@ class KayaL10n {
   String get authVerify => _t('Vérifier', 'Verify');
   String get authLogout => _t('Se déconnecter', 'Sign out');
   String get authCountry => _t('Pays', 'Country');
+  String get authLoginOtp => _t('Se connecter par code', 'Log in with a code');
+  String get authForgotPassword => _t('Mot de passe oublié ?', 'Forgot password?');
+  String get authSendCode => _t('Envoyer le code', 'Send code');
 
   // Home
   String get homeWhatMoving => _t('Que faut-il livrer ?', 'What needs moving?');
