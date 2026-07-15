@@ -74,6 +74,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 onPressed: () => setState(() => _obscure = !_obscure),
               ),
             ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => context.push('/password-reset'),
+                child: Text(l10n.authForgotPassword),
+              ),
+            ),
             if (_error != null) ...[
               const SizedBox(height: 16),
               Text(_error!,

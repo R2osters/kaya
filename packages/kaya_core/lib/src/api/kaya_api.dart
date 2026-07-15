@@ -139,6 +139,19 @@ class AuthApi {
           body: {'phone': phone, 'firebaseIdToken': firebaseIdToken},
           skipAuth: true));
 
+  Future<void> resetPassword({
+    required String phone,
+    required String firebaseIdToken,
+    required String newPassword,
+  }) =>
+      _api._postMap('/auth/password-reset',
+          body: {
+            'phone': phone,
+            'firebaseIdToken': firebaseIdToken,
+            'newPassword': newPassword,
+          },
+          skipAuth: true);
+
   Future<User> me() async => User.fromJson(await _api._getMap('/auth/me'));
 
   Future<User> updateProfile(Map<String, dynamic> body) async =>
