@@ -15,6 +15,7 @@ import 'features/onboarding/login_screen.dart';
 import 'features/onboarding/register_screen.dart';
 import 'features/onboarding/otp_screen.dart';
 import 'features/onboarding/login_otp_screen.dart';
+import 'features/onboarding/password_reset_screen.dart';
 import 'features/order/create_order_screen.dart';
 import 'features/address/address_search_screen.dart';
 import 'features/offers/offers_screen.dart';
@@ -66,6 +67,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             OtpScreen(args: state.extra as OtpArgs?),
       ),
       GoRoute(path: '/login-otp', builder: (_, __) => const LoginOtpScreen()),
+      GoRoute(path: '/password-reset', builder: (_, __) => const PasswordResetScreen()),
 
       // Bottom-nav shell.
       StatefulShellRoute.indexedStack(

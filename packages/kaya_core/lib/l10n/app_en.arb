@@ -36,6 +36,9 @@
   "authLoginOtp": "Log in with a code",
   "authForgotPassword": "Forgot password?",
   "authSendCode": "Send code",
+  "authResetPasswordTitle": "Reset password",
+  "authNewPassword": "New password",
+  "authResetPasswordSuccess": "Password reset. Please sign in.",
 
   "homeWhatMoving": "What needs moving?",
   "homeNewDelivery": "New Delivery",

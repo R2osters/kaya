@@ -36,6 +36,9 @@
   "authLoginOtp": "Se connecter par code",
   "authForgotPassword": "Mot de passe oublié ?",
   "authSendCode": "Envoyer le code",
+  "authResetPasswordTitle": "Réinitialiser le mot de passe",
+  "authNewPassword": "Nouveau mot de passe",
+  "authResetPasswordSuccess": "Mot de passe réinitialisé. Connectez-vous.",
 
   "homeWhatMoving": "Que faut-il livrer ?",
   "homeNewDelivery": "Nouvelle livraison",

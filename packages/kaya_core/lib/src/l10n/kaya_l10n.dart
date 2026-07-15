@@ -65,6 +65,10 @@ class KayaL10n {
   String get authLoginOtp => _t('Se connecter par code', 'Log in with a code');
   String get authForgotPassword => _t('Mot de passe oublié ?', 'Forgot password?');
   String get authSendCode => _t('Envoyer le code', 'Send code');
+  String get authResetPasswordTitle => _t('Réinitialiser le mot de passe', 'Reset password');
+  String get authNewPassword => _t('Nouveau mot de passe', 'New password');
+  String get authResetPasswordSuccess =>
+      _t('Mot de passe réinitialisé. Connectez-vous.', 'Password reset. Please sign in.');
 
   // Home
   String get homeWhatMoving => _t('Que faut-il livrer ?', 'What needs moving?');
