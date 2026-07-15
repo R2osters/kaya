@@ -131,6 +131,14 @@ class AuthApi {
           body: {'identifier': identifier, 'password': password},
           skipAuth: true));
 
+  Future<AuthResult> loginWithOtp({
+    required String phone,
+    required String firebaseIdToken,
+  }) async =>
+      AuthResult.fromJson(await _api._postMap('/auth/login/otp',
+          body: {'phone': phone, 'firebaseIdToken': firebaseIdToken},
+          skipAuth: true));
+
   Future<User> me() async => User.fromJson(await _api._getMap('/auth/me'));
 
   Future<User> updateProfile(Map<String, dynamic> body) async =>

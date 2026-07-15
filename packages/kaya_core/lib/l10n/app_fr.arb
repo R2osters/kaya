@@ -33,6 +33,9 @@
   "authVerify": "Vérifier",
   "authLogout": "Se déconnecter",
   "authCountry": "Pays",
+  "authLoginOtp": "Se connecter par code",
+  "authForgotPassword": "Mot de passe oublié ?",
+  "authSendCode": "Envoyer le code",
 
   "homeWhatMoving": "Que faut-il livrer ?",
   "homeNewDelivery": "Nouvelle livraison",

@@ -33,6 +33,9 @@
   "authVerify": "Verify",
   "authLogout": "Sign out",
   "authCountry": "Country",
+  "authLoginOtp": "Log in with a code",
+  "authForgotPassword": "Forgot password?",
+  "authSendCode": "Send code",
 
   "homeWhatMoving": "What needs moving?",
   "homeNewDelivery": "New Delivery",
