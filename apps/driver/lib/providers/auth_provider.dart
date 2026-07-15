@@ -55,6 +55,14 @@ class AuthController extends StateNotifier<AuthState> {
     state = AuthState(status: AuthStatus.authenticated, user: user);
   }
 
+  Future<void> loginWithOtp(String phone, String firebaseIdToken) async {
+    final result = await _api.auth.loginWithOtp(phone: phone, firebaseIdToken: firebaseIdToken);
+    await _store.save(result.tokens);
+    final user = result.user ?? await _api.auth.me();
+    _socket.connect(result.tokens.accessToken);
+    state = AuthState(status: AuthStatus.authenticated, user: user);
+  }
+
   Future<void> register(Map<String, dynamic> body) async {
     final result = await _api.auth.register(body);
     await _store.save(result.tokens);

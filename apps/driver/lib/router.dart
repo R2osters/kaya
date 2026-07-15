@@ -8,6 +8,7 @@ import 'features/onboarding/welcome_screen.dart';
 import 'features/onboarding/login_screen.dart';
 import 'features/onboarding/register_screen.dart';
 import 'features/onboarding/otp_screen.dart';
+import 'features/onboarding/login_otp_screen.dart';
 import 'features/onboarding/document_verification_screen.dart';
 import 'features/home/home_shell.dart';
 import 'features/home/driver_home_screen.dart';
@@ -60,6 +61,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/otp',
         builder: (_, state) => OtpScreen(args: state.extra as OtpArgs?),
       ),
+      GoRoute(path: '/login-otp', builder: (_, __) => const LoginOtpScreen()),
       GoRoute(
         path: '/verify-documents',
         builder: (_, __) => const DocumentVerificationScreen(),

@@ -86,6 +86,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               variant: KayaButtonVariant.secondary,
               onPressed: () => context.push('/register'),
             ),
+            const SizedBox(height: 12),
+            KayaButton(
+              label: l10n.authLoginOtp,
+              variant: KayaButtonVariant.secondary,
+              onPressed: () => context.push('/login-otp'),
+            ),
           ],
         ),
       ),
