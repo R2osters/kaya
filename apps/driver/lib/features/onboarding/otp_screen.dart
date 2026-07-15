@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:kaya_core/kaya_core.dart';
 
 import '../../providers/auth_provider.dart';
-import '../../providers/core_providers.dart';
 
 class OtpArgs {
   const OtpArgs({this.phone, this.email, required this.registerBody});
@@ -23,11 +22,18 @@ class OtpScreen extends ConsumerStatefulWidget {
 }
 
 class _OtpScreenState extends ConsumerState<OtpScreen> {
-  // No pre-fill: the dev provider logs a real random code to the backend
-  // console (`[DEV OTP] code for X is: NNNNNN`) — type that value here.
   final _code = TextEditingController();
+  final _phoneAuth = FirebasePhoneAuthService();
+  String? _verificationId;
+  bool _sending = true;
   bool _loading = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _sendCode();
+  }
 
   @override
   void dispose() {
@@ -35,25 +41,48 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     super.dispose();
   }
 
+  Future<void> _sendCode() async {
+    final phone = widget.args?.phone;
+    if (phone == null) return;
+    setState(() {
+      _sending = true;
+      _error = null;
+    });
+    await _phoneAuth.sendCode(
+      phone: phone,
+      onCodeSent: (id) => setState(() {
+        _verificationId = id;
+        _sending = false;
+      }),
+      onError: (message) => setState(() {
+        _error = message;
+        _sending = false;
+      }),
+    );
+  }
+
   Future<void> _verifyAndRegister() async {
     final args = widget.args;
-    if (args == null) return;
+    if (args == null || _verificationId == null) return;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      await ref.read(kayaApiProvider).auth.verifyOtp(
-            phone: args.phone,
-            email: args.email,
-            code: _code.text.trim(),
-            purpose: OtpPurpose.registration,
-          );
-      await ref.read(authControllerProvider.notifier).register(args.registerBody);
+      final idToken = await _phoneAuth.confirmCode(
+        verificationId: _verificationId!,
+        smsCode: _code.text.trim(),
+      );
+      await ref.read(authControllerProvider.notifier).register({
+        ...args.registerBody,
+        'firebaseIdToken': idToken,
+      });
       // New drivers land on document verification before the home.
       if (mounted) context.go('/verify-documents');
     } on ApiFailure catch (e) {
       setState(() => _error = e.message);
+    } catch (e) {
+      setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -90,8 +119,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
             const SizedBox(height: 28),
             KayaButton(
                 label: l10n.authVerify,
-                loading: _loading,
-                onPressed: _verifyAndRegister),
+                loading: _loading || _sending,
+                onPressed:
+                    (_sending || _verificationId == null) ? null : _verifyAndRegister),
           ],
         ),
       ),
