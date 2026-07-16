@@ -52,6 +52,7 @@ class _LoginVerifyScreenState extends ConsumerState<LoginVerifyScreen> {
       onError: (message) => setState(() {
         _error = message;
         _busy = false;
+        _channel = _Channel.none;
       }),
     );
   }
