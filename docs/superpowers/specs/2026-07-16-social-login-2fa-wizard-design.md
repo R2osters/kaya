@@ -143,5 +143,8 @@ A new `KayaSkeleton` widget family in `packages/kaya_core/lib/src/theme/widgets/
 
 ## Out of scope
 
-- Skeleton loading is scoped to the four screens identified above for this pass (home order-history, offers, profile header, notifications) — not a blanket audit of every loading spinner in the app. This is the agent's own YAGNI-driven scoping, not something the user explicitly confirmed — flagged for the user's review below; more screens can be added later without architectural change (the widgets are reusable).
 - No backend change to money/escrow/commission paths — this work is entirely auth/profile/UI.
+
+## Scope decisions (resolved 2026-07-16, post-approval)
+
+- **Skeleton loading scope widened**: user confirmed a full-app audit, not the four screens originally proposed as a YAGNI-scoped first pass. Every screen in `apps/client` and `apps/driver` that shows a loading spinner while awaiting a network response gets a `KayaSkeleton` replacement — home order-history, offers list, profile header, notifications list, delivery history/detail, earnings/withdrawal, stats, and any other spinner-driven screen found during implementation. The Wave 2 plan must include a discovery task (grep for `CircularProgressIndicator`/loading spinners across both apps) to enumerate the full list before implementing, since the exact screen count isn't known until that audit runs.
