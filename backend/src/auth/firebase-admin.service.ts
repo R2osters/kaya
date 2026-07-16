@@ -71,13 +71,16 @@ export class FirebaseAdminService {
   /**
    * Decodes and verifies a social sign-in (Google/Facebook) ID token's
    * signature only — no cross-check against an existing account, since the
-   * token's own email claim IS the identity being asserted.
+   * token's own email claim IS the identity being asserted. Requires
+   * `email_verified: true`: a provider that can emit an unverified email
+   * claim (Facebook) would otherwise let an attacker log in as an existing
+   * account by claiming its email without proving ownership of it.
    */
   async verifySocialToken(idToken: string): Promise<{ email: string; name?: string }> {
     if (!this.app) {
       throw new BadRequestException('Verification is not configured on the server.');
     }
-    let decoded: { email?: string; name?: string };
+    let decoded: { email?: string; email_verified?: boolean; name?: string };
     try {
       decoded = await getAuth(this.app).verifyIdToken(idToken);
     } catch {
@@ -85,6 +88,9 @@ export class FirebaseAdminService {
     }
     if (!decoded.email) {
       throw new BadRequestException('Social sign-in token has no email.');
+    }
+    if (!decoded.email_verified) {
+      throw new BadRequestException('Social sign-in email is not verified.');
     }
     return { email: decoded.email, name: decoded.name };
   }
