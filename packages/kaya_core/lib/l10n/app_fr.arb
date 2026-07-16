@@ -31,6 +31,7 @@
   "authOtpTitle": "Vérification",
   "authOtpSubtitle": "Saisissez le code envoyé à votre téléphone.",
   "authVerify": "Vérifier",
+  "authCode": "Code",
   "authLogout": "Se déconnecter",
   "authCountry": "Pays",
   "authLoginOtp": "Se connecter par code",

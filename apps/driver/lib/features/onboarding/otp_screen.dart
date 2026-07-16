@@ -102,7 +102,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
             Text(l10n.authOtpSubtitle, style: AppTypography.bodySecondary),
             const SizedBox(height: 28),
             KayaTextField(
-              label: 'Code',
+              label: l10n.authCode,
               controller: _code,
               keyboardType: TextInputType.number,
               inputFormatters: [

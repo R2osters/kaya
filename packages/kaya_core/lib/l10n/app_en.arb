@@ -31,6 +31,7 @@
   "authOtpTitle": "Verification",
   "authOtpSubtitle": "Enter the code sent to your phone.",
   "authVerify": "Verify",
+  "authCode": "Code",
   "authLogout": "Sign out",
   "authCountry": "Country",
   "authLoginOtp": "Log in with a code",

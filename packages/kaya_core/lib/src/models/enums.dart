@@ -100,10 +100,3 @@ NotificationType notificationTypeFromWire(String? v) =>
       (e) => e.name == v,
       orElse: () => NotificationType.system,
     );
-
-enum OtpPurpose {
-  registration,
-  login,
-  password_reset,
-  phone_verification,
-}
