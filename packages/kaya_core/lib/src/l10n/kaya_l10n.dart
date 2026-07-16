@@ -63,6 +63,8 @@ class KayaL10n {
   String get authCode => _t('Code', 'Code');
   String get authLogout => _t('Se déconnecter', 'Sign out');
   String get authCountry => _t('Pays', 'Country');
+  // TODO(wave-2a): remove once both apps' LoginOtpScreen are gone (client's is
+  // deleted; driver's Task 4 still references this getter).
   String get authLoginOtp => _t('Se connecter par code', 'Log in with a code');
   String get authForgotPassword => _t('Mot de passe oublié ?', 'Forgot password?');
   String get authSendCode => _t('Envoyer le code', 'Send code');
@@ -70,6 +72,17 @@ class KayaL10n {
   String get authNewPassword => _t('Nouveau mot de passe', 'New password');
   String get authResetPasswordSuccess =>
       _t('Mot de passe réinitialisé. Connectez-vous.', 'Password reset. Please sign in.');
+  String get authOrContinueWith => _t('ou continuer avec', 'or continue with');
+  String get authContinueWithGoogle => _t('Continuer avec Google', 'Continue with Google');
+  String get authContinueWithFacebook => _t('Continuer avec Facebook', 'Continue with Facebook');
+  String get authVerifyTitle => _t('Vérification en 2 étapes', 'Two-step verification');
+  String get authVerifySubtitle => _t(
+      'Choisissez comment recevoir votre code.', 'Choose how to receive your code.');
+  String get authChannelSms => _t('Par SMS', 'By SMS');
+  String get authChannelEmail => _t('Par e-mail', 'By email');
+  String get authEmailLinkSent => _t(
+      'Lien envoyé. Ouvrez-le depuis cet appareil pour continuer.',
+      'Link sent. Open it from this device to continue.');
 
   // Home
   String get homeWhatMoving => _t('Que faut-il livrer ?', 'What needs moving?');
