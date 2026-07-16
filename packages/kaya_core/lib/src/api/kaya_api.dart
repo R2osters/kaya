@@ -126,9 +126,25 @@ class AuthApi {
   Future<AuthResult> register(Map<String, dynamic> body) async =>
       AuthResult.fromJson(await _api._postMap('/auth/register', body: body, skipAuth: true));
 
-  Future<AuthResult> login(String identifier, String password) async =>
-      AuthResult.fromJson(await _api._postMap('/auth/login',
+  Future<LoginChallenge> login(String identifier, String password) async =>
+      LoginChallenge.fromJson(await _api._postMap('/auth/login',
           body: {'identifier': identifier, 'password': password},
+          skipAuth: true));
+
+  Future<AuthResult> verifyLoginChallenge({
+    required String challengeId,
+    required String firebaseIdToken,
+  }) async =>
+      AuthResult.fromJson(await _api._postMap('/auth/login/verify',
+          body: {'challengeId': challengeId, 'firebaseIdToken': firebaseIdToken},
+          skipAuth: true));
+
+  Future<SocialLoginOutcome> socialLogin({
+    required String firebaseIdToken,
+    required String provider,
+  }) async =>
+      SocialLoginOutcome.fromJson(await _api._postMap('/auth/social',
+          body: {'firebaseIdToken': firebaseIdToken, 'provider': provider},
           skipAuth: true));
 
   Future<AuthResult> loginWithOtp({
