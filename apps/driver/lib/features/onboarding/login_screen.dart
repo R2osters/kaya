@@ -55,6 +55,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     } on ApiFailure catch (e) {
       setState(() => _error = e.message);
+    } catch (e) {
+      setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -81,6 +83,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     } on ApiFailure catch (e) {
       setState(() => _error = e.message);
+    } catch (e) {
+      setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _socialLoading = false);
     }
