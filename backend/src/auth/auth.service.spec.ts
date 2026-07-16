@@ -52,6 +52,7 @@ describe('AuthService', () => {
     rotate: unknown;
     revoke: unknown;
     issueSocialDraftToken: unknown;
+    verifySocialDraftToken: unknown;
   }>;
   let firebaseAdmin: Mocked<{
     assertPhoneMatches: unknown;
@@ -86,6 +87,7 @@ describe('AuthService', () => {
       rotate: jest.fn().mockResolvedValue(TOKEN_PAIR),
       revoke: jest.fn().mockResolvedValue(undefined),
       issueSocialDraftToken: jest.fn().mockResolvedValue('social.draft.jwt'),
+      verifySocialDraftToken: jest.fn(),
     };
     firebaseAdmin = {
       assertPhoneMatches: jest.fn().mockResolvedValue(undefined),
@@ -194,6 +196,55 @@ describe('AuthService', () => {
       );
       expect(prisma.user.create.mock.calls[0][0].data.isVerified).toBe(true);
       expect(result.user.driverLicenseNumber).toBe('PCSRC-2024-001234');
+    });
+  });
+
+  describe('register - social sign-up', () => {
+    it('creates a user from a valid social draft token, no password hash', async () => {
+      tokens.verifySocialDraftToken.mockResolvedValue({
+        email: 'kofi@example.com',
+        fullName: 'Kofi Mensah',
+        provider: 'google',
+      });
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.user.create.mockImplementation(({ data }: { data: Record<string, unknown> }) =>
+        Promise.resolve({ id: 'u1', ...data }),
+      );
+
+      const dto = {
+        email: 'kofi@example.com',
+        phone: '+233201234567',
+        fullName: 'Kofi Mensah',
+        role: 'client',
+        countryCode: 'GHA',
+        firebaseIdToken: 'phone-proof-token',
+        socialDraftToken: 'social-draft-token',
+      };
+
+      const result = await service.register(dto as never);
+
+      expect(tokens.verifySocialDraftToken).toHaveBeenCalledWith('social-draft-token');
+      expect(prisma.user.create.mock.calls[0][0].data.passwordHash).toBeNull();
+      expect(prisma.user.create.mock.calls[0][0].data.authProvider).toBe('google');
+      expect(result.user.email).toBe('kofi@example.com');
+    });
+
+    it('rejects a social draft token whose email does not match the submitted email', async () => {
+      tokens.verifySocialDraftToken.mockResolvedValue({
+        email: 'someone-else@example.com',
+        provider: 'google',
+      });
+      const dto = {
+        email: 'kofi@example.com',
+        phone: '+233201234567',
+        fullName: 'Kofi Mensah',
+        role: 'client',
+        countryCode: 'GHA',
+        firebaseIdToken: 'phone-proof-token',
+        socialDraftToken: 'social-draft-token',
+      };
+      await expect(service.register(dto as never)).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.user.create).not.toHaveBeenCalled();
     });
   });
 

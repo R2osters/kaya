@@ -55,7 +55,17 @@ export class AuthService {
     await this.firebaseAdmin.assertPhoneMatches(dto.firebaseIdToken, dto.phone);
     await this.assertUnique(dto.email, dto.phone);
 
-    const passwordHash = await bcrypt.hash(dto.password, this.config.get('BCRYPT_ROUNDS'));
+    let passwordHash: string | null = null;
+    let authProvider: 'password' | 'google' | 'facebook' | 'apple' = 'password';
+    if (dto.socialDraftToken) {
+      const draft = await this.tokens.verifySocialDraftToken(dto.socialDraftToken);
+      if (draft.email.toLowerCase() !== dto.email.toLowerCase()) {
+        throw new BadRequestException('Social sign-in email does not match the submitted email.');
+      }
+      authProvider = draft.provider;
+    } else {
+      passwordHash = await bcrypt.hash(dto.password!, this.config.get('BCRYPT_ROUNDS'));
+    }
 
     let user: User;
     try {
@@ -64,6 +74,7 @@ export class AuthService {
           email: dto.email.toLowerCase(),
           phone: dto.phone,
           passwordHash,
+          authProvider,
           fullName: dto.fullName,
           age: dto.age,
           role: dto.role as unknown as Role,
