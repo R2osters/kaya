@@ -40,4 +40,52 @@ export class FirebaseAdminService {
       throw new BadRequestException('Phone verification does not match the submitted phone number.');
     }
   }
+
+  /**
+   * Verifies the ID token and asserts it carries either the expected phone or
+   * the expected email claim. Used for password-login 2FA, where the user
+   * picks SMS or email as the verification channel — the backend accepts
+   * whichever proof arrives rather than dictating the channel.
+   */
+  async assertPhoneOrEmailMatches(
+    idToken: string,
+    expectedPhone: string,
+    expectedEmail: string,
+  ): Promise<void> {
+    if (!this.app) {
+      throw new BadRequestException('Verification is not configured on the server.');
+    }
+    let decoded: { phone_number?: string; email?: string };
+    try {
+      decoded = await getAuth(this.app).verifyIdToken(idToken);
+    } catch {
+      throw new BadRequestException('Invalid or expired verification.');
+    }
+    const phoneOk = decoded.phone_number === expectedPhone;
+    const emailOk = decoded.email?.toLowerCase() === expectedEmail.toLowerCase();
+    if (!phoneOk && !emailOk) {
+      throw new BadRequestException('Verification does not match the account.');
+    }
+  }
+
+  /**
+   * Decodes and verifies a social sign-in (Google/Facebook) ID token's
+   * signature only — no cross-check against an existing account, since the
+   * token's own email claim IS the identity being asserted.
+   */
+  async verifySocialToken(idToken: string): Promise<{ email: string; name?: string }> {
+    if (!this.app) {
+      throw new BadRequestException('Verification is not configured on the server.');
+    }
+    let decoded: { email?: string; name?: string };
+    try {
+      decoded = await getAuth(this.app).verifyIdToken(idToken);
+    } catch {
+      throw new BadRequestException('Invalid or expired verification.');
+    }
+    if (!decoded.email) {
+      throw new BadRequestException('Social sign-in token has no email.');
+    }
+    return { email: decoded.email, name: decoded.name };
+  }
 }
