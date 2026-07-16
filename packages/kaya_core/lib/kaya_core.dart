@@ -50,6 +50,9 @@ export 'src/api/api_config.dart';
 export 'src/api/api_failure.dart';
 export 'src/api/kaya_api.dart';
 
+// Firebase
+export 'src/firebase_options.dart';
+
 // Realtime
 export 'src/realtime/socket_service.dart';
 export 'src/realtime/socket_events.dart';
