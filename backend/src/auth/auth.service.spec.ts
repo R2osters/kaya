@@ -47,8 +47,17 @@ const TOKEN_PAIR = {
 
 describe('AuthService', () => {
   let prisma: ReturnType<typeof createPrismaMock>;
-  let tokens: Mocked<{ issueTokenPair: unknown; rotate: unknown; revoke: unknown }>;
-  let firebaseAdmin: Mocked<{ assertPhoneMatches: unknown; assertPhoneOrEmailMatches: unknown }>;
+  let tokens: Mocked<{
+    issueTokenPair: unknown;
+    rotate: unknown;
+    revoke: unknown;
+    issueSocialDraftToken: unknown;
+  }>;
+  let firebaseAdmin: Mocked<{
+    assertPhoneMatches: unknown;
+    assertPhoneOrEmailMatches: unknown;
+    verifySocialToken: unknown;
+  }>;
   let storage: Mocked<{ upload: unknown; resolvePhoto: unknown }>;
   let redis: Mocked<{ getValue: unknown; incrWithTtl: unknown; setValueEx: unknown; del: unknown }>;
   let service: AuthService;
@@ -76,10 +85,12 @@ describe('AuthService', () => {
       issueTokenPair: jest.fn().mockResolvedValue(TOKEN_PAIR),
       rotate: jest.fn().mockResolvedValue(TOKEN_PAIR),
       revoke: jest.fn().mockResolvedValue(undefined),
+      issueSocialDraftToken: jest.fn().mockResolvedValue('social.draft.jwt'),
     };
     firebaseAdmin = {
       assertPhoneMatches: jest.fn().mockResolvedValue(undefined),
       assertPhoneOrEmailMatches: jest.fn().mockResolvedValue(undefined),
+      verifySocialToken: jest.fn(),
     };
     storage = {
       upload: jest.fn(),
@@ -325,6 +336,50 @@ describe('AuthService', () => {
       await expect(
         service.loginWithOtp({ phone: '+233201234567', firebaseIdToken: 'tok' } as never),
       ).rejects.toBeInstanceOf(UnauthorizedException);
+    });
+  });
+
+  describe('socialLogin', () => {
+    it('logs in an existing account directly (no draft token)', async () => {
+      firebaseAdmin.verifySocialToken.mockResolvedValue({ email: 'kofi@example.com', name: 'Kofi' });
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'u1',
+        email: 'kofi@example.com',
+        isActive: true,
+      });
+
+      const result = await service.socialLogin({
+        firebaseIdToken: 'tok',
+        provider: 'google',
+      } as never);
+
+      expect('accessToken' in result && result.accessToken).toBe(TOKEN_PAIR.accessToken);
+    });
+
+    it('rejects a suspended existing account', async () => {
+      firebaseAdmin.verifySocialToken.mockResolvedValue({ email: 'kofi@example.com' });
+      prisma.user.findUnique.mockResolvedValue({ id: 'u1', email: 'kofi@example.com', isActive: false });
+      await expect(
+        service.socialLogin({ firebaseIdToken: 'tok', provider: 'google' } as never),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+    });
+
+    it('issues a social draft token for a brand-new account, no User row created', async () => {
+      firebaseAdmin.verifySocialToken.mockResolvedValue({ email: 'new@example.com', name: 'New Person' });
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      const result = await service.socialLogin({
+        firebaseIdToken: 'tok',
+        provider: 'facebook',
+      } as never);
+
+      expect(result).toEqual({
+        isNewAccount: true,
+        socialDraftToken: expect.any(String),
+        email: 'new@example.com',
+        fullName: 'New Person',
+      });
+      expect(prisma.user.create).not.toHaveBeenCalled();
     });
   });
 
