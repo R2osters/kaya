@@ -48,7 +48,7 @@ const TOKEN_PAIR = {
 describe('AuthService', () => {
   let prisma: ReturnType<typeof createPrismaMock>;
   let tokens: Mocked<{ issueTokenPair: unknown; rotate: unknown; revoke: unknown }>;
-  let firebaseAdmin: Mocked<{ assertPhoneMatches: unknown }>;
+  let firebaseAdmin: Mocked<{ assertPhoneMatches: unknown; assertPhoneOrEmailMatches: unknown }>;
   let storage: Mocked<{ upload: unknown; resolvePhoto: unknown }>;
   let redis: Mocked<{ getValue: unknown; incrWithTtl: unknown; setValueEx: unknown; del: unknown }>;
   let service: AuthService;
@@ -77,7 +77,10 @@ describe('AuthService', () => {
       rotate: jest.fn().mockResolvedValue(TOKEN_PAIR),
       revoke: jest.fn().mockResolvedValue(undefined),
     };
-    firebaseAdmin = { assertPhoneMatches: jest.fn().mockResolvedValue(undefined) };
+    firebaseAdmin = {
+      assertPhoneMatches: jest.fn().mockResolvedValue(undefined),
+      assertPhoneOrEmailMatches: jest.fn().mockResolvedValue(undefined),
+    };
     storage = {
       upload: jest.fn(),
       resolvePhoto: jest.fn().mockImplementation((value: string | null | undefined) =>
@@ -243,6 +246,53 @@ describe('AuthService', () => {
       await expect(
         service.login({ identifier: 'kofi@example.com', password: 'anything1' }),
       ).rejects.toBeInstanceOf(UnauthorizedException);
+    });
+  });
+
+  describe('verifyLoginChallenge', () => {
+    it('issues tokens when the challenge and Firebase proof are valid', async () => {
+      redis.getValue.mockResolvedValue('u1');
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'u1',
+        phone: '+233201234567',
+        email: 'kofi@example.com',
+        isActive: true,
+      });
+      firebaseAdmin.assertPhoneOrEmailMatches.mockResolvedValue(undefined);
+
+      const result = await service.verifyLoginChallenge({
+        challengeId: 'chal-1',
+        firebaseIdToken: 'tok',
+      } as never);
+
+      expect(firebaseAdmin.assertPhoneOrEmailMatches).toHaveBeenCalledWith(
+        'tok',
+        '+233201234567',
+        'kofi@example.com',
+      );
+      expect(redis.del).toHaveBeenCalledWith('login:challenge:chal-1');
+      expect(result.accessToken).toBe(TOKEN_PAIR.accessToken);
+    });
+
+    it('rejects an expired or unknown challenge', async () => {
+      redis.getValue.mockResolvedValue(null);
+      await expect(
+        service.verifyLoginChallenge({ challengeId: 'chal-1', firebaseIdToken: 'tok' } as never),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects when the Firebase proof does not match', async () => {
+      redis.getValue.mockResolvedValue('u1');
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'u1',
+        phone: '+233201234567',
+        email: 'kofi@example.com',
+        isActive: true,
+      });
+      firebaseAdmin.assertPhoneOrEmailMatches.mockRejectedValue(new BadRequestException('mismatch'));
+      await expect(
+        service.verifyLoginChallenge({ challengeId: 'chal-1', firebaseIdToken: 'tok' } as never),
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 

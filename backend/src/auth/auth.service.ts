@@ -17,6 +17,7 @@ import { validateDriverFields } from './driver-validation';
 import { RegisterDto, RegisterRole } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { LoginOtpDto } from './dto/login-otp.dto';
+import { LoginVerifyDto } from './dto/login-verify.dto';
 import { PasswordResetDto } from './dto/password-reset.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { FirebaseAdminService } from './firebase-admin.service';
@@ -116,6 +117,24 @@ export class AuthService {
     const challengeId = randomUUID();
     await this.redis.setValueEx(`login:challenge:${challengeId}`, user.id, 300);
     return { challengeId };
+  }
+
+  async verifyLoginChallenge(dto: LoginVerifyDto): Promise<{ user: PublicUser } & TokenPair> {
+    const userId = await this.redis.getValue(`login:challenge:${dto.challengeId}`);
+    if (!userId) {
+      throw new BadRequestException('Login challenge expired or invalid.');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('Invalid credentials.');
+    }
+
+    await this.firebaseAdmin.assertPhoneOrEmailMatches(dto.firebaseIdToken, user.phone, user.email);
+    await this.redis.del(`login:challenge:${dto.challengeId}`);
+
+    const pair = await this.tokens.issueTokenPair(user);
+    return { user: await this.toPublic(user), ...pair };
   }
 
   async loginWithOtp(dto: LoginOtpDto): Promise<{ user: PublicUser } & TokenPair> {
