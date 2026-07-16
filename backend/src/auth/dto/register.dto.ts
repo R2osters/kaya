@@ -46,7 +46,9 @@ export class RegisterDto {
   @ApiPropertyOptional({
     description:
       'Social draft token from POST /auth/social, for a new Google/Facebook sign-up. ' +
-      'Mutually exclusive with `password` — exactly one must be present.',
+      'Mutually exclusive with `password` — exactly one must be present ' +
+      '(the "not both" half of this contract is enforced in AuthService.register(), ' +
+      'not by class-validator decorators, which cannot express it declaratively here).',
   })
   @ValidateIf((dto: RegisterDto) => !dto.password)
   @IsString()

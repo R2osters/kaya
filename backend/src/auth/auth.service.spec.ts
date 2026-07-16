@@ -246,6 +246,22 @@ describe('AuthService', () => {
       await expect(service.register(dto as never)).rejects.toBeInstanceOf(BadRequestException);
       expect(prisma.user.create).not.toHaveBeenCalled();
     });
+
+    it('rejects a request supplying both password and socialDraftToken', async () => {
+      const dto = {
+        email: 'kofi@example.com',
+        phone: '+233201234567',
+        fullName: 'Kofi Mensah',
+        role: 'client',
+        countryCode: 'GHA',
+        firebaseIdToken: 'phone-proof-token',
+        password: 'SecurePass123!',
+        socialDraftToken: 'social-draft-token',
+      };
+      await expect(service.register(dto as never)).rejects.toBeInstanceOf(BadRequestException);
+      expect(tokens.verifySocialDraftToken).not.toHaveBeenCalled();
+      expect(prisma.user.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('login', () => {

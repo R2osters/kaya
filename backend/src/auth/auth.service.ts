@@ -39,6 +39,15 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto): Promise<{ user: PublicUser } & TokenPair> {
+    // RegisterDto's @ValidateIf pair only rejects "neither password nor
+    // socialDraftToken" - it can't express "not both" declaratively, so that
+    // half of the mutually-exclusive contract is enforced here instead.
+    if (dto.password && dto.socialDraftToken) {
+      throw new BadRequestException(
+        'Provide either a password or a social sign-in token, not both.',
+      );
+    }
+
     const includesLivreur =
       dto.role === RegisterRole.livreur || dto.role === RegisterRole.both;
 
