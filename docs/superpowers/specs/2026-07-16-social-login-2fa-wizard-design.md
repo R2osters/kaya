@@ -28,45 +28,72 @@ Three independent-but-related auth flows, plus one UI system:
 
 ### Password login + mandatory 2FA
 
+Every account has both a phone (mandatory at registration, including social sign-ups —
+see wizard Step 3 below) and an email, so "channel" is not something the server can infer
+from account shape. **The user picks the channel** on a "how would you like your code?"
+screen after the password succeeds; the server accepts whichever proof arrives:
+
 ```
 POST /auth/login {identifier, password}
   → verifies password (existing logic, existing lockout counters unchanged)
   → on success: generates challengeId, stores `login:challenge:{challengeId} = userId` in
-    Redis (TTL 5 min), determines channel (phone if user.phone verified via a prior
-    Firebase sign-in, else email), returns { challengeId, channel } — NOT tokens.
-  → app then drives the matching Firebase flow client-side:
-      channel 'sms'  → PhoneAuthService.sendCode(user's phone) → user enters code →
-                        confirmCode() → firebaseIdToken
-      channel 'email' → FirebaseAuth.instance.sendSignInLinkToEmail(...) → user clicks
-                         the link (opens the app via deep link, see below) →
-                         FirebaseAuth.instance.signInWithEmailLink(...) → firebaseIdToken
+    Redis (TTL 5 min), returns { challengeId } — NOT tokens.
+  → app shows a channel picker (SMS / Email), then drives the matching Firebase flow:
+      SMS   → PhoneAuthService.sendCode(user's phone) → user enters code →
+              confirmCode() → firebaseIdToken
+      Email → FirebaseAuth.instance.sendSignInLinkToEmail(...) → user clicks
+              the link (opens the app via deep link, see below) →
+              FirebaseAuth.instance.signInWithEmailLink(...) → firebaseIdToken
   → POST /auth/login/verify {challengeId, firebaseIdToken}
-      → looks up userId from challengeId (404/400 if expired/missing — fails closed)
-      → FirebaseAdminService.assertPhoneMatches or .assertEmailMatches against that user's
-        phone/email (whichever channel was used)
+      → looks up userId from challengeId (400 if expired/missing — fails closed)
+      → FirebaseAdminService.assertPhoneOrEmailMatches(idToken, user.phone, user.email) —
+        accepts either claim, whichever the token carries; rejects if neither matches
       → deletes the challenge key (one-time use)
       → issues the normal token pair
 ```
 
 ### Social login (Google, Facebook)
 
+`role`, `countryCode`, and `phone` are all `NOT NULL` on `User` today (and deliberately
+stay that way — money-path code such as commission/pricing reads `countryCode`
+unconditionally, and this work explicitly does not touch money-path logic). So a
+brand-new social sign-up **cannot** get a `User` row before the wizard collects those
+fields; there is no safe placeholder value. Two cases:
+
 ```
 App: FirebaseAuth sign-in with GoogleAuthProvider / FacebookAuthProvider (via
      google_sign_in / flutter_facebook_auth packages driving the native OAuth flow,
-     then handed to Firebase) → firebaseIdToken (already proves a verified email)
+     then handed to Firebase) → firebaseIdToken (proves a verified email)
 
 POST /auth/social {firebaseIdToken, provider: 'google' | 'facebook'}
   → FirebaseAdminService.verifySocialToken(idToken) — decodes and verifies signature only
-    (no phone/email cross-check needed; the token's own email claim IS the identity)
   → find user by decoded email
-      - exists: log them in (issue tokens) — no 2FA (provider already verified identity)
-      - doesn't exist: create a new user record with isVerified: true, authProvider set,
-        passwordHash: null, phone: null (collected later in the wizard), role/countryCode
-        not yet known → returned to the app as a "profile incomplete" signal so it routes
-        into the registration wizard starting at the Contact step (name/email prefilled)
-  → issues tokens either way; the wizard (if entered) operates on the now-authenticated
-    user via the existing profile-update endpoints, not a second registration call
+      - EXISTING account: log them in directly (issue tokens). No 2FA — the provider
+        already verified identity, and this account already has phone/role/country from
+        its original registration.
+      - NO existing account: do NOT create a User row yet (would violate NOT NULL
+        role/countryCode/phone with no honest value to put there). Instead issue a
+        short-lived (15 min) signed "social draft" token — TokenService gains
+        `issueSocialDraftToken({ email, fullName, provider })` (same RS256 key already
+        used for access tokens, distinct `purpose: 'social_draft'` claim so it can never
+        be accepted where an access token is expected) — and return
+        { isNewAccount: true, socialDraftToken, email, fullName } with NO access/refresh
+        tokens (the account doesn't exist yet, there is nothing to authenticate as).
 ```
+
+The app routes a `isNewAccount: true` response into the registration wizard (Contact
+step, name/email prefilled and locked). The wizard still collects role, country, and
+**phone** (Step 3 still runs Firebase phone verification for social sign-ups — see
+below), then submits once to `POST /auth/register` exactly like the classic path, except
+the request carries `socialDraftToken` instead of `password`: `RegisterDto` accepts
+`password` OR `socialDraftToken` (never neither, never both — enforced by a
+`@ValidateIf` cross-field rule). `register()` branches: if `socialDraftToken` is present,
+verify it (decode, check `purpose: 'social_draft'`, check its email matches
+`dto.email`), skip password hashing (`passwordHash: null`), set `authProvider` from the
+token's `provider` claim; otherwise unchanged (hash `dto.password`,
+`authProvider: 'password'`). `firebaseIdToken` (phone proof) is required either way — the
+wizard's Step 3 phone verification is not skipped for social sign-ups, only the password
+step is.
 
 ### Registration wizard (client + driver, shared structure)
 
@@ -77,7 +104,7 @@ Four steps, one screen each, shared progress bar:
 3. **Sécurité** — password (skipped entirely if arriving from social login) + phone verification (Firebase `PhoneAuthService`, same flow as today's `otp_screen.dart`).
 4. **Docs** (driver/both only) — license number, vehicle type/registration, document photos, per-country validation (existing `validateDriverFields`).
 
-Submission model: **one final submit** at the end of step 4 (or step 3 for client-only), matching today's `register()` call shape — the wizard is purely a client-side UX restructuring of the existing single-shot `RegisterDto` payload, not a new multi-request backend flow. Exception: a user arriving mid-flow from social login is already authenticated (tokens already issued by `/auth/social`), so steps 2-4 for that path call `PATCH /auth/profile` (existing `UpdateProfileDto` extended with the driver fields it's currently missing) instead of `POST /auth/register`.
+Submission model: **one final submit** at the end of step 4 (or step 3 for client-only) to `POST /auth/register`, matching today's shape — the wizard is purely a client-side UX restructuring of the existing single-shot `RegisterDto` payload, not a new multi-request backend flow. This holds for both the classic path (`password` set) and the social path (`socialDraftToken` set instead — see above); there is no separate "already authenticated, PATCH profile" branch, since a new social sign-up has no `User` row and no tokens until this single submit succeeds.
 
 ### Skeleton loading
 
@@ -85,12 +112,12 @@ A new `KayaSkeleton` widget family in `packages/kaya_core/lib/src/theme/widgets/
 
 ## Backend changes
 
-- `backend/prisma/schema.prisma`: `passwordHash String` → `String?`; add `authProvider AuthProvider @default(password)` enum (`password`, `google`, `facebook`, `apple`) for traceability; migration to alter the column and add the enum + column.
-- `FirebaseAdminService`: add `assertEmailMatches(idToken, expectedEmail): Promise<void>` (mirrors `assertPhoneMatches`) and `verifySocialToken(idToken): Promise<{ email: string; name?: string }>` (decode + verify only, no cross-check — the token's own claims ARE the identity for social sign-in).
+- `backend/prisma/schema.prisma`: `passwordHash String` → `String?`; add `authProvider AuthProvider @default(password)` enum (`password`, `google`, `facebook`, `apple`) for traceability; migration to alter the column and add the enum + column. `role`/`countryCode`/`phone` stay `NOT NULL` — unchanged (see Social login above for why).
+- `FirebaseAdminService`: add `assertPhoneOrEmailMatches(idToken, expectedPhone, expectedEmail): Promise<void>` (accepts either claim present on the token) and `verifySocialToken(idToken): Promise<{ email: string; name?: string }>` (decode + verify signature only, no cross-check — the token's own claims ARE the identity for social sign-in).
+- `TokenService`: add `issueSocialDraftToken({ email, fullName, provider }): Promise<string>` and `verifySocialDraftToken(token): Promise<{ email, fullName, provider }>` — short-lived (15 min), same signing key, distinct `purpose` claim so it's rejected anywhere an access/refresh token is expected.
 - `AuthService.login()`: split into challenge-issuing (current password check, minus final token issuance) + new `verifyLoginChallenge()`.
 - New `AuthController` routes: `POST /auth/login/verify`, `POST /auth/social`.
-- `RegisterDto.password` becomes `@IsOptional()`; a `@ValidateIf` cross-field rule enforces password present when no social token is supplied (registration still supports the classic path unchanged).
-- `UpdateProfileDto` gains the driver fields (license, vehicle, documents) it currently lacks, so the social-login wizard tail can call `PATCH /auth/profile` to complete a driver profile.
+- `RegisterDto`: `password` becomes `@IsOptional()`; new optional `socialDraftToken` field; a `@ValidateIf` cross-field rule enforces exactly one of the two is present. `register()` branches on which is set (see Social login above).
 
 ## Firebase Console changes
 
