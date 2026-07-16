@@ -19,6 +19,7 @@ import { LoginDto } from './dto/login.dto';
 import { LoginOtpDto } from './dto/login-otp.dto';
 import { LoginVerifyDto } from './dto/login-verify.dto';
 import { PasswordResetDto } from './dto/password-reset.dto';
+import { SocialLoginDto } from './dto/social-login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { FirebaseAdminService } from './firebase-admin.service';
 import { TokenPair, TokenService } from './token.service';
@@ -132,6 +133,32 @@ export class AuthService {
 
     await this.firebaseAdmin.assertPhoneOrEmailMatches(dto.firebaseIdToken, user.phone, user.email);
     await this.redis.del(`login:challenge:${dto.challengeId}`);
+
+    const pair = await this.tokens.issueTokenPair(user);
+    return { user: await this.toPublic(user), ...pair };
+  }
+
+  async socialLogin(
+    dto: SocialLoginDto,
+  ): Promise<
+    | ({ user: PublicUser } & TokenPair)
+    | { isNewAccount: true; socialDraftToken: string; email: string; fullName?: string }
+  > {
+    const { email, name } = await this.firebaseAdmin.verifySocialToken(dto.firebaseIdToken);
+    const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+
+    if (!user) {
+      const socialDraftToken = await this.tokens.issueSocialDraftToken({
+        email: email.toLowerCase(),
+        fullName: name,
+        provider: dto.provider,
+      });
+      return { isNewAccount: true, socialDraftToken, email: email.toLowerCase(), fullName: name };
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account is suspended.');
+    }
 
     const pair = await this.tokens.issueTokenPair(user);
     return { user: await this.toPublic(user), ...pair };

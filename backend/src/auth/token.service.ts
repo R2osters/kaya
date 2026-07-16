@@ -14,6 +14,12 @@ export interface TokenPair {
   expiresIn: number;
 }
 
+export interface SocialDraftClaims {
+  email: string;
+  fullName?: string;
+  provider: 'google' | 'facebook';
+}
+
 /**
  * Mints access tokens (RS256 JWT) and opaque refresh tokens.
  *
@@ -38,6 +44,32 @@ export class TokenService {
       tokenType: 'Bearer',
       expiresIn: this.config.jwt.accessTtl,
     };
+  }
+
+  /**
+   * Short-lived (15 min) signed token proving a Google/Facebook sign-in for
+   * an email with no existing account yet. Carries a distinct `purpose`
+   * claim so JwtStrategy (which only accepts `type: 'access'`) rejects it if
+   * presented as a Bearer token — see backend/src/auth/strategies/jwt.strategy.ts.
+   */
+  async issueSocialDraftToken(claims: SocialDraftClaims): Promise<string> {
+    return this.jwt.signAsync(
+      { ...claims, purpose: 'social_draft' },
+      { expiresIn: '15m' },
+    );
+  }
+
+  async verifySocialDraftToken(token: string): Promise<SocialDraftClaims> {
+    let payload: SocialDraftClaims & { purpose?: string };
+    try {
+      payload = await this.jwt.verifyAsync(token);
+    } catch {
+      throw new UnauthorizedException('Invalid or expired social sign-in token.');
+    }
+    if (payload.purpose !== 'social_draft') {
+      throw new UnauthorizedException('Invalid token type.');
+    }
+    return { email: payload.email, fullName: payload.fullName, provider: payload.provider };
   }
 
   /** Validates and rotates a refresh token, returning a fresh pair. */

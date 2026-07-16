@@ -27,6 +27,7 @@ import { LoginOtpDto } from './dto/login-otp.dto';
 import { LoginVerifyDto } from './dto/login-verify.dto';
 import { PasswordResetDto } from './dto/password-reset.dto';
 import { LogoutDto, RefreshDto } from './dto/refresh.dto';
+import { SocialLoginDto } from './dto/social-login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Public } from '../common/decorators/public.decorator';
@@ -74,6 +75,15 @@ export class AuthController {
   @ApiOperation({ summary: 'Log in via a Firebase-verified phone code (passwordless).' })
   loginWithOtp(@Body() dto: LoginOtpDto) {
     return this.auth.loginWithOtp(dto);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('social')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Log in or start sign-up via Google/Facebook.' })
+  socialLogin(@Body() dto: SocialLoginDto) {
+    return this.auth.socialLogin(dto);
   }
 
   @Public()

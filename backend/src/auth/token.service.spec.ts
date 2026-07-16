@@ -1,4 +1,5 @@
 import { UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { TokenService } from './token.service';
 
@@ -111,5 +112,58 @@ describe('TokenService - refresh rotation', () => {
     await expect(service.rotate('old-id.wrong-secret')).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
+  });
+});
+
+describe('TokenService - social draft tokens', () => {
+  const config = {
+    get: jest.fn((key: string) => (key === 'BCRYPT_ROUNDS' ? 4 : undefined)),
+    jwt: {
+      accessTtl: 900,
+      refreshTtl: 604800,
+      issuer: 'kaya-api',
+      audience: 'kaya-app',
+      privateKey: 'priv',
+      publicKey: 'pub',
+    },
+  };
+  const jwt = new JwtService({ secret: 'test-secret-for-social-draft-tokens' });
+  let prisma: { user: { findUnique: jest.Mock }; refreshToken: { create: jest.Mock } };
+  let service: TokenService;
+
+  beforeEach(() => {
+    prisma = {
+      user: { findUnique: jest.fn() },
+      refreshToken: { create: jest.fn().mockResolvedValue({ id: 'refresh-id' }) },
+    };
+    service = new TokenService(jwt, prisma as never, config as never);
+  });
+
+  describe('issueSocialDraftToken / verifySocialDraftToken', () => {
+    it('round-trips the claims', async () => {
+      const token = await service.issueSocialDraftToken({
+        email: 'kofi@example.com',
+        fullName: 'Kofi Mensah',
+        provider: 'google',
+      });
+      const decoded = await service.verifySocialDraftToken(token);
+      expect(decoded).toEqual({
+        email: 'kofi@example.com',
+        fullName: 'Kofi Mensah',
+        provider: 'google',
+      });
+    });
+
+    it('rejects a normal access token presented as a social draft token', async () => {
+      const accessToken = await service.issueTokenPair({
+        id: 'u1',
+        email: 'kofi@example.com',
+        role: 'client',
+        countryCode: 'GHA',
+      } as never);
+      await expect(
+        service.verifySocialDraftToken(accessToken.accessToken),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+    });
   });
 });
