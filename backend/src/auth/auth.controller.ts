@@ -24,6 +24,7 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { LoginOtpDto } from './dto/login-otp.dto';
+import { LoginVerifyDto } from './dto/login-verify.dto';
 import { PasswordResetDto } from './dto/password-reset.dto';
 import { LogoutDto, RefreshDto } from './dto/refresh.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -55,6 +56,15 @@ export class AuthController {
   @ApiOperation({ summary: 'Log in with email or phone + password.' })
   login(@Body() dto: LoginDto) {
     return this.auth.login(dto);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('login/verify')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Complete password login by redeeming the 2FA challenge.' })
+  verifyLoginChallenge(@Body() dto: LoginVerifyDto) {
+    return this.auth.verifyLoginChallenge(dto);
   }
 
   @Public()
