@@ -63,9 +63,6 @@ class KayaL10n {
   String get authCode => _t('Code', 'Code');
   String get authLogout => _t('Se déconnecter', 'Sign out');
   String get authCountry => _t('Pays', 'Country');
-  // TODO(wave-2a): remove once both apps' LoginOtpScreen are gone (client's is
-  // deleted; driver's Task 4 still references this getter).
-  String get authLoginOtp => _t('Se connecter par code', 'Log in with a code');
   String get authForgotPassword => _t('Mot de passe oublié ?', 'Forgot password?');
   String get authSendCode => _t('Envoyer le code', 'Send code');
   String get authResetPasswordTitle => _t('Réinitialiser le mot de passe', 'Reset password');
