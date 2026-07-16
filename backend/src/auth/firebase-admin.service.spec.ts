@@ -57,11 +57,18 @@ describe('FirebaseAdminService', () => {
       ).resolves.toBeUndefined();
     });
 
-    it('resolves when the email claim matches (case-insensitive)', async () => {
-      verifyIdToken.mockResolvedValue({ email: 'Kofi@Example.com' });
+    it('resolves when the email claim matches and is verified (case-insensitive)', async () => {
+      verifyIdToken.mockResolvedValue({ email: 'Kofi@Example.com', email_verified: true });
       await expect(
         service.assertPhoneOrEmailMatches('token', '+233201234567', 'kofi@example.com'),
       ).resolves.toBeUndefined();
+    });
+
+    it('rejects a matching but unverified email claim (2FA bypass guard)', async () => {
+      verifyIdToken.mockResolvedValue({ email: 'kofi@example.com', email_verified: false });
+      await expect(
+        service.assertPhoneOrEmailMatches('token', '+233201234567', 'kofi@example.com'),
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
 
     it('rejects when neither claim matches', async () => {
