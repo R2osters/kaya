@@ -184,7 +184,7 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
-    it('returns tokens for valid credentials', async () => {
+    it('issues a challenge for valid credentials (no tokens yet)', async () => {
       const passwordHash = await bcrypt.hash('SecurePass123!', 4);
       prisma.user.findFirst.mockResolvedValue({
         id: 'u1',
@@ -199,7 +199,12 @@ describe('AuthService', () => {
         identifier: 'kofi@example.com',
         password: 'SecurePass123!',
       });
-      expect(result.accessToken).toBe(TOKEN_PAIR.accessToken);
+      expect(result.challengeId).toEqual(expect.any(String));
+      expect(redis.setValueEx).toHaveBeenCalledWith(
+        `login:challenge:${result.challengeId}`,
+        'u1',
+        300,
+      );
     });
 
     it('rejects a wrong password with 401', async () => {
@@ -226,6 +231,17 @@ describe('AuthService', () => {
       prisma.user.findFirst.mockResolvedValue({ id: 'u1', passwordHash, isActive: false });
       await expect(
         service.login({ identifier: 'kofi@example.com', password: 'SecurePass123!' }),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+    });
+
+    it('rejects a social-only account (null passwordHash) with 401, not a crash', async () => {
+      prisma.user.findFirst.mockResolvedValue({
+        id: 'u1',
+        passwordHash: null,
+        isActive: true,
+      });
+      await expect(
+        service.login({ identifier: 'kofi@example.com', password: 'anything1' }),
       ).rejects.toBeInstanceOf(UnauthorizedException);
     });
   });

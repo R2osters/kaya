@@ -29,6 +29,13 @@ enum Role {
   admin // Deviation from doc (role = client|livreur|both): admin added for §3.9 admin auth.
 }
 
+enum AuthProvider {
+  password
+  google
+  facebook
+  apple
+}
+
 enum CountryCode {
   GHA
   TGO
@@ -143,23 +150,24 @@ enum NotificationType {
 // ---------------------------------------------------------------------------
 
 model User {
-  id           String      @id @default(uuid()) @db.Uuid
-  email        String      @unique
-  phone        String      @unique
-  passwordHash String      @map("password_hash")
-  fullName     String      @map("full_name")
+  id           String       @id @default(uuid()) @db.Uuid
+  email        String       @unique
+  phone        String       @unique
+  passwordHash String?      @map("password_hash")
+  fullName     String       @map("full_name")
   age          Int?
-  idCardPhoto  String?     @map("id_card_photo")
-  profilePhoto String?     @map("profile_photo")
+  idCardPhoto  String?      @map("id_card_photo")
+  profilePhoto String?      @map("profile_photo")
   role         Role
-  countryCode  CountryCode @map("country_code")
+  countryCode  CountryCode  @map("country_code")
   city         String?
-  isVerified   Boolean     @default(false) @map("is_verified")
-  verifiedAt   DateTime?   @map("verified_at")
-  verifiedById String?     @map("verified_by_id") @db.Uuid
-  isActive     Boolean     @default(true) @map("is_active")
-  createdAt    DateTime    @default(now()) @map("created_at")
-  updatedAt    DateTime    @updatedAt @map("updated_at")
+  isVerified   Boolean      @default(false) @map("is_verified")
+  verifiedAt   DateTime?    @map("verified_at")
+  verifiedById String?      @map("verified_by_id") @db.Uuid
+  isActive     Boolean      @default(true) @map("is_active")
+  authProvider AuthProvider @default(password) @map("auth_provider")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
 
   // Driver-specific fields (NULL when role = client)
   driverLicenseNumber String?      @map("driver_license_number")
