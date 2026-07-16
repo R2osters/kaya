@@ -80,8 +80,12 @@ describe('FirebaseAdminService', () => {
   });
 
   describe('verifySocialToken', () => {
-    it('returns the email and name claims for a valid token', async () => {
-      verifyIdToken.mockResolvedValue({ email: 'kofi@example.com', name: 'Kofi Mensah' });
+    it('returns the email and name claims for a verified-email token', async () => {
+      verifyIdToken.mockResolvedValue({
+        email: 'kofi@example.com',
+        email_verified: true,
+        name: 'Kofi Mensah',
+      });
       await expect(service.verifySocialToken('token')).resolves.toEqual({
         email: 'kofi@example.com',
         name: 'Kofi Mensah',
@@ -90,6 +94,11 @@ describe('FirebaseAdminService', () => {
 
     it('rejects a token with no email claim', async () => {
       verifyIdToken.mockResolvedValue({ phone_number: '+233201234567' });
+      await expect(service.verifySocialToken('token')).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects a token whose email is not verified', async () => {
+      verifyIdToken.mockResolvedValue({ email: 'kofi@example.com', email_verified: false });
       await expect(service.verifySocialToken('token')).rejects.toBeInstanceOf(BadRequestException);
     });
 
