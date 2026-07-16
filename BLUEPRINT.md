@@ -109,6 +109,7 @@ Chaque jalon est démontrable indépendamment. Route skills entre parenthèses.
 
 - 2026-07-11 — Dossiers plateformes générés (`flutter create .`) avec ids provisoires `com.kaya.kaya_client` / `com.kaya.kaya_driver` — à renommer quand le nom final sera choisi (changement d'applicationId Android + bundle id iOS avant première publication).
 - 2026-07-11 — Popup nouvelle demande livreur déclenchée par polling nearby + FCM (pas d'événement socket driver-facing en v1) — décision m4-flutter validée.
+- 2026-07-12 — **OTP délivré par Firebase Phone Auth**, plus de code maison (`otp_codes` supprimée). Décision utilisateur, suite à un bug du prefill dev (code factice `123456` vs code réel généré côté backend). Couvre les 4 `OtpPurpose` : `registration`/`phone_verification` (migration du flux existant) et `login`/`password_reset` (features neuves, absentes avant ce jour). Projet Firebase `kaya-a24e7` (Spark/free), test number `+233201234567` → `123456` pour dev. Détails : `docs/superpowers/specs/2026-07-12-firebase-phone-auth-design.md`.
 
 ## Acceptance
 
