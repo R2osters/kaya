@@ -92,7 +92,7 @@ class _LoginOtpScreenState extends ConsumerState<LoginOtpScreen> {
             const SizedBox(height: 16),
             if (_verificationId != null)
               KayaTextField(
-                label: 'Code',
+                label: l10n.authCode,
                 controller: _code,
                 keyboardType: TextInputType.number,
                 inputFormatters: [

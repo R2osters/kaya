@@ -60,6 +60,7 @@ class KayaL10n {
   String get authOtpSubtitle =>
       _t('Saisissez le code envoyé à votre téléphone.', 'Enter the code sent to your phone.');
   String get authVerify => _t('Vérifier', 'Verify');
+  String get authCode => _t('Code', 'Code');
   String get authLogout => _t('Se déconnecter', 'Sign out');
   String get authCountry => _t('Pays', 'Country');
   String get authLoginOtp => _t('Se connecter par code', 'Log in with a code');
