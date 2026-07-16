@@ -10,6 +10,7 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 
 /** Roles a user may self-register as (admin is never self-assignable). */
@@ -28,11 +29,12 @@ export class RegisterDto {
   @Matches(/^\+[1-9]\d{6,14}$/, { message: 'phone must be in E.164 format, e.g. +233201234567' })
   phone!: string;
 
-  @ApiProperty({ example: 'SecurePass123!', minLength: 8 })
+  @ApiPropertyOptional({ example: 'SecurePass123!', minLength: 8 })
+  @ValidateIf((dto: RegisterDto) => !dto.socialDraftToken)
   @IsString()
   @MinLength(8)
   @MaxLength(72) // bcrypt hard limit
-  password!: string;
+  password?: string;
 
   @ApiProperty({
     description: 'Firebase Phone Auth ID token proving ownership of `phone`.',
@@ -40,6 +42,15 @@ export class RegisterDto {
   @IsString()
   @MinLength(20)
   firebaseIdToken!: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Social draft token from POST /auth/social, for a new Google/Facebook sign-up. ' +
+      'Mutually exclusive with `password` — exactly one must be present.',
+  })
+  @ValidateIf((dto: RegisterDto) => !dto.password)
+  @IsString()
+  socialDraftToken?: string;
 
   @ApiProperty({ example: 'Kofi Mensah' })
   @IsString()
