@@ -48,20 +48,31 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> login(String identifier, String password) async {
-    final result = await _api.auth.login(identifier, password);
+  Future<LoginChallenge> login(String identifier, String password) async {
+    return _api.auth.login(identifier, password);
+  }
+
+  Future<void> verifyLogin({required String challengeId, required String firebaseIdToken}) async {
+    final result = await _api.auth.verifyLoginChallenge(
+      challengeId: challengeId,
+      firebaseIdToken: firebaseIdToken,
+    );
     await _store.save(result.tokens);
     final user = result.user ?? await _api.auth.me();
     _connectSocket(result.tokens.accessToken);
     state = AuthState(status: AuthStatus.authenticated, user: user);
   }
 
-  Future<void> loginWithOtp(String phone, String firebaseIdToken) async {
-    final result = await _api.auth.loginWithOtp(phone: phone, firebaseIdToken: firebaseIdToken);
-    await _store.save(result.tokens);
-    final user = result.user ?? await _api.auth.me();
-    _connectSocket(result.tokens.accessToken);
-    state = AuthState(status: AuthStatus.authenticated, user: user);
+  Future<SocialLoginOutcome> socialLogin(String firebaseIdToken, String provider) async {
+    final outcome = await _api.auth.socialLogin(firebaseIdToken: firebaseIdToken, provider: provider);
+    if (outcome is SocialLoginSuccess) {
+      final result = outcome.result;
+      await _store.save(result.tokens);
+      final user = result.user ?? await _api.auth.me();
+      _connectSocket(result.tokens.accessToken);
+      state = AuthState(status: AuthStatus.authenticated, user: user);
+    }
+    return outcome;
   }
 
   Future<void> register(Map<String, dynamic> body) async {

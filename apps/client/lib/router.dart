@@ -14,7 +14,7 @@ import 'features/onboarding/welcome_screen.dart';
 import 'features/onboarding/login_screen.dart';
 import 'features/onboarding/register_screen.dart';
 import 'features/onboarding/otp_screen.dart';
-import 'features/onboarding/login_otp_screen.dart';
+import 'features/onboarding/login_verify_screen.dart';
 import 'features/onboarding/password_reset_screen.dart';
 import 'features/order/create_order_screen.dart';
 import 'features/address/address_search_screen.dart';
@@ -45,6 +45,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
       final onAuthFlow = loc.startsWith('/welcome') ||
           loc.startsWith('/login') ||
+          loc.startsWith('/login-verify') ||
           loc.startsWith('/register') ||
           loc.startsWith('/otp') ||
           loc == '/splash';
@@ -66,7 +67,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) =>
             OtpScreen(args: state.extra as OtpArgs?),
       ),
-      GoRoute(path: '/login-otp', builder: (_, __) => const LoginOtpScreen()),
+      GoRoute(
+        path: '/login-verify',
+        builder: (_, state) {
+          final extra = state.extra as ({String challengeId, String identifier});
+          return LoginVerifyScreen(
+            challengeId: extra.challengeId,
+            phone: extra.identifier,
+            email: extra.identifier,
+          );
+        },
+      ),
       GoRoute(path: '/password-reset', builder: (_, __) => const PasswordResetScreen()),
 
       // Bottom-nav shell.
