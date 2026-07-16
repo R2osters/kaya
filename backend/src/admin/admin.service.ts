@@ -484,7 +484,7 @@ export class AdminService {
     return user;
   }
 
-  private stripUser<T extends { passwordHash?: string }>(user: T): Omit<T, 'passwordHash'> {
+  private stripUser<T extends { passwordHash?: string | null }>(user: T): Omit<T, 'passwordHash'> {
     const { passwordHash: _drop, ...rest } = user;
     return rest;
   }
