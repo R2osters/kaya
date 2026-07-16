@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, Role, User } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import { randomUUID } from 'crypto';
 import { AppConfigService } from '../config/app-config.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
@@ -85,7 +86,7 @@ export class AuthService {
     return { user: await this.toPublic(user), ...pair };
   }
 
-  async login(dto: LoginDto): Promise<{ user: PublicUser } & TokenPair> {
+  async login(dto: LoginDto): Promise<{ challengeId: string }> {
     const identifier = dto.identifier.trim();
     const idKey = identifier.toLowerCase();
 
@@ -98,8 +99,11 @@ export class AuthService {
       },
     });
 
-    // Uniform error to avoid leaking which accounts exist.
-    if (!user || !(await bcrypt.compare(dto.password, user.passwordHash))) {
+    // Uniform error to avoid leaking which accounts exist. A social-only
+    // account (null passwordHash) also falls into this branch — there is no
+    // password to compare against, so it's treated the same as "wrong
+    // password" rather than crashing bcrypt.compare with a null argument.
+    if (!user || !user.passwordHash || !(await bcrypt.compare(dto.password, user.passwordHash))) {
       await this.recordLoginFailure(idKey);
       throw new UnauthorizedException('Invalid credentials.');
     }
@@ -108,8 +112,10 @@ export class AuthService {
     }
 
     await this.clearLoginFailures(idKey);
-    const pair = await this.tokens.issueTokenPair(user);
-    return { user: await this.toPublic(user), ...pair };
+
+    const challengeId = randomUUID();
+    await this.redis.setValueEx(`login:challenge:${challengeId}`, user.id, 300);
+    return { challengeId };
   }
 
   async loginWithOtp(dto: LoginOtpDto): Promise<{ user: PublicUser } & TokenPair> {
