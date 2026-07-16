@@ -43,9 +43,15 @@ export class FirebaseAdminService {
 
   /**
    * Verifies the ID token and asserts it carries either the expected phone or
-   * the expected email claim. Used for password-login 2FA, where the user
-   * picks SMS or email as the verification channel — the backend accepts
+   * the expected VERIFIED email claim. Used for password-login 2FA, where the
+   * user picks SMS or email as the verification channel — the backend accepts
    * whichever proof arrives rather than dictating the channel.
+   *
+   * The email branch requires `email_verified: true`: without it, an
+   * attacker who already knows a victim's password could complete this 2FA
+   * step with a token from a provider that emits unverified email claims
+   * (e.g. a Facebook sign-in of their own, claiming the victim's email),
+   * bypassing the actual possession proof this method exists to enforce.
    */
   async assertPhoneOrEmailMatches(
     idToken: string,
@@ -55,14 +61,15 @@ export class FirebaseAdminService {
     if (!this.app) {
       throw new BadRequestException('Verification is not configured on the server.');
     }
-    let decoded: { phone_number?: string; email?: string };
+    let decoded: { phone_number?: string; email?: string; email_verified?: boolean };
     try {
       decoded = await getAuth(this.app).verifyIdToken(idToken);
     } catch {
       throw new BadRequestException('Invalid or expired verification.');
     }
     const phoneOk = decoded.phone_number === expectedPhone;
-    const emailOk = decoded.email?.toLowerCase() === expectedEmail.toLowerCase();
+    const emailOk =
+      !!decoded.email_verified && decoded.email?.toLowerCase() === expectedEmail.toLowerCase();
     if (!phoneOk && !emailOk) {
       throw new BadRequestException('Verification does not match the account.');
     }
