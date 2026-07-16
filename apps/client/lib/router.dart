@@ -12,8 +12,7 @@ import 'features/chat/chat_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/onboarding/welcome_screen.dart';
 import 'features/onboarding/login_screen.dart';
-import 'features/onboarding/register_screen.dart';
-import 'features/onboarding/otp_screen.dart';
+import 'features/onboarding/wizard/register_wizard_screen.dart';
 import 'features/onboarding/login_verify_screen.dart';
 import 'features/onboarding/password_reset_screen.dart';
 import 'features/order/create_order_screen.dart';
@@ -47,7 +46,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           loc.startsWith('/login') ||
           loc.startsWith('/login-verify') ||
           loc.startsWith('/register') ||
-          loc.startsWith('/otp') ||
           loc == '/splash';
 
       if (!auth.isAuthenticated) {
@@ -61,11 +59,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
       GoRoute(path: '/welcome', builder: (_, __) => const WelcomeScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
-      GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
       GoRoute(
-        path: '/otp',
-        builder: (_, state) =>
-            OtpScreen(args: state.extra as OtpArgs?),
+        path: '/register',
+        builder: (_, state) => RegisterWizardScreen(socialExtra: state.extra as SocialSignupExtra?),
       ),
       GoRoute(
         path: '/login-verify',
