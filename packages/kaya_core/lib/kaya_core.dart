@@ -63,6 +63,8 @@ export 'src/services/location_service.dart';
 export 'src/services/image_compression.dart';
 export 'src/services/fcm_service.dart';
 export 'src/services/phone_auth_service.dart';
+export 'src/services/social_auth_service.dart';
+export 'src/services/email_link_auth_service.dart';
 
 // i18n
 export 'src/l10n/kaya_l10n.dart';
