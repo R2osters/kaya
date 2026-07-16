@@ -48,4 +48,54 @@ describe('FirebaseAdminService', () => {
       misconfigured.assertPhoneMatches('token', '+233201234567'),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
+
+  describe('assertPhoneOrEmailMatches', () => {
+    it('resolves when the phone claim matches', async () => {
+      verifyIdToken.mockResolvedValue({ phone_number: '+233201234567' });
+      await expect(
+        service.assertPhoneOrEmailMatches('token', '+233201234567', 'kofi@example.com'),
+      ).resolves.toBeUndefined();
+    });
+
+    it('resolves when the email claim matches (case-insensitive)', async () => {
+      verifyIdToken.mockResolvedValue({ email: 'Kofi@Example.com' });
+      await expect(
+        service.assertPhoneOrEmailMatches('token', '+233201234567', 'kofi@example.com'),
+      ).resolves.toBeUndefined();
+    });
+
+    it('rejects when neither claim matches', async () => {
+      verifyIdToken.mockResolvedValue({ phone_number: '+233209999999', email: 'other@example.com' });
+      await expect(
+        service.assertPhoneOrEmailMatches('token', '+233201234567', 'kofi@example.com'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects an invalid token', async () => {
+      verifyIdToken.mockRejectedValue(new Error('invalid'));
+      await expect(
+        service.assertPhoneOrEmailMatches('bad-token', '+233201234567', 'kofi@example.com'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  describe('verifySocialToken', () => {
+    it('returns the email and name claims for a valid token', async () => {
+      verifyIdToken.mockResolvedValue({ email: 'kofi@example.com', name: 'Kofi Mensah' });
+      await expect(service.verifySocialToken('token')).resolves.toEqual({
+        email: 'kofi@example.com',
+        name: 'Kofi Mensah',
+      });
+    });
+
+    it('rejects a token with no email claim', async () => {
+      verifyIdToken.mockResolvedValue({ phone_number: '+233201234567' });
+      await expect(service.verifySocialToken('token')).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects an invalid token', async () => {
+      verifyIdToken.mockRejectedValue(new Error('invalid'));
+      await expect(service.verifySocialToken('bad-token')).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
 });
