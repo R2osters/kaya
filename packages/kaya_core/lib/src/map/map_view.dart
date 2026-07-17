@@ -25,25 +25,24 @@ class MapMarker {
       MapMarker(point: p, color: AppColors.primary, isVehicle: true);
 }
 
-/// Map abstraction: a real Google map when an API key is provided at build time,
-/// otherwise a stylized "silver/retro" fallback so the app is fully usable in
-/// dev and demos without a key.
+/// Map abstraction: a real map (OpenStreetMap by default, or Google Maps when
+/// an API key is provided at build time) otherwise a stylized "silver/retro"
+/// fallback so the app is fully usable in dev and demos without either.
 ///
-///   flutter run --dart-define=MAPS_API_KEY=...
+///   flutter run --dart-define=MAPS_API_KEY=...   # opts into Google Maps
 ///
-/// The concrete google_maps_flutter implementation is provided by the host app
-/// (which registers [factory]); kaya_core ships only the interface + fallback so
-/// the shared package has no hard dependency on the maps plugin.
+/// The concrete implementation (flutter_map/OSM or google_maps_flutter) is
+/// provided by the host app (which registers [factory]); kaya_core ships only
+/// the interface + fallback so the shared package has no hard dependency on
+/// either maps plugin.
 abstract class MapView extends StatelessWidget {
   const MapView({super.key});
 
-  /// Host apps set this once at startup to plug in a google_maps_flutter view.
-  /// When null (no key / not registered), [StylizedMapFallback] is used.
+  /// Host apps set this once at startup to plug in a concrete map view.
+  /// When null (not registered), [StylizedMapFallback] is used.
   static Widget Function(MapViewConfig config)? factory;
 
-  static bool get hasProvider =>
-      factory != null &&
-      const String.fromEnvironment('MAPS_API_KEY').isNotEmpty;
+  static bool get hasProvider => factory != null;
 
   static Widget build2({
     Key? key,
