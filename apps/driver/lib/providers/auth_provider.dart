@@ -32,7 +32,30 @@ class AuthController extends StateNotifier<AuthState> {
   TokenStore get _store => _ref.read(tokenStoreProvider);
   SocketService get _socket => _ref.read(socketServiceProvider);
 
+  // Dev-only bypass for local UI exploration when auth (2FA/social) can't be
+  // completed in this environment. Build with --dart-define=SKIP_AUTH=true.
+  // Never affects a normal build (defaults to false).
+  static const _skipAuth = bool.fromEnvironment('SKIP_AUTH');
+
   Future<void> _bootstrap() async {
+    if (_skipAuth) {
+      state = const AuthState(
+        status: AuthStatus.authenticated,
+        user: User(
+          id: 'dev-preview',
+          email: 'preview-driver@kaya.local',
+          phone: '+233200000001',
+          fullName: 'Preview Driver',
+          role: UserRole.livreur,
+          countryCode: CountryCode.GHA,
+          isVerified: true,
+          isOnline: true,
+          vehicleType: VehicleType.moto,
+          driverLicenseNumber: 'GH-PREVIEW-0001',
+        ),
+      );
+      return;
+    }
     final token = await _store.readAccess();
     if (token == null || token.isEmpty) {
       state = const AuthState(status: AuthStatus.unauthenticated);
