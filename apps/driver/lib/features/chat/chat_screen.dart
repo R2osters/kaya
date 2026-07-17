@@ -60,7 +60,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         children: [
           Expanded(
             child: state.loading
-                ? const Center(child: CircularProgressIndicator())
+                ? const KayaSkeletonList()
                 : ListView(
                     controller: _scroll,
                     padding: const EdgeInsets.all(16),

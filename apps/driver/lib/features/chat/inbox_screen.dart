@@ -21,7 +21,7 @@ class InboxScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.inboxTitle)),
       body: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const KayaSkeletonList(),
         error: (_, __) => Center(child: Text(l10n.commonError)),
         data: (deliveries) {
           if (deliveries.isEmpty) {
