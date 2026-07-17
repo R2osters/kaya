@@ -22,7 +22,7 @@ class NotificationsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.notifTitle)),
       body: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const KayaSkeletonList(),
         error: (_, __) => EmptyState(
           icon: Icons.notifications_none_rounded,
           title: l10n.notifTitle,

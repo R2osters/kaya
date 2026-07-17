@@ -61,7 +61,7 @@ class _ActiveDeliveryScreenState extends ConsumerState<ActiveDeliveryScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.driverActiveDelivery)),
       body: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const KayaSkeletonCard(),
         error: (_, __) => Center(child: Text(l10n.commonError)),
         data: (delivery) {
           final order = delivery.order;
