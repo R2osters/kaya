@@ -3,11 +3,56 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kaya_client/features/onboarding/login_screen.dart' show SocialSignupExtra;
 import 'package:kaya_client/features/onboarding/wizard/register_wizard_screen.dart';
 import 'package:kaya_client/features/onboarding/wizard/register_wizard_controller.dart';
 import 'package:kaya_core/kaya_core.dart';
 
 void main() {
+  testWidgets(
+      'social prefill via the real initState path (not registerWizardProvider.overrideWith, '
+      'which is a different, earlier-timing code path) shows the full name in IdentityStep '
+      'on the very first pump, before any user interaction. IdentityStep has '
+      '`late final _name = TextEditingController(text: ref.read(registerWizardProvider).fullName)` '
+      '— it reads the draft exactly once, on its own first build, and never ref.watches it '
+      'again. If RegisterWizardScreen.initState() defers prefillFromSocial (e.g. wraps it in '
+      'Future.microtask), IdentityStep builds and captures the still-blank draft before the '
+      'deferred prefill ever runs, and the name is lost forever.',
+      (tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          locale: Locale('fr'),
+          localizationsDelegates: [
+            KayaL10n.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: KayaL10n.supportedLocales,
+          home: RegisterWizardScreen(
+            socialExtra: SocialSignupExtra(
+              socialDraftToken: 'draft',
+              email: 'new@example.com',
+              fullName: 'New Person',
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Deliberately a single `pump()`, not `pumpAndSettle()`: the bug is a
+    // race between initState's prefill and IdentityStep's first build in
+    // the SAME frame, so the assertion must hold immediately after the
+    // first frame renders — not after settling, which would hide a
+    // microtask-timing bug since microtasks also flush before the next
+    // pump.
+    await tester.pump();
+
+    expect(find.text('New Person'), findsOneWidget);
+  });
+
+
   testWidgets('a social sign-up prefill locks the email field', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
