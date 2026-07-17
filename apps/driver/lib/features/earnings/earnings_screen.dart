@@ -104,7 +104,8 @@ class EarningsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             earnings.when(
-              loading: () => const KayaSkeletonList(),
+              loading: () =>
+                  const SizedBox(height: 240, child: KayaSkeletonList(count: 3)),
               error: (_, __) => Text(l10n.commonError),
               data: (txns) {
                 if (txns.isEmpty) {
