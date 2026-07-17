@@ -40,8 +40,7 @@ class HistoryScreen extends ConsumerWidget {
             ),
             Expanded(
               child: async.when(
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
+                loading: () => const KayaSkeletonList(),
                 error: (_, __) => Center(child: Text(l10n.commonError)),
                 data: (orders) {
                   final scheduled =

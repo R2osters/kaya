@@ -86,10 +86,7 @@ class OffersScreen extends ConsumerWidget {
               Text(l10n.offersTitle, style: AppTypography.sectionTitle),
               const SizedBox(height: 12),
               if (state.loading)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 48),
-                  child: Center(child: CircularProgressIndicator()),
-                )
+                const SizedBox(height: 240, child: KayaSkeletonList(count: 3))
               else if (state.offers.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 40),
