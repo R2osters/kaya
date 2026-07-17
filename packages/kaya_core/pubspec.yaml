@@ -36,6 +36,9 @@ dependencies:
   google_sign_in: ^6.2.1
   flutter_facebook_auth: ^7.0.1
 
+  # Loading states / shimmer
+  shimmer: ^3.0.0
+
   # JSON
   json_annotation: ^4.9.0
 

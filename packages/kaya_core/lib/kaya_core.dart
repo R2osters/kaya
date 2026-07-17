@@ -24,6 +24,7 @@ export 'src/theme/widgets/rating_stars.dart';
 export 'src/theme/widgets/empty_state.dart';
 export 'src/theme/widgets/bottom_sheet_shell.dart';
 export 'src/theme/widgets/kaya_avatar.dart';
+export 'src/theme/widgets/kaya_skeleton.dart';
 
 // Map abstraction
 export 'src/map/map_view.dart';
