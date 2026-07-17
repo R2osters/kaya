@@ -59,7 +59,7 @@ class _ProposePriceScreenState extends ConsumerState<ProposePriceScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.driverProposePrice)),
       body: orderAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const KayaSkeletonCard(),
         error: (_, __) => Center(child: Text(l10n.commonError)),
         data: (order) {
           final double min = order.minPriceSuggested ?? 0;

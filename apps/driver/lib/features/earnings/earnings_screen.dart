@@ -104,7 +104,7 @@ class EarningsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             earnings.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const KayaSkeletonList(),
               error: (_, __) => Text(l10n.commonError),
               data: (txns) {
                 if (txns.isEmpty) {

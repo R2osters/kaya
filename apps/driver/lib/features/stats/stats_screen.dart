@@ -24,7 +24,7 @@ class StatsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.driverStats)),
       body: stats.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const KayaSkeletonCard(),
         error: (_, __) => Center(child: Text(l10n.commonError)),
         data: (s) {
           final weekly = (s['weeklyEarnings'] as num?)?.toDouble() ?? 0;

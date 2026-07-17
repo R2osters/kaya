@@ -31,7 +31,7 @@ class ProfileScreen extends ConsumerWidget {
         ),
       ),
       body: user == null
-          ? const Center(child: CircularProgressIndicator())
+          ? const KayaSkeletonCard()
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [

@@ -25,7 +25,7 @@ class DeliveryDetailScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.driverCommission)),
       body: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const KayaSkeletonCard(),
         error: (_, __) => Center(child: Text(l10n.commonError)),
         data: (d) {
           final gross = d.basePrice ?? 0;

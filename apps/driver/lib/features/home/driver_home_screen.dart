@@ -229,11 +229,10 @@ class _DriverHomeScreenState extends ConsumerState<DriverHomeScreen> {
                         child: !online
                             ? _hint(l10n.driverOffline)
                             : nearby.when(
-                                loading: () => const Center(
-                                    child: Padding(
-                                  padding: EdgeInsets.all(24),
-                                  child: CircularProgressIndicator(),
-                                )),
+                                loading: () => const SizedBox(
+                                  height: 280,
+                                  child: KayaSkeletonList(count: 3),
+                                ),
                                 error: (_, __) => _hint(l10n.commonError),
                                 data: (orders) => orders.isEmpty
                                     ? _hint(l10n.commonEmpty)
