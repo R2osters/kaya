@@ -26,8 +26,16 @@ class _RegisterWizardScreenState extends ConsumerState<RegisterWizardScreen> {
     super.initState();
     final extra = widget.socialExtra;
     if (extra != null) {
-      // Social sign-ups skip straight to Contact (Identity's only field
-      // beyond name — which is prefilled here too — is country, still asked).
+      // IdentityStep gets the social full name synchronously via a
+      // constructor parameter below (widget.socialExtra is already
+      // available here, no provider access needed), so it renders
+      // correctly on the very first frame. The provider itself still needs
+      // socialDraftToken/email/emailLocked/fullName populated for
+      // ContactStep (watched later) and the final /auth/register payload —
+      // that write can't happen synchronously here (Riverpod forbids
+      // mutating provider state during initState/build), so it's deferred
+      // to a microtask, which still completes well before ContactStep is
+      // reached.
       Future.microtask(() {
         ref.read(registerWizardProvider.notifier).prefillFromSocial(
           email: extra.email, fullName: extra.fullName, socialDraftToken: extra.socialDraftToken);
@@ -57,7 +65,10 @@ class _RegisterWizardScreenState extends ConsumerState<RegisterWizardScreen> {
             ),
             Expanded(
               child: switch (_step) {
-                0 => IdentityStep(onNext: () => setState(() => _step = 1)),
+                0 => IdentityStep(
+                    onNext: () => setState(() => _step = 1),
+                    initialFullName: widget.socialExtra?.fullName,
+                  ),
                 1 => ContactStep(onNext: () => setState(() => _step = 2)),
                 2 => DocsMetadataStep(onNext: () => setState(() => _step = 3)),
                 _ => const SecurityStep(),

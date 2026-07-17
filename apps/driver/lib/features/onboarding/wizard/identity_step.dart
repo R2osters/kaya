@@ -5,15 +5,23 @@ import 'package:kaya_core/kaya_core.dart';
 import 'register_wizard_controller.dart';
 
 class IdentityStep extends ConsumerStatefulWidget {
-  const IdentityStep({super.key, required this.onNext});
+  const IdentityStep({super.key, required this.onNext, this.initialFullName});
   final VoidCallback onNext;
+
+  /// Full name known synchronously at construction time (e.g. from a social
+  /// sign-up), used to seed the name field immediately. Bypasses
+  /// `registerWizardProvider` for this initial value so the field is
+  /// correct on the very first build, regardless of whether the provider's
+  /// own async prefill (see `RegisterWizardScreen.initState`) has run yet.
+  final String? initialFullName;
 
   @override
   ConsumerState<IdentityStep> createState() => _IdentityStepState();
 }
 
 class _IdentityStepState extends ConsumerState<IdentityStep> {
-  late final _name = TextEditingController(text: ref.read(registerWizardProvider).fullName);
+  late final _name = TextEditingController(
+    text: widget.initialFullName ?? ref.read(registerWizardProvider).fullName);
   CountryCode _country = CountryCode.GHA;
 
   @override
