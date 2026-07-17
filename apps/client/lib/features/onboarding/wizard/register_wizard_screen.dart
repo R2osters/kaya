@@ -36,6 +36,14 @@ class _RegisterWizardScreenState extends ConsumerState<RegisterWizardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // registerWizardProvider is `autoDispose`, and only ContactStep ever
+    // `ref.watch`es it (IdentityStep/SecurityStep only `ref.read` it). With
+    // no watcher kept alive for the screen's own lifetime, the provider's
+    // listener count drops to zero the moment ContactStep unmounts — which
+    // resets the draft to blank right before SecurityStep reads it to build
+    // the /auth/register payload. Watching it here, at the wizard-shell
+    // level, keeps it alive for as long as RegisterWizardScreen is mounted.
+    ref.watch(registerWizardProvider);
     final l10n = KayaL10n.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(l10n.authRegister)),
