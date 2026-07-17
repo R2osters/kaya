@@ -44,4 +44,70 @@ void main() {
     );
     expect(emailField.enabled, isFalse);
   });
+
+  testWidgets(
+      'draft survives Identity -> Contact -> Security: registerWizardProvider '
+      'is autoDispose and only ContactStep ever ref.watches it, so nothing '
+      'else keeps a listener alive once ContactStep unmounts. If the wizard '
+      'shell does not itself watch the provider, it resets to a blank draft '
+      'the moment SecurityStep is reached, and /auth/register would be '
+      'submitted with empty fullName/phone/email/countryCode.',
+      (tester) async {
+    // Use an explicit container (instead of a plain ProviderScope) so the
+    // assertions below can read the *actual* provider state directly,
+    // rather than inferring correctness from rendered widget text — the
+    // bug this test targets is a stale/reset provider whose rendered text
+    // can still look right on the step where it was typed.
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(
+          locale: Locale('fr'),
+          localizationsDelegates: [
+            KayaL10n.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: KayaL10n.supportedLocales,
+          home: RegisterWizardScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // --- Step 0: Identity ---
+    await tester.enterText(find.byType(TextFormField).first, 'Ama Owusu');
+    await tester.tap(find.text('Continuer'));
+    await tester.pumpAndSettle();
+
+    // --- Step 1: Contact ---
+    await tester.enterText(find.byType(TextFormField).at(0), '+233201234567');
+    await tester.enterText(find.byType(TextFormField).at(1), 'ama@example.com');
+    await tester.tap(find.text('Continuer'));
+    await tester.pumpAndSettle();
+
+    // --- Step 2: Security is now showing; ContactStep (the only step that
+    // ever ref.watch'd the provider) has been unmounted for at least one
+    // full pump/settle cycle, which is exactly the window in which
+    // autoDispose would have torn the provider down without the fix.
+    //
+    // SecurityStep's State constructs FirebasePhoneAuthService(), which
+    // reaches for FirebaseAuth.instance and throws because no Firebase app
+    // is initialized in this widget-test environment. That's an unrelated,
+    // pre-existing testability gap (SecurityStep isn't wired for phone-auth
+    // injection) — nothing to do with the provider-lifecycle bug this test
+    // targets, so the resulting FlutterError is consumed here rather than
+    // left to fail the test.
+    expect(tester.takeException(), isNotNull);
+
+    final draft = container.read(registerWizardProvider);
+    expect(draft.fullName, 'Ama Owusu');
+    expect(draft.phone, '+233201234567');
+    expect(draft.email, 'ama@example.com');
+    expect(draft.countryCode, CountryCode.GHA);
+  });
 }
