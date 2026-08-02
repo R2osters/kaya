@@ -35,6 +35,20 @@ describe("country and currency metadata", () => {
     expect(parseCountryCode(undefined)).toBe("GHA");
     expect(parseCurrency("ZZZ")).toBe("GHS");
   });
+
+  it("prevents mutations to COUNTRIES at runtime", () => {
+    const originalDisplayName = COUNTRIES.GHA.displayName;
+    // Attempt to mutate the frozen object in strict mode (ES modules).
+    // Under strict mode, assignment to a frozen object throws TypeError.
+    // We verify the observable outcome: the value did not change.
+    expect(() => {
+      // @ts-expect-error - intentionally testing that mutations are blocked
+      COUNTRIES.GHA.displayName = "Corrupted";
+    }).toThrow(TypeError);
+    // Verify that the value remains unchanged despite the mutation attempt.
+    expect(COUNTRIES.GHA.displayName).toBe(originalDisplayName);
+    expect(COUNTRIES.GHA.displayName).toBe("Ghana");
+  });
 });
 
 describe("formatMoney", () => {
