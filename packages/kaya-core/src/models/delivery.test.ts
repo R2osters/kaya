@@ -57,6 +57,20 @@ describe("offerSchema", () => {
     expect(o.driver).toBeNull();
     expect(o.status).toBe("pending");
   });
+
+  it.each([
+    ["an empty array", []],
+    ["a populated array", [{ id: "u1", fullName: "Kwame Mensah", role: "livreur" }]],
+    ["a Date", new Date("2026-08-02T10:00:00.000Z")],
+    ["a string", "not-a-relation"],
+    ["a number", 42],
+  ])("degrades livreur to null without throwing when it is %s", (_label, livreur) => {
+    expect(() =>
+      offerSchema.parse({ id: "of3", orderId: "o1", livreurId: "u3", livreur }),
+    ).not.toThrow();
+    const o = offerSchema.parse({ id: "of3", orderId: "o1", livreurId: "u3", livreur });
+    expect(o.driver).toBeNull();
+  });
 });
 
 describe("timelineStep", () => {
@@ -100,4 +114,32 @@ describe("timelineStep", () => {
   it("defaults the litigation fee to 1", () => {
     expect(deliverySchema.parse(base).litigationFee).toBe(1);
   });
+
+  it("parses the embedded order and livreur relations when present as plain objects", () => {
+    const d = deliverySchema.parse({
+      ...base,
+      order: { id: "o1", status: "in_transit" },
+      livreur: { id: "u1", fullName: "Kwame Mensah", role: "livreur" },
+    });
+    expect(d.order?.status).toBe("in_transit");
+    expect(d.driver?.fullName).toBe("Kwame Mensah");
+  });
+
+  it.each([
+    ["an empty array", []],
+    ["a populated array", [{ id: "o1", status: "in_transit" }]],
+    ["a Date", new Date("2026-08-02T10:00:00.000Z")],
+    ["a string", "not-a-relation"],
+    ["a number", 42],
+  ])(
+    "degrades order and livreur to null without throwing when they are %s",
+    (_label, relation) => {
+      expect(() =>
+        deliverySchema.parse({ ...base, order: relation, livreur: relation }),
+      ).not.toThrow();
+      const d = deliverySchema.parse({ ...base, order: relation, livreur: relation });
+      expect(d.order).toBeNull();
+      expect(d.driver).toBeNull();
+    },
+  );
 });

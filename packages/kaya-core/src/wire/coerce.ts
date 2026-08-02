@@ -69,3 +69,20 @@ export const jsonMap = () =>
       ? (v as Record<string, unknown>)
       : {},
   );
+
+/**
+ * Mirrors Dart's `j['field'] is Map` guard used by the legacy models
+ * (`legacy/flutter/kaya_core/lib/src/models/offer.dart`, `delivery.dart`)
+ * to decide whether an embedded relation was actually included by the API.
+ *
+ * `typeof v === "object"` alone is too permissive: it is also true for
+ * arrays, `Date`, `Map`, and `Set`, none of which is a shape a JSON relation
+ * payload ever takes. An empty-include artifact like `livreur: []` must
+ * degrade to `null` like any other missing relation, not throw out of the
+ * surrounding `.transform()` when handed to a nested `z.object(...).parse`.
+ */
+export function isPlainObject(v: unknown): v is Record<string, unknown> {
+  if (v === null || typeof v !== "object" || Array.isArray(v)) return false;
+  if (v instanceof Date || v instanceof Map || v instanceof Set) return false;
+  return true;
+}
