@@ -38,6 +38,15 @@ describe("userSchema", () => {
     expect(u.vehicleType).toBeNull();
   });
 
+  it("coerces age like the Dart asIntOrNull (0 is not null, decimals truncate)", () => {
+    expect(userSchema.parse({ ...raw, age: 0 }).age).toBe(0);
+    expect(userSchema.parse({ ...raw, age: "0" }).age).toBe(0);
+    expect(userSchema.parse({ ...raw, age: "25" }).age).toBe(25);
+    expect(userSchema.parse({ ...raw, age: "25.9" }).age).toBe(25);
+    expect(userSchema.parse({ ...raw, age: null }).age).toBeNull();
+    expect(userSchema.parse({ ...raw }).age).toBeNull();
+  });
+
   it("derives role predicates and currency", () => {
     const driver = userSchema.parse(raw);
     expect(isDriver(driver)).toBe(true);

@@ -10,16 +10,16 @@ describe("countryConfigSchema", () => {
       currencySymbol: "XOF",
       pricePerKm: "150",
       basePickupFee: "300",
-      commissionTier1: "0.20",
-      commissionTier2: "0.15",
-      commissionTier3: "0.12",
-      commissionTier4: "0.09",
+      commissionTier1: "0.25",
+      commissionTier2: "0.18",
+      commissionTier3: "0.14",
+      commissionTier4: "0.10",
       litigationFee: "100",
       searchRadiusKm: 5,
       withdrawalMethods: ["momo", "bank_transfer"],
       momoProviders: ["Moov", "Togocom"],
     });
-    expect(c.commissionTiers).toEqual([0.2, 0.15, 0.12, 0.09]);
+    expect(c.commissionTiers).toEqual([0.25, 0.18, 0.14, 0.1]);
     expect(c.currency).toBe("XOF");
     expect(c.pricePerKm).toBe(150);
     expect(c.litigationFee).toBe(100);
