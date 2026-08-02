@@ -2230,7 +2230,9 @@ Co-Authored-By: assistant Opus 5 <noreply@anthropic.com>"
 - Test: `packages/kaya-core/src/api/client.test.ts`
 
 **Interfaces:**
-- Consumes: `ApiFailure`/`toApiFailure` (Task 8), `authTokensSchema`/`AuthTokens` (Task 7), `TokenStore` (Task 12 — declared here as a structural type to avoid a cycle; Task 12 exports the canonical interface with the identical shape).
+- Consumes: `ApiFailure`/`toApiFailure` (Task 8), `authTokensSchema`/`AuthTokens` (Task 7), `TokenStore` from `../storage/tokenStore` (Task 12).
+
+**Execution order:** Task 12 must be implemented before this task — the client and its test import `TokenStore` from `../storage/tokenStore`. Task 12 depends only on Task 7, so the dispatch order is 1–8, 12, 9, 10, 11, 13, 14.
 - Produces: `class ApiConfig` with `restBaseUrl` and `socketUrl` getters; `createHttpClient(opts: { config: ApiConfig; store: TokenStore; onSessionExpired: () => Promise<void> | void }): AxiosInstance`.
 
 **Note on request flags:** requests may set `config.skipAuth = true` to omit the bearer header and skip refresh entirely. The interceptor sets `config.retried = true` before replaying, so a request is replayed at most once.
@@ -3546,16 +3548,20 @@ describe("translation resources", () => {
 });
 
 describe("createI18n", () => {
-  it("defaults to French", async () => {
-    const i18n = createI18n();
-    await i18n.init;
-    expect(i18n.language).toBe("fr");
+  // createI18n initialises synchronously from bundled resources — there is no
+  // backend to await, so the language is already set when it returns.
+  it("defaults to French", () => {
+    expect(createI18n().language).toBe("fr");
   });
 
-  it("switches language", async () => {
-    const i18n = createI18n("en");
-    await i18n.init;
-    expect(i18n.language).toBe("en");
+  it("switches language", () => {
+    expect(createI18n("en").language).toBe("en");
+  });
+
+  it("translates a known key in both languages", () => {
+    const key = Object.keys(fr)[0] as string;
+    expect(createI18n("fr").t(key)).toBe((fr as Record<string, string>)[key]);
+    expect(createI18n("en").t(key)).toBe((en as Record<string, string>)[key]);
   });
 });
 ```
@@ -3602,7 +3608,7 @@ export function createI18n(locale: Locale = "fr"): i18n {
 - [ ] **Step 6: Run the test to verify it passes**
 
 Run: `npm test -w @kaya/core -- i18n`
-Expected: PASS, 5 tests.
+Expected: PASS, 6 tests.
 
 - [ ] **Step 7: Commit**
 
