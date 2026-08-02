@@ -4,6 +4,7 @@ import {
   boolLike,
   decimalLike,
   intLike,
+  intLikeOrNull,
   stringLike,
   stringLikeOrNull,
 } from "../wire/coerce";
@@ -17,7 +18,7 @@ export const userSchema = z.object({
   fullName: stringLike(),
   role: userRole,
   countryCode: z.unknown().transform(parseCountryCode),
-  age: z.unknown().transform((v) => (v === null || v === undefined ? null : Number(v) || null)),
+  age: intLikeOrNull(),
   city: stringLikeOrNull(),
   profilePhoto: stringLikeOrNull(),
   idCardPhoto: stringLikeOrNull(),
