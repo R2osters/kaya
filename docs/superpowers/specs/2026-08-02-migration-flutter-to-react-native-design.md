@@ -60,8 +60,16 @@ actuel — `API_BASE_URL`, `MAPS_API_KEY`, `SKIP_AUTH`, `OTP_DISABLED`.
 | `api/` | Client HTTP, ~40 endpoints, intercepteur auth | `src/api/kaya_api.dart`, `auth_interceptor.dart`, `api_config.dart` |
 | `errors/` | `ApiFailure` + `FailureKind` (network, timeout, unauthorized, forbidden, notFound, conflict, validation, server, cancelled, unknown) + erreurs de champ class-validator | `src/api/api_failure.dart` |
 | `realtime/` | socket.io-client, événements typés Zod | `src/realtime/*.dart` |
-| `storage/` | Interface `TokenStore` sur `expo-secure-store` | `src/services/secure_token_storage.dart` |
-| `i18n/` | 155 clés FR/EN via `i18next` + `react-i18next` ; les `.arb` restent la source formelle, convertis une fois en JSON | `lib/l10n/app_{fr,en}.arb` |
+| `storage/` | Interface `TokenStore` + `InMemoryTokenStore` **uniquement** (l'implémentation `expo-secure-store` vit dans `@kaya/ui`, cf. ci-dessous) | `src/services/secure_token_storage.dart` |
+| `i18n/` | 155 clés FR/EN + fabrique d'instance `i18next` (pur JS) ; le provider `react-i18next` vit dans `@kaya/ui`. Les `.arb` restent la source formelle, convertis une fois en JSON | `lib/l10n/app_{fr,en}.arb` |
+
+**Frontière `@kaya/core` / `@kaya/ui`.** D2 impose que `@kaya/core` n'importe jamais `react-native`.
+Tout module dont l'implémentation touche une API native ou React est donc scindé : `@kaya/core`
+définit l'**interface** et une implémentation pure testable en jest node, `@kaya/ui` fournit
+l'**adaptateur de plateforme**. Cela concerne le stockage sécurisé (`expo-secure-store`), le
+provider i18n (`react-i18next`), la géolocalisation (`expo-location`), la compression d'image
+(`expo-image-manipulator`) et le push (`@react-native-firebase/messaging`). `socket.io-client`,
+`zod` et `i18next` sont du JS pur et restent dans `@kaya/core`.
 
 **Comportement critique à porter tel quel — intercepteur auth.** Sur 401 : refresh JWT, rejeu de la
 requête **une seule fois** (`retried`), en-tête `Authorization` sauf `skipAuth`. Les refresh
@@ -82,6 +90,11 @@ Rayons 14–28 px, cibles tactiles ≥ 44 px, Inter 400–800.
 
 Composants : `KayaButton`, `KayaCard`, `KayaTextField`, `KayaAvatar`, `StatusPill`, `RatingStars`,
 `KayaSkeleton`, `EmptyState`, `BottomSheetShell`, `MapView`.
+
+Adaptateurs de plateforme (cf. frontière § 4) : `SecureTokenStore` (`expo-secure-store`),
+`KayaI18nProvider` (`react-i18next`), `LocationAdapter` (`expo-location`), `ImageAdapter`
+(`expo-image-picker` + `expo-image-manipulator`), `PushAdapter`
+(`@react-native-firebase/messaging`). Chacun implémente une interface déclarée dans `@kaya/core`.
 
 Icônes : `lucide-react-native`. Animations / shimmer : `react-native-reanimated`.
 Thème sombre : hors périmètre (idem BLUEPRINT).
