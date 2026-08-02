@@ -5,6 +5,7 @@ import {
   decimalLike,
   decimalLikeOrNull,
   intLike,
+  isPlainObject,
   jsonMap,
   stringLikeOrNull,
 } from "./coerce";
@@ -63,6 +64,29 @@ describe("jsonMap", () => {
     expect(jsonMap().parse({ a: 1 })).toEqual({ a: 1 });
     expect(jsonMap().parse(null)).toEqual({});
     expect(jsonMap().parse("nope")).toEqual({});
+  });
+});
+
+describe("isPlainObject", () => {
+  it("accepts plain objects", () => {
+    expect(isPlainObject({ id: "u1" })).toBe(true);
+    expect(isPlainObject({})).toBe(true);
+  });
+
+  it("rejects null, arrays and exotic objects", () => {
+    expect(isPlainObject(null)).toBe(false);
+    expect(isPlainObject([])).toBe(false);
+    expect(isPlainObject([{ id: "u1" }])).toBe(false);
+    expect(isPlainObject(new Date())).toBe(false);
+    expect(isPlainObject(new Map())).toBe(false);
+    expect(isPlainObject(new Set())).toBe(false);
+  });
+
+  it("rejects primitives and undefined", () => {
+    expect(isPlainObject(undefined)).toBe(false);
+    expect(isPlainObject("nope")).toBe(false);
+    expect(isPlainObject(42)).toBe(false);
+    expect(isPlainObject(true)).toBe(false);
   });
 });
 

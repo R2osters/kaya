@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { dateLike, dateLikeOrNull, decimalLike, stringLike } from "../wire/coerce";
+import { dateLike, dateLikeOrNull, decimalLike, isPlainObject, stringLike } from "../wire/coerce";
 import { offerStatus } from "../wire/enums";
 import { userSchema } from "./user";
 
@@ -28,10 +28,7 @@ export const offerSchema = z
     status: o.status,
     createdAt: o.createdAt,
     expiresAt: o.expiresAt,
-    driver:
-      o.livreur !== null && typeof o.livreur === "object"
-        ? userSchema.parse(o.livreur)
-        : null,
+    driver: isPlainObject(o.livreur) ? userSchema.parse(o.livreur) : null,
   }));
 
 export type Offer = z.infer<typeof offerSchema>;

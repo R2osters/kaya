@@ -4,6 +4,7 @@ import {
   dateLikeOrNull,
   decimalLike,
   decimalLikeOrNull,
+  isPlainObject,
   stringLike,
   stringLikeOrNull,
 } from "../wire/coerce";
@@ -57,14 +58,8 @@ export const deliverySchema = z
     litigationFee: d.litigationFee,
     netEarnings: d.netEarnings,
     createdAt: d.createdAt,
-    order:
-      d.order !== null && typeof d.order === "object"
-        ? orderSchema.parse(d.order)
-        : null,
-    driver:
-      d.livreur !== null && typeof d.livreur === "object"
-        ? userSchema.parse(d.livreur)
-        : null,
+    order: isPlainObject(d.order) ? orderSchema.parse(d.order) : null,
+    driver: isPlainObject(d.livreur) ? userSchema.parse(d.livreur) : null,
   }));
 
 export type Delivery = z.infer<typeof deliverySchema>;
