@@ -17,11 +17,26 @@ export interface CountryMeta {
   readonly currency: Currency;
 }
 
-export const COUNTRIES: Record<CountryCode, CountryMeta> = {
-  GHA: { code: "GHA", displayName: "Ghana", flag: "🇬🇭", currency: "GHS" },
-  TGO: { code: "TGO", displayName: "Togo", flag: "🇹🇬", currency: "XOF" },
-  BEN: { code: "BEN", displayName: "Bénin", flag: "🇧🇯", currency: "XOF" },
-};
+export const COUNTRIES: Record<CountryCode, CountryMeta> = Object.freeze({
+  GHA: Object.freeze({
+    code: "GHA",
+    displayName: "Ghana",
+    flag: "🇬🇭",
+    currency: "GHS",
+  }),
+  TGO: Object.freeze({
+    code: "TGO",
+    displayName: "Togo",
+    flag: "🇹🇬",
+    currency: "XOF",
+  }),
+  BEN: Object.freeze({
+    code: "BEN",
+    displayName: "Bénin",
+    flag: "🇧🇯",
+    currency: "XOF",
+  }),
+});
 
 export function currencyForCountry(code: CountryCode): Currency {
   return COUNTRIES[code].currency;
@@ -32,12 +47,22 @@ export function currencyDecimals(currency: Currency): number {
   return currency === "XOF" ? 0 : 2;
 }
 
+/**
+ * Parses a country code from an unknown value. Falls back to "GHA" if the value
+ * is not recognized. Fallback is used because an unrecognised code from the
+ * backend must never throw mid-screen; a safe default ensures graceful degradation.
+ */
 export function parseCountryCode(value: unknown): CountryCode {
   return COUNTRY_CODES.includes(value as CountryCode)
     ? (value as CountryCode)
     : "GHA";
 }
 
+/**
+ * Parses a currency code from an unknown value. Falls back to "GHS" if the value
+ * is not recognized. Fallback is used because an unrecognised code from the
+ * backend must never throw mid-screen; a safe default ensures graceful degradation.
+ */
 export function parseCurrency(value: unknown): Currency {
   return CURRENCIES.includes(value as Currency) ? (value as Currency) : "GHS";
 }
