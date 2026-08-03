@@ -262,6 +262,10 @@ const ratingListItemSchema = z
 export type RatingListItem = z.infer<typeof ratingListItemSchema>;
 
 const ratingsPageSchema = z.object({
+  // `page` and `limit` are carried through: the backend paginates this list, so
+  // dropping them would leave a caller unable to fetch the second page.
+  page: intLike(1),
+  limit: intLike(20),
   average: decimalLike(0),
   count: intLike(0),
   ratings: z
