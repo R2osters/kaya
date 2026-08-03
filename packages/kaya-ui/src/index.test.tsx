@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react-native";
 import { Text } from "react-native";
-import { KayaButton, KayaCard } from "./index";
+import { KayaAvatar, KayaButton, KayaCard, RatingStars, StatusPill } from "./index";
 
 // The previous task shipped a manifest pointing at a barrel that did not
 // exist, and nothing caught it. This suite renders each component reached
@@ -19,5 +19,20 @@ describe("package entry point: components", () => {
       </KayaCard>,
     );
     expect(screen.getByTestId("root-card")).toBeTruthy();
+  });
+
+  it("reaches StatusPill through the package root", () => {
+    render(<StatusPill label="Livré" testID="root-pill" />);
+    expect(screen.getByTestId("root-pill")).toBeTruthy();
+  });
+
+  it("reaches RatingStars through the package root", () => {
+    render(<RatingStars value={3} testID="root-stars" />);
+    expect(screen.getByTestId("root-stars")).toBeTruthy();
+  });
+
+  it("reaches KayaAvatar through the package root", () => {
+    render(<KayaAvatar name="Ama Owusu" testID="root-avatar" />);
+    expect(screen.getByTestId("root-avatar")).toBeTruthy();
   });
 });
