@@ -1,6 +1,16 @@
 import { render, screen } from "@testing-library/react-native";
 import { Text } from "react-native";
-import { KayaAvatar, KayaButton, KayaCard, RatingStars, StatusPill } from "./index";
+import {
+  BottomSheetShell,
+  EmptyState,
+  KayaAvatar,
+  KayaButton,
+  KayaCard,
+  KayaSkeleton,
+  KayaTextField,
+  RatingStars,
+  StatusPill,
+} from "./index";
 
 // The previous task shipped a manifest pointing at a barrel that did not
 // exist, and nothing caught it. This suite renders each component reached
@@ -34,5 +44,29 @@ describe("package entry point: components", () => {
   it("reaches KayaAvatar through the package root", () => {
     render(<KayaAvatar name="Ama Owusu" testID="root-avatar" />);
     expect(screen.getByTestId("root-avatar")).toBeTruthy();
+  });
+
+  it("reaches KayaTextField through the package root", () => {
+    render(<KayaTextField value="" onChangeText={jest.fn()} testID="root-field" />);
+    expect(screen.getByTestId("root-field")).toBeTruthy();
+  });
+
+  it("reaches EmptyState through the package root", () => {
+    render(<EmptyState icon={<Text>icon</Text>} title="Vide" testID="root-empty" />);
+    expect(screen.getByTestId("root-empty")).toBeTruthy();
+  });
+
+  it("reaches BottomSheetShell through the package root", () => {
+    render(
+      <BottomSheetShell visible onClose={jest.fn()} testID="root-sheet">
+        <Text>contenu</Text>
+      </BottomSheetShell>,
+    );
+    expect(screen.getByTestId("root-sheet")).toBeTruthy();
+  });
+
+  it("reaches KayaSkeleton through the package root", () => {
+    render(<KayaSkeleton testID="root-skeleton" />);
+    expect(screen.getByTestId("root-skeleton")).toBeTruthy();
   });
 });
