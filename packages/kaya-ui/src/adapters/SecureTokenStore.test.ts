@@ -80,4 +80,15 @@ describe("SecureTokenStore", () => {
       "keychain write failed",
     );
   });
+
+  it("propagates a rejecting clear, so a failed sign-out is not reported as done", async () => {
+    // clear() is a write for this purpose. Swallowing its failure would leave
+    // the tokens on the device while the app shows a signed-out screen — the
+    // one outcome worse than a sign-out that visibly fails.
+    mockedDelete.mockRejectedValue(new Error("keychain delete failed"));
+
+    const store = new SecureTokenStore();
+
+    await expect(store.clear()).rejects.toThrow("keychain delete failed");
+  });
 });
