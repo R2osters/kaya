@@ -48,4 +48,19 @@ describe("roundMoney", () => {
     expect(roundMoney(Infinity)).toBe(Infinity);
     expect(roundMoney(-Infinity)).toBe(-Infinity);
   });
+
+  it("normalises negative-zero results to plain zero", () => {
+    // Without the fix, sign (-1) * roundedUnits (0) is -0, which formatMoney
+    // would render as "-0.00 GHS".
+    const result = roundMoney(-0.001);
+    expect(result).toBe(0);
+    expect(Object.is(result, -0)).toBe(false);
+  });
+
+  it("rounds to zero decimals for zero-decimal currencies like XOF", () => {
+    expect(roundMoney(187.5, 0)).toBe(188);
+    expect(roundMoney(962.5, 0)).toBe(963);
+    expect(roundMoney(-187.5, 0)).toBe(-188);
+    expect(roundMoney(1250, 0)).toBe(1250);
+  });
 });
