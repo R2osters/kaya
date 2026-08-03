@@ -34,19 +34,19 @@ jobs:
           channel: stable
           cache: true
       - name: Analyze & test kaya_core
-        working-directory: packages/kaya_core
+        working-directory: legacy/flutter/kaya_core
         run: |
           flutter pub get
           flutter analyze
           flutter test
       - name: Analyze & test client app
-        working-directory: apps/client
+        working-directory: legacy/flutter/client
         run: |
           flutter pub get
           flutter analyze
           flutter test
       - name: Analyze & test driver app
-        working-directory: apps/driver
+        working-directory: legacy/flutter/driver
         run: |
           flutter pub get
           flutter analyze
