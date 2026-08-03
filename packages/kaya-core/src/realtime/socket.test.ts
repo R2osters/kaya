@@ -150,6 +150,22 @@ describe("SocketService", () => {
     expect(() => fake.trigger("offer:new", null)).not.toThrow();
   });
 
+  it("contains a throwing onPayloadError so it cannot crash the transport", () => {
+    // socket.io dispatches from inside its own packet handling, so anything
+    // that escapes this listener is an uncaught exception the app cannot wrap.
+    const svc = new SocketService(config, {
+      onPayloadError: () => {
+        throw new Error("telemetry blew up");
+      },
+    });
+    svc.connect("t");
+    const received: unknown[] = [];
+    svc.on("offer:new", (e) => received.push(e));
+
+    expect(() => fake.trigger("offer:new", null)).not.toThrow();
+    expect(received).toHaveLength(0);
+  });
+
   it("on() returns an unsubscribe function that detaches the listener", () => {
     const svc = new SocketService(config);
     svc.connect("t");

@@ -265,7 +265,14 @@ export class SocketService {
       try {
         parsed = PARSERS[event].parse(raw) as SocketEventMap[K];
       } catch (err) {
-        this.onPayloadError(event, err, raw);
+        // The reporter is caller-supplied — logging or telemetry that throws
+        // would escape uncaught from socket.io's transport dispatch, which is
+        // the very crash this parse guard exists to prevent.
+        try {
+          this.onPayloadError(event, err, raw);
+        } catch {
+          // deliberately swallowed
+        }
         return;
       }
       if (!this.isJoinedScope(event, parsed)) {
