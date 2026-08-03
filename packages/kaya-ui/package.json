@@ -10,7 +10,9 @@
     "lint": "cross-env ESLINT_USE_FLAT_CONFIG=false eslint src --ext .ts,.tsx"
   },
   "dependencies": {
-    "@kaya/core": "*"
+    "@kaya/core": "*",
+    "lucide-react-native": "^0.475.0",
+    "react-native-svg": "^15.12.1"
   },
   "peerDependencies": {
     "react": "*",

@@ -5,3 +5,6 @@
 export * from "./theme";
 export * from "./components/KayaButton";
 export * from "./components/KayaCard";
+export * from "./components/StatusPill";
+export * from "./components/RatingStars";
+export * from "./components/KayaAvatar";
