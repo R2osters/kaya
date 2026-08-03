@@ -50,6 +50,20 @@ describe("messageSchema", () => {
     expect(m.isRead).toBe(true);
   });
 
+  it("keeps a falsy camelCase value rather than falling back", () => {
+    // `pick` falls back only on undefined/null, matching Dart's `??`. A camel
+    // `false` must beat a snake `true`, not be treated as absent.
+    const m = messageSchema.parse({ ...SNAKE, is_read: true, isRead: false });
+    expect(m.isRead).toBe(false);
+
+    const empty = messageSchema.parse({
+      ...SNAKE,
+      message_text: "from snake",
+      messageText: "",
+    });
+    expect(empty.messageText).toBe("");
+  });
+
   it("falls back to snake_case when the camelCase key is null", () => {
     const m = messageSchema.parse({ ...SNAKE, deliveryId: null });
     expect(m.deliveryId).toBe("d1");
