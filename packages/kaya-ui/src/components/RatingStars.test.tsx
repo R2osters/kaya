@@ -21,6 +21,32 @@ describe("RatingStars", () => {
     expect(kinds()).toEqual(["filled", "filled", "filled", "filled", "half"]);
   });
 
+  it("puts the half-star cutoff exactly at .25, inclusive", () => {
+    // The rule is `value - i >= 0.25`. Pinning both sides of the boundary is
+    // what stops a later refactor from turning >= into > unnoticed.
+    render(<RatingStars value={4.25} />);
+    expect(kinds()[4]).toBe("half");
+
+    screen.unmount();
+    render(<RatingStars value={4.24} />);
+    expect(kinds()[4]).toBe("outline");
+  });
+
+  it("renders all outlines at zero and all fills at the maximum", () => {
+    render(<RatingStars value={0} />);
+    expect(kinds()).toEqual(["outline", "outline", "outline", "outline", "outline"]);
+
+    screen.unmount();
+    render(<RatingStars value={5} />);
+    expect(kinds()).toEqual(["filled", "filled", "filled", "filled", "filled"]);
+  });
+
+  it("does not render past count when the value exceeds it", () => {
+    render(<RatingStars value={9} />);
+    expect(kinds()).toHaveLength(5);
+    expect(kinds().every((k) => k === "filled")).toBe(true);
+  });
+
   it("is read-only unless onRate is supplied", () => {
     render(<RatingStars value={3} />);
     expect(screen.getByTestId("star-0")).not.toBeDisabled();
