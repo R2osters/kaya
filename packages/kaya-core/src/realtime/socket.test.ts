@@ -358,6 +358,52 @@ describe("SocketService", () => {
     ]);
   });
 
+  it("re-joins previously joined rooms after connect() rebuilds the socket for a token refresh", () => {
+    // A driver mid-delivery whose 15-minute access token expires calls
+    // connect() again. If the joined ids were dropped on the rebuild, the new
+    // socket would report connected, fire onConnectionChange(true) and receive
+    // nothing — with the local filter discarding whatever did arrive, so the
+    // tracking screen would sit silently dead until it was remounted.
+    const svc = new SocketService(config);
+    svc.connect("t1");
+    svc.joinDelivery("d1");
+    svc.joinOrder("o1");
+
+    const second = new FakeSocket();
+    mockedIo.mockReturnValue(second);
+    svc.connect("t2");
+    second.trigger("connect", undefined);
+
+    expect(second.emitted).toEqual([
+      { event: SOCKET_EVENTS.joinDelivery, payload: { delivery_id: "d1" } },
+      { event: SOCKET_EVENTS.joinOrder, payload: { order_id: "o1" } },
+    ]);
+
+    // And events for those rooms still reach handlers through the filter.
+    const received: unknown[] = [];
+    svc.on("delivery:status", (e) => received.push(e));
+    second.trigger("delivery:status", {
+      delivery_id: "d1",
+      status: "picked_up",
+      timestamp: "2026-08-03T10:30:00.000Z",
+    });
+    expect(received).toHaveLength(1);
+  });
+
+  it("forgets joined rooms after an explicit disconnect, unlike a token-refresh rebuild", () => {
+    const svc = new SocketService(config);
+    svc.connect("t1");
+    svc.joinDelivery("d1");
+    svc.disconnect();
+
+    const second = new FakeSocket();
+    mockedIo.mockReturnValue(second);
+    svc.connect("t2");
+    second.trigger("connect", undefined);
+
+    expect(second.emitted).toEqual([]);
+  });
+
   it("does not replay a room that was left before the reconnect", () => {
     const svc = new SocketService(config);
     svc.connect("t");

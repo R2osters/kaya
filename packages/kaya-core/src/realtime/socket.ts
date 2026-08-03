@@ -194,7 +194,10 @@ export class SocketService {
    * down and reconnects with the new token.
    */
   connect(accessToken: string): void {
-    if (this.socket !== null) this.disconnect();
+    // Tears down the transport only. `disconnect()` would additionally clear
+    // the joined-id sets, which is what the caller means when *they* call it,
+    // but not what rebuilding the socket under a new token means.
+    this.teardownSocket();
     const socket = io(this.config.socketUrl, {
       transports: ["websocket"],
       auth: { token: accessToken },
@@ -203,10 +206,16 @@ export class SocketService {
       reconnectionDelayMax: 10_000,
     });
     this.socket = socket;
-    // A freshly opened socket is not in any room yet -- any ids joined
-    // against a previous socket are no longer valid.
-    this.joinedDeliveryIds.clear();
-    this.joinedOrderIds.clear();
+    // The joined-id sets are deliberately *kept*. They record what the caller
+    // asked to watch, not what a particular transport happens to have joined,
+    // and the `connect` handler below replays them onto the new socket. This
+    // matters most on the documented token-refresh path: a driver mid-delivery
+    // whose 15-minute access token expires would otherwise end up on a socket
+    // that reports `connected`, fires `onConnectionChange(true)`, and receives
+    // nothing -- the local filter dropping whatever did arrive -- with no
+    // symptom until the screen is remounted. `disconnect()` is the only place
+    // that clears them, because that is the only place the caller has said it
+    // is done watching.
 
     // Re-attach every handler registered via on() (possibly before this
     // connect() call, possibly against a now-torn-down previous socket) --
@@ -236,20 +245,30 @@ export class SocketService {
     });
   }
 
-  disconnect(): void {
+  /**
+   * Closes the current transport and reports the state change. Leaves the
+   * joined-id sets alone: they record what the caller asked to watch, which
+   * outlives any particular socket.
+   */
+  private teardownSocket(): void {
     const hadSocket = this.socket !== null;
     this.socket?.removeAllListeners();
     this.socket?.disconnect();
     this.socket = null;
-    // Disconnecting drops every server-side room membership too.
-    this.joinedDeliveryIds.clear();
-    this.joinedOrderIds.clear();
     // removeAllListeners() above strips the socket's own 'disconnect'
     // listener before it can fire, so this is reported directly instead of
     // relying on that event.
     if (hadSocket) {
       this.notifyConnectionChange(false);
     }
+  }
+
+  disconnect(): void {
+    this.teardownSocket();
+    // Unlike a token-refresh rebuild, an explicit disconnect means the caller
+    // is done watching, so the joined ids go too.
+    this.joinedDeliveryIds.clear();
+    this.joinedOrderIds.clear();
   }
 
   /**
