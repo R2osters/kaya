@@ -72,4 +72,38 @@ describe("toApiFailure", () => {
     expect(f.kind).toBe("unknown");
     expect(f.message).toBe("kaboom");
   });
+
+  it("classifies the other codes that mean the request never left", () => {
+    for (const code of ["ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN", "ECONNRESET"]) {
+      expect(toApiFailure(new AxiosError("down", code)).kind).toBe("network");
+    }
+    expect(toApiFailure(new AxiosError("slow", "ETIMEDOUT")).kind).toBe("timeout");
+  });
+
+  it("leaves an unrecognised transport code unknown, not network", () => {
+    // Telling someone to check their connection when the fault was elsewhere
+    // sends them chasing a problem they cannot fix. The Dart original left
+    // unclassified transport errors as unknown too.
+    expect(toApiFailure(new AxiosError("weird", "ERR_BAD_OPTION_VALUE")).kind).toBe(
+      "unknown",
+    );
+    expect(toApiFailure(new AxiosError("no code at all")).kind).toBe("unknown");
+  });
+});
+
+describe("ApiFailure serialisation", () => {
+  it("keeps the message when logged through JSON.stringify", () => {
+    const f = new ApiFailure({
+      kind: "conflict",
+      message: "Offer already accepted",
+      statusCode: 409,
+    });
+    expect(JSON.parse(JSON.stringify(f))).toEqual({
+      name: "ApiFailure",
+      kind: "conflict",
+      message: "Offer already accepted",
+      statusCode: 409,
+      fieldErrors: null,
+    });
+  });
 });
