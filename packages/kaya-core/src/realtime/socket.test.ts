@@ -101,18 +101,53 @@ describe("SocketService", () => {
     ]);
   });
 
-  it("on() throws out of the listener when the raw payload is not the object shape the gateway sends", () => {
-    // A non-object payload fails the schema's z.object() check outright -- this is the
-    // "surfaces as a legible error" half of the design; see socket.ts for the field-level
-    // half (individual missing/renamed keys degrade via the shared coerce helpers, same as
-    // the rest of the package, so one dropped field doesn't crash a 5s-interval GPS stream).
+  it("on() does not throw and does not dispatch when the raw payload fails schema parsing", () => {
+    // socket.io-client invokes listeners from inside its own transport packet handling, not
+    // from a call site the app controls -- a throw here would be an uncaught exception the
+    // app cannot try/catch (and could crash a React Native app). So a non-object payload
+    // (which fails the schema's z.object() check) must be swallowed, not thrown. See
+    // socket.ts for the field-level half of the design (individual missing/renamed keys
+    // degrade via the shared coerce helpers instead, so one dropped field doesn't crash a
+    // 5s-interval GPS stream).
     const svc = new SocketService(config);
     svc.connect("t");
+    let dispatched = false;
     svc.on("offer:new", () => {
-      throw new Error("handler should not run");
+      dispatched = true;
     });
 
-    expect(() => fake.trigger("offer:new", "not-an-object")).toThrow();
+    expect(() => fake.trigger("offer:new", "not-an-object")).not.toThrow();
+    expect(dispatched).toBe(false);
+  });
+
+  it("on() routes a malformed payload to onPayloadError instead of dispatching it", () => {
+    const errors: Array<{ event: string; error: unknown; raw: unknown }> = [];
+    const svc = new SocketService(config, {
+      onPayloadError: (event, error, rawPayload) => {
+        errors.push({ event, error, raw: rawPayload });
+      },
+    });
+    svc.connect("t");
+    let dispatched = false;
+    svc.on("offer:new", () => {
+      dispatched = true;
+    });
+
+    fake.trigger("offer:new", "not-an-object");
+
+    expect(dispatched).toBe(false);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]?.event).toBe("offer:new");
+    expect(errors[0]?.raw).toBe("not-an-object");
+    expect(errors[0]?.error).toBeInstanceOf(Error);
+  });
+
+  it("onPayloadError defaults to a no-op when not supplied", () => {
+    const svc = new SocketService(config);
+    svc.connect("t");
+    svc.on("offer:new", () => undefined);
+
+    expect(() => fake.trigger("offer:new", null)).not.toThrow();
   });
 
   it("on() returns an unsubscribe function that detaches the listener", () => {
@@ -142,12 +177,67 @@ describe("SocketService", () => {
     expect(SOCKET_EVENTS.joinDelivery).toBe("chat:join");
   });
 
-  it("leaveDelivery() is a documented no-op: the gateway has no leave handler to emit to", () => {
+  it("joinOrder() emits order:join with the order_id key the gateway's OrderJoin handler reads", () => {
+    const svc = new SocketService(config);
+    svc.connect("t");
+    svc.joinOrder("o1");
+
+    expect(fake.emitted).toEqual([{ event: SOCKET_EVENTS.joinOrder, payload: { order_id: "o1" } }]);
+    expect(SOCKET_EVENTS.joinOrder).toBe("order:join");
+  });
+
+  it("leaveDelivery() does not emit on the wire (no gateway leave handler exists) but does stop local dispatch", () => {
     const svc = new SocketService(config);
     svc.connect("t");
     svc.leaveDelivery("d1");
 
     expect(fake.emitted).toEqual([]);
+  });
+
+  it("an offer:new event dispatches for a joined order and is dropped for an unjoined order", () => {
+    const svc = new SocketService(config);
+    svc.connect("t");
+    svc.joinOrder("o1");
+    const received: unknown[] = [];
+    svc.on("offer:new", (e) => received.push(e));
+
+    fake.trigger("offer:new", { offerId: "of1", orderId: "o1", livreurId: "u1", proposedPrice: "28.00" });
+    fake.trigger("offer:new", { offerId: "of2", orderId: "o2", livreurId: "u2", proposedPrice: "12.00" });
+
+    expect(received).toHaveLength(1);
+    expect((received[0] as { orderId: string }).orderId).toBe("o1");
+  });
+
+  it("a delivery:status event no longer dispatches for a delivery after leaveDelivery()", () => {
+    const svc = new SocketService(config);
+    svc.connect("t");
+    svc.joinDelivery("d1");
+    const received: unknown[] = [];
+    svc.on("delivery:status", (e) => received.push(e));
+
+    fake.trigger("delivery:status", { delivery_id: "d1", status: "picked_up", timestamp: "2026-08-02T10:30:00.000Z" });
+    svc.leaveDelivery("d1");
+    fake.trigger("delivery:status", { delivery_id: "d1", status: "delivered", timestamp: "2026-08-02T10:31:00.000Z" });
+
+    expect(received).toHaveLength(1);
+    expect((received[0] as { status: string }).status).toBe("picked_up");
+  });
+
+  it("location:driver dispatches unconditionally -- its payload carries no delivery id to scope-filter on", () => {
+    const svc = new SocketService(config);
+    svc.connect("t");
+    // Deliberately not joining any delivery.
+    const received: unknown[] = [];
+    svc.on("location:driver", (e) => received.push(e));
+
+    fake.trigger("location:driver", {
+      livreur_id: "u1",
+      lat: "5.556",
+      lng: "-0.1969",
+      timestamp: "2026-08-02T10:30:00.000Z",
+    });
+
+    expect(received).toHaveLength(1);
   });
 
   it("emitLocation() sends only {lat, lng} -- the gateway's location:update handler ignores anything else", () => {

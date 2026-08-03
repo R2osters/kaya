@@ -44,6 +44,17 @@ export const SOCKET_EVENTS = {
    * gateway; that name does not exist on the wire.
    */
   joinDelivery: "chat:join",
+  /**
+   * The gateway's only handler that unlocks an order room -- decorated
+   * `@SubscribeMessage('order:join')`, payload `{ order_id }` (see the
+   * `OrderJoin` interface and `onOrderJoin()` in events.gateway.ts). Without
+   * emitting this, `offer:new`/`offer:accepted`/`offer:rejected` never reach
+   * the client -- Socket.io rooms are opt-in, and nothing else subscribes the
+   * socket to the order room. The legacy Dart client had this
+   * (`joinOrder()` in kaya_core/lib/src/realtime/socket_service.dart); the
+   * TypeScript port had silently dropped it.
+   */
+  joinOrder: "order:join",
 } as const;
 
 export const offerNewEventSchema = z.object({
