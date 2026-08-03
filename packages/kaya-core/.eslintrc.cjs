@@ -15,7 +15,24 @@ module.exports = {
       {
         patterns: [
           {
-            group: ["react", "react-native", "react-native/*", "expo", "expo-*", "@react-native-firebase/*"],
+            group: [
+              "react",
+              "react/*",
+              "react-dom",
+              "react-dom/*",
+              "react-native",
+              "react-native/*",
+              "react-native-*",
+              // The i18n module ships resources and a bare i18next instance;
+              // the React binding is an adapter and belongs to @kaya/ui.
+              "react-i18next",
+              "expo",
+              "expo-*",
+              "@expo/*",
+              "@react-native-firebase/*",
+              "@react-native-async-storage/*",
+              "@react-navigation/*",
+            ],
             message:
               "@kaya/core must not import platform packages (design decision D2). Declare an interface here and put the adapter in @kaya/ui.",
           },
