@@ -49,6 +49,7 @@ export class MessagesService {
 
     this.realtime.emitToDelivery(deliveryId, 'chat:message', {
       id: message.id,
+      delivery_id: message.deliveryId,
       sender_id: message.senderId,
       message_text: message.messageText,
       image_url: message.imageUrl,
