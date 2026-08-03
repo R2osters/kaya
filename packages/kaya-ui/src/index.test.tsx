@@ -6,14 +6,27 @@ import {
   KayaAvatar,
   KayaButton,
   KayaCard,
+  KayaI18nProvider,
   KayaSkeleton,
   KayaSkeletonCard,
   KayaSkeletonList,
   KayaSkeletonListTile,
   KayaTextField,
   RatingStars,
+  SecureTokenStore,
   StatusPill,
+  useLocale,
 } from "./index";
+
+// expo-secure-store's native module is not available under jest; only the
+// SecureTokenStore reachability test below touches it, and it is mocked the
+// same way src/adapters/SecureTokenStore.test.ts mocks it.
+jest.mock("expo-secure-store", () => ({
+  getItemAsync: jest.fn().mockResolvedValue(null),
+  setItemAsync: jest.fn().mockResolvedValue(undefined),
+  deleteItemAsync: jest.fn().mockResolvedValue(undefined),
+  AFTER_FIRST_UNLOCK: "AFTER_FIRST_UNLOCK",
+}));
 
 // The previous task shipped a manifest pointing at a barrel that did not
 // exist, and nothing caught it. This suite renders each component reached
@@ -90,5 +103,24 @@ describe("package entry point: components", () => {
   it("reaches KayaSkeletonCard through the package root", () => {
     render(<KayaSkeletonCard testID="root-skeleton-card" />);
     expect(screen.getByTestId("root-skeleton-card", { includeHiddenElements: true })).toBeTruthy();
+  });
+
+  it("reaches SecureTokenStore through the package root", async () => {
+    const store = new SecureTokenStore();
+    await expect(store.readAccess()).resolves.toBeNull();
+  });
+
+  it("reaches KayaI18nProvider and useLocale through the package root", () => {
+    function Probe() {
+      const { locale } = useLocale();
+      return <Text testID="root-locale">{locale}</Text>;
+    }
+
+    render(
+      <KayaI18nProvider>
+        <Probe />
+      </KayaI18nProvider>,
+    );
+    expect(screen.getByTestId("root-locale").props.children).toBe("fr");
   });
 });
