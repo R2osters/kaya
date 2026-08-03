@@ -47,7 +47,7 @@ const GEO_FLUSH_WINDOW_SEC = 30;
  *   server -> 'offer:accepted'  { offerId, orderId, deliveryId, livreurId }      (order room)
  *   server -> 'offer:rejected'  { offerId, orderId }                             (order room)
  *   server -> 'location:driver' { livreur_id, lat, lng, timestamp }              (delivery room)
- *   server -> 'chat:message'    { id, sender_id, message_text, image_url, created_at } (delivery room)
+ *   server -> 'chat:message'    { id, delivery_id, sender_id, message_text, image_url, created_at } (delivery room)
  *   server -> 'delivery:status' { delivery_id, status, timestamp }               (delivery room)
  */
 // CORS: same whitelist as HTTP (CORS_ORIGINS env). Empty list = allow all in
@@ -63,9 +63,7 @@ const socketOrigins = (process.env.CORS_ORIGINS ?? '')
     credentials: true,
   },
 })
-export class EventsGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
-{
+export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger(EventsGateway.name);
 
   @WebSocketServer()
@@ -191,7 +189,8 @@ export class EventsGateway
       return;
     }
 
-    const receiverId = delivery.order.clientId === userId ? delivery.livreurId : delivery.order.clientId;
+    const receiverId =
+      delivery.order.clientId === userId ? delivery.livreurId : delivery.order.clientId;
     const message = await this.prisma.message.create({
       data: {
         deliveryId: body.delivery_id,
@@ -204,6 +203,7 @@ export class EventsGateway
 
     this.realtime.emitToDelivery(body.delivery_id, 'chat:message', {
       id: message.id,
+      delivery_id: message.deliveryId,
       sender_id: message.senderId,
       message_text: message.messageText,
       image_url: message.imageUrl,
