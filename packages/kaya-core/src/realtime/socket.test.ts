@@ -289,4 +289,195 @@ describe("SocketService", () => {
     expect(first.disconnectCalls).toBe(1);
     expect(mockedIo).toHaveBeenCalledTimes(2);
   });
+
+  // --- Finding 2: chat:message dispatch (the gateway's real payload shape, snake_case, no receiverId/isRead) ---
+
+  it("a chat:message event with the gateway's real payload shape dispatches for a joined delivery", () => {
+    const svc = new SocketService(config);
+    svc.connect("t");
+    svc.joinDelivery("d1");
+    const received: unknown[] = [];
+    svc.on("chat:message", (e) => received.push(e));
+
+    // Copied verbatim from events.gateway.ts's onMessage()/messages.service.ts's
+    // send() emit -- id, delivery_id, sender_id, message_text, image_url,
+    // created_at. No receiverId/isRead: the gateway never sends them.
+    fake.trigger("chat:message", {
+      id: "m1",
+      delivery_id: "d1",
+      sender_id: "u1",
+      message_text: "on my way",
+      image_url: null,
+      created_at: "2026-08-02T10:30:00.000Z",
+    });
+
+    expect(received).toHaveLength(1);
+    expect(received[0]).toMatchObject({
+      id: "m1",
+      deliveryId: "d1",
+      senderId: "u1",
+      messageText: "on my way",
+    });
+  });
+
+  it("a chat:message event is dropped for a delivery that was never joined", () => {
+    const svc = new SocketService(config);
+    svc.connect("t");
+    // Deliberately not joining d1.
+    const received: unknown[] = [];
+    svc.on("chat:message", (e) => received.push(e));
+
+    fake.trigger("chat:message", {
+      id: "m1",
+      delivery_id: "d1",
+      sender_id: "u1",
+      message_text: "on my way",
+      image_url: null,
+      created_at: "2026-08-02T10:30:00.000Z",
+    });
+
+    expect(received).toHaveLength(0);
+  });
+
+  // --- Finding 3: reconnect replays room joins; on() survives a socket rebuilt by connect() ---
+
+  it("replays joined delivery/order rooms every time the transport (re)connects, not just on the first handshake", () => {
+    const svc = new SocketService(config);
+    svc.connect("t");
+    svc.joinDelivery("d1");
+    svc.joinOrder("o1");
+    fake.emitted.length = 0; // clear the joins already recorded above
+
+    // Simulate socket.io-client re-emitting 'connect' after an automatic
+    // reconnection (same Socket instance, no app-level connect() call).
+    fake.trigger("connect", undefined);
+
+    expect(fake.emitted).toEqual([
+      { event: SOCKET_EVENTS.joinDelivery, payload: { delivery_id: "d1" } },
+      { event: SOCKET_EVENTS.joinOrder, payload: { order_id: "o1" } },
+    ]);
+  });
+
+  it("does not replay a room that was left before the reconnect", () => {
+    const svc = new SocketService(config);
+    svc.connect("t");
+    svc.joinDelivery("d1");
+    svc.leaveDelivery("d1");
+    fake.emitted.length = 0;
+
+    fake.trigger("connect", undefined);
+
+    expect(fake.emitted).toEqual([]);
+  });
+
+  it("a handler registered via on() keeps receiving events after a later connect() rebuilds the socket (token refresh)", () => {
+    const svc = new SocketService(config);
+    svc.connect("t1");
+    const received: unknown[] = [];
+    svc.on("delivery:status", (e) => received.push(e));
+
+    // Token refresh: connect() tears down the first socket and builds a
+    // second one. A naive on() implementation that closed over the first
+    // socket would silently stop dispatching here.
+    const second = new FakeSocket();
+    mockedIo.mockReturnValue(second);
+    svc.connect("t2");
+    svc.joinDelivery("d1");
+
+    second.trigger("delivery:status", {
+      delivery_id: "d1",
+      status: "picked_up",
+      timestamp: "2026-08-02T10:30:00.000Z",
+    });
+
+    expect(received).toHaveLength(1);
+    expect((received[0] as { status: string }).status).toBe("picked_up");
+  });
+
+  it("unsubscribe resolves the current socket at call time, detaching from a rebuilt socket rather than a stale one", () => {
+    const svc = new SocketService(config);
+    svc.connect("t1");
+    const unsubscribe = svc.on("delivery:status", () => undefined);
+
+    const second = new FakeSocket();
+    mockedIo.mockReturnValue(second);
+    svc.connect("t2");
+
+    expect(second.listenerCount("delivery:status")).toBe(1);
+    unsubscribe();
+    expect(second.listenerCount("delivery:status")).toBe(0);
+  });
+
+  // --- Finding 7: connection-state observable ---
+
+  it("onConnectionChange reports true on (re)connect and false on disconnect/connect_error", () => {
+    const svc = new SocketService(config);
+    svc.connect("t");
+    const events: boolean[] = [];
+    svc.onConnectionChange((connected) => events.push(connected));
+
+    fake.trigger("connect", undefined);
+    fake.trigger("disconnect", "transport close");
+    fake.trigger("connect_error", new Error("boom"));
+
+    expect(events).toEqual([true, false, false]);
+  });
+
+  it("onConnectionChange's unsubscribe stops further notifications", () => {
+    const svc = new SocketService(config);
+    svc.connect("t");
+    const events: boolean[] = [];
+    const unsubscribe = svc.onConnectionChange((connected) => events.push(connected));
+
+    fake.trigger("connect", undefined);
+    unsubscribe();
+    fake.trigger("disconnect", "transport close");
+
+    expect(events).toEqual([true]);
+  });
+
+  it("disconnect() synchronously reports false even though it strips the socket's own 'disconnect' listener first", () => {
+    const svc = new SocketService(config);
+    svc.connect("t");
+    const events: boolean[] = [];
+    svc.onConnectionChange((connected) => events.push(connected));
+
+    svc.disconnect();
+
+    expect(events).toEqual([false]);
+  });
+
+  it("a throwing onConnectionChange listener does not crash notification of the others", () => {
+    const svc = new SocketService(config);
+    svc.connect("t");
+    const events: boolean[] = [];
+    svc.onConnectionChange(() => {
+      throw new Error("boom");
+    });
+    svc.onConnectionChange((connected) => events.push(connected));
+
+    expect(() => fake.trigger("connect", undefined)).not.toThrow();
+    expect(events).toEqual([true]);
+  });
+
+  // --- Finding 7: socket-side sendMessage ---
+
+  it("sendMessage() emits chat:message with delivery_id and only the fields supplied, for the gateway's onMessage() handler", () => {
+    const svc = new SocketService(config);
+    svc.connect("t");
+    svc.sendMessage("d1", { text: "hello" });
+    svc.sendMessage("d1", { imageUrl: "https://cdn.example/x.png" });
+    svc.sendMessage("d1", { text: "hi", imageUrl: "https://cdn.example/y.png" });
+    svc.sendMessage("d1");
+
+    expect(fake.emitted).toEqual([
+      { event: "chat:message", payload: { delivery_id: "d1", message_text: "hello" } },
+      { event: "chat:message", payload: { delivery_id: "d1", image_url: "https://cdn.example/x.png" } },
+      {
+        event: "chat:message",
+        payload: { delivery_id: "d1", message_text: "hi", image_url: "https://cdn.example/y.png" },
+      },
+      { event: "chat:message", payload: { delivery_id: "d1" } },
+    ]);
+  });
 });
