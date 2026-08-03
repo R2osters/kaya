@@ -61,4 +61,54 @@ describe("KayaTextField", () => {
     render(<KayaTextField value="" onChangeText={jest.fn()} prefixIcon={icon} testID="field" />);
     expect(seen).toEqual([colors.inkTertiary]);
   });
+
+  it("carries the error on the input itself, not only in a separate node", () => {
+    // React Native has no aria-describedby: an error rendered beside the field
+    // is a node a screen reader only meets by chance. The person who most needs
+    // to know the field is wrong is the least likely to swipe onto it.
+    render(
+      <KayaTextField
+        label="Téléphone"
+        hint="+233 20 123 4567"
+        value="abc"
+        onChangeText={jest.fn()}
+        error="Numéro invalide"
+        testID="field"
+      />,
+    );
+    const input = screen.getByTestId("field-input");
+    expect(input.props.accessibilityLabel).toBe("Téléphone");
+    expect(input.props.accessibilityHint).toBe("Numéro invalide");
+  });
+
+  it("falls back to the hint when the field is valid", () => {
+    render(
+      <KayaTextField
+        label="Téléphone"
+        hint="+233 20 123 4567"
+        value="+233201234567"
+        onChangeText={jest.fn()}
+        testID="field"
+      />,
+    );
+    expect(screen.getByTestId("field-input").props.accessibilityHint).toBe("+233 20 123 4567");
+  });
+
+  it("announces the error through a live region, since role=alert alone is silent here", () => {
+    render(
+      <KayaTextField value="" onChangeText={jest.fn()} error="Champ requis" testID="field" />,
+    );
+    const message = screen.getByTestId("field-error");
+    expect(message.props.accessibilityLiveRegion).toBe("polite");
+    expect(message.props.accessibilityRole).toBe("alert");
+  });
+
+  it("reports a read-only field as disabled to assistive technology", () => {
+    render(
+      <KayaTextField value="fixe" onChangeText={jest.fn()} editable={false} testID="field" />,
+    );
+    expect(screen.getByTestId("field-input").props.accessibilityState).toMatchObject({
+      disabled: true,
+    });
+  });
 });

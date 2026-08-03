@@ -81,6 +81,14 @@ export function KayaTextField({
           secureTextEntry={secureTextEntry}
           multiline={isMultiline}
           editable={editable}
+          accessibilityLabel={label}
+          // React Native has no way to point an input at a separate error node
+          // the way web ARIA's aria-describedby does, so the message is carried
+          // on the input itself. Without this the error is a node a screen
+          // reader only meets if it happens to swipe past it — the person who
+          // most needs to know the field is wrong is the least likely to find out.
+          accessibilityHint={invalid ? error : hint}
+          accessibilityState={{ disabled: !editable }}
         />
         {suffixIcon !== undefined && (
           <View style={styles.affix}>{typeof suffixIcon === "function" ? suffixIcon(colors.inkTertiary) : suffixIcon}</View>
@@ -90,6 +98,11 @@ export function KayaTextField({
         <Text
           testID={testID ? `${testID}-error` : undefined}
           accessibilityRole="alert"
+          // `role="alert"` alone announces nothing in React Native — unlike web
+          // ARIA, nothing watches the node for changes. `accessibilityLiveRegion`
+          // is what actually makes TalkBack speak the message when it appears;
+          // on iOS the same job falls to the input's hint above.
+          accessibilityLiveRegion="polite"
           style={[typography.caption, styles.error]}
         >
           {error}

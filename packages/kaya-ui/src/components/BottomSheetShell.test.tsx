@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
-import { Text } from "react-native";
+import { Pressable, Text } from "react-native";
 import { BottomSheetShell } from "./BottomSheetShell";
 
 describe("BottomSheetShell", () => {
@@ -64,5 +64,23 @@ describe("BottomSheetShell", () => {
     );
     fireEvent(screen.getByTestId("sheet"), "requestClose");
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not close when the sheet's own content is pressed", () => {
+    // The backdrop sits behind the sheet, so a tap on a form inside it must not
+    // dismiss the whole thing — the classic way a bottom sheet becomes unusable.
+    const onClose = jest.fn();
+    const onPress = jest.fn();
+    render(
+      <BottomSheetShell visible onClose={onClose} testID="sheet">
+        <Pressable testID="inner" onPress={onPress}>
+          <Text>Confirmer</Text>
+        </Pressable>
+      </BottomSheetShell>,
+    );
+
+    fireEvent.press(screen.getByTestId("inner"));
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
   });
 });
