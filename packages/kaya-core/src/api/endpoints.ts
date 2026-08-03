@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { AxiosInstance } from "axios";
 import type { CountryCode } from "../money/currency";
-import { type Currency, parseCurrency } from "../money/currency";
+import { parseCurrency } from "../money/currency";
 import {
   type AuthResult,
   type LoginChallenge,
@@ -17,7 +17,7 @@ import { type Offer, offerSchema } from "../models/offer";
 import { type Order, orderSchema } from "../models/order";
 import { type PriceQuote, priceQuoteSchema } from "../models/priceQuote";
 import { type Rating, ratingSchema } from "../models/rating";
-import { type Transaction, transactionSchema } from "../models/transaction";
+import { transactionSchema } from "../models/transaction";
 import { type User, userSchema } from "../models/user";
 import { type Withdrawal, withdrawalSchema } from "../models/withdrawal";
 import {

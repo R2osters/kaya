@@ -8,6 +8,7 @@ import {
 } from "./currency";
 
 /** ICU emits U+00A0 / U+202F as group separators; normalise for stable assertions. */
+// eslint-disable-next-line no-irregular-whitespace -- the character class intentionally matches the literal U+00A0/U+202F characters ICU emits, not ordinary spaces.
 const norm = (s: string) => s.replace(/[  ]/g, " ");
 
 describe("country and currency metadata", () => {
