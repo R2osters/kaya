@@ -11,7 +11,9 @@
   },
   "dependencies": {
     "@kaya/core": "*",
+    "expo-secure-store": "~15.0.8",
     "lucide-react-native": "^0.475.0",
+    "react-i18next": "^15.7.4",
     "react-native-svg": "^15.12.1"
   },
   "peerDependencies": {
@@ -30,6 +32,7 @@
     "react": "19.1.0",
     "react-native": "0.81.5",
     "react-native-reanimated": "~4.1.1",
+    "react-native-worklets": "~0.5.1",
     "react-test-renderer": "19.1.0",
     "typescript": "~5.9.2",
     "typescript-eslint": "^8.65.0"
