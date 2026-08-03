@@ -45,6 +45,38 @@ describe("transactionSchema", () => {
     expect(isCredit(credit)).toBe(true);
     expect(isCredit(debit)).toBe(false);
   });
+
+  const tx = (type: string) =>
+    transactionSchema.parse({
+      id: "t",
+      userId: "u1",
+      type,
+      amount: "10.00",
+      currency: "GHS",
+      createdAt: "2026-08-02T11:00:00.000Z",
+    });
+
+  it("does not treat a client's escrow payment as a credit", () => {
+    // payment_in is the client paying into escrow: money leaving their balance.
+    expect(isCredit(tx("payment_in"))).toBe(false);
+  });
+
+  it("treats escrow_release, driver_payout and refund as credits", () => {
+    expect(isCredit(tx("escrow_release"))).toBe(true);
+    expect(isCredit(tx("driver_payout"))).toBe(true);
+    expect(isCredit(tx("refund"))).toBe(true);
+  });
+
+  it("treats the remaining ledger types as debits", () => {
+    expect(isCredit(tx("commission"))).toBe(false);
+    expect(isCredit(tx("litigation_fee"))).toBe(false);
+    expect(isCredit(tx("withdrawal"))).toBe(false);
+    expect(isCredit(tx("adjustment"))).toBe(false);
+  });
+
+  it("defaults an absent status to completed", () => {
+    expect(tx("commission").status).toBe("completed");
+  });
 });
 
 describe("appNotificationSchema", () => {
