@@ -39,6 +39,26 @@ export class ApiFailure extends Error {
   get isAuth(): boolean {
     return this.kind === "unauthorized";
   }
+
+  /**
+   * `Error.prototype.message` is non-enumerable, so a plain `JSON.stringify`
+   * of a failure would log everything except the one field a reader needs.
+   */
+  toJSON(): {
+    name: string;
+    kind: FailureKind;
+    message: string;
+    statusCode: number | null;
+    fieldErrors: Record<string, string[]> | null;
+  } {
+    return {
+      name: this.name,
+      kind: this.kind,
+      message: this.message,
+      statusCode: this.statusCode,
+      fieldErrors: this.fieldErrors,
+    };
+  }
 }
 
 const DEFAULT_MESSAGES: Record<FailureKind, string> = {
@@ -104,12 +124,33 @@ export function toApiFailure(error: unknown): ApiFailure {
     });
   }
 
-  const kind: FailureKind =
-    error.code === "ECONNABORTED" || error.code === "ETIMEDOUT"
-      ? "timeout"
-      : error.code === "ERR_CANCELED"
-        ? "cancelled"
-        : "network";
-
+  const kind = kindForTransportCode(error.code);
   return new ApiFailure({ kind, message: DEFAULT_MESSAGES[kind] });
+}
+
+const TIMEOUT_CODES = new Set(["ECONNABORTED", "ETIMEDOUT"]);
+const CANCELLED_CODES = new Set(["ERR_CANCELED"]);
+/**
+ * Codes that genuinely mean "the request never reached the server". Anything
+ * outside these three sets is left `unknown`, matching the Dart original —
+ * telling a user to check their connection when the fault was elsewhere sends
+ * them chasing a problem they cannot fix.
+ */
+const NETWORK_CODES = new Set([
+  "ERR_NETWORK",
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "ENOTFOUND",
+  "EAI_AGAIN",
+  "EHOSTUNREACH",
+  "ENETUNREACH",
+  "EPIPE",
+]);
+
+function kindForTransportCode(code: string | undefined): FailureKind {
+  if (code === undefined) return "unknown";
+  if (TIMEOUT_CODES.has(code)) return "timeout";
+  if (CANCELLED_CODES.has(code)) return "cancelled";
+  if (NETWORK_CODES.has(code)) return "network";
+  return "unknown";
 }
