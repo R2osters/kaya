@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { Text } from "react-native";
 import { KayaCard } from "./KayaCard";
-import { colors, radii } from "../theme";
+import { colors, radii, shadows } from "../theme";
 
 describe("KayaCard", () => {
   it("renders its children on a white surface with the card radius", () => {
@@ -37,6 +37,20 @@ describe("KayaCard", () => {
     );
     fireEvent.press(screen.getByTestId("card"));
     expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it("draws the hairline border and the card shadow by default", () => {
+    render(
+      <KayaCard testID="card">
+        <Text>default</Text>
+      </KayaCard>,
+    );
+    expect(screen.getByTestId("card")).toHaveStyle({
+      borderWidth: 1,
+      borderColor: colors.borderSoft,
+      elevation: shadows.card.elevation,
+      shadowOpacity: shadows.card.shadowOpacity,
+    });
   });
 
   it("can drop its border and shadow for nested use", () => {

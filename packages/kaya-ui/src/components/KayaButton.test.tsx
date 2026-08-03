@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
+import { Text } from "react-native";
 import { KayaButton } from "./KayaButton";
 import { colors } from "../theme";
 
@@ -53,5 +54,48 @@ describe("KayaButton", () => {
   it("exposes its disabled state to assistive technology", () => {
     render(<KayaButton label="Publier" testID="btn" />);
     expect(screen.getByTestId("btn")).toBeDisabled();
+  });
+
+  it("outlines the secondary variant with the 1.4px hairline border", () => {
+    render(<KayaButton label="Plus tard" onPress={jest.fn()} variant="secondary" testID="btn" />);
+    expect(screen.getByTestId("btn")).toHaveStyle({
+      borderWidth: 1.4,
+      borderColor: colors.border,
+    });
+  });
+
+  it("does not outline the filled variants", () => {
+    render(<KayaButton label="Publier" onPress={jest.fn()} testID="btn" />);
+    expect(screen.getByTestId("btn")).not.toHaveStyle({ borderWidth: 1.4 });
+  });
+
+  it("hands the variant's foreground colour to a function icon", () => {
+    // The Dart tinted the icon itself. React cannot recolour an arbitrary node,
+    // so the function form is how an icon stays legible on a filled button —
+    // otherwise a lucide default renders near-black on primary blue.
+    const seen: string[] = [];
+    const icon = (color: string) => {
+      seen.push(color);
+      return <Text>ico</Text>;
+    };
+
+    render(<KayaButton label="Envoyer" onPress={jest.fn()} icon={icon} />);
+    expect(seen).toEqual([colors.surface]);
+
+    seen.length = 0;
+    render(<KayaButton label="Plus tard" onPress={jest.fn()} variant="secondary" icon={icon} />);
+    expect(seen).toEqual([colors.ink]);
+  });
+
+  it("still accepts a plain node icon", () => {
+    render(<KayaButton label="Envoyer" onPress={jest.fn()} icon={<Text>ico</Text>} />);
+    expect(screen.getByText("ico")).toBeTruthy();
+  });
+
+  it("hides the icon while loading, as it hides the label", () => {
+    render(
+      <KayaButton label="Envoyer" onPress={jest.fn()} loading icon={<Text>ico</Text>} testID="btn" />,
+    );
+    expect(screen.queryByText("ico")).toBeNull();
   });
 });

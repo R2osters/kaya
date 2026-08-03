@@ -8,7 +8,14 @@ export interface KayaButtonProps {
   label: string;
   onPress?: () => void;
   variant?: KayaButtonVariant;
-  icon?: ReactNode;
+  /**
+   * Leading icon. Prefer the function form: it receives the variant's
+   * foreground colour, which is what keeps an icon legible on a filled button.
+   * The Flutter original tinted the icon itself; React cannot recolour an
+   * arbitrary node, so a plain `ReactNode` must arrive already coloured — pass
+   * `(color) => <Send size={18} color={color} />` and it is handled for you.
+   */
+  icon?: ReactNode | ((color: string) => ReactNode);
   loading?: boolean;
   /** Stretch to the available width. Defaults to true, as the Flutter widget did. */
   expand?: boolean;
@@ -56,7 +63,11 @@ export function KayaButton({
         <ActivityIndicator testID={testID ? `${testID}-spinner` : undefined} color={foreground} />
       ) : (
         <View style={styles.content}>
-          {icon !== undefined && <View style={styles.icon}>{icon}</View>}
+          {icon !== undefined && (
+            <View style={styles.icon}>
+              {typeof icon === "function" ? icon(foreground) : icon}
+            </View>
+          )}
           <Text numberOfLines={1} style={[typography.button, { color: foreground }]}>
             {label}
           </Text>
