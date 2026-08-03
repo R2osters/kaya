@@ -73,11 +73,31 @@ describe("createI18n", () => {
     expect(ei.t("offersTrips", { count: 318 })).toBe("318 trips");
   });
 
-  it("leaves no unsubstituted braces once every placeholder is supplied", () => {
-    const i18n = createI18n("fr");
-    const vars = { count: 1, min: 1, km: 1, range: "1-6", number: 1, pct: "20%" };
-    for (const key of Object.keys(fr)) {
-      expect(`${key}:${i18n.t(key, vars)}`).not.toMatch(/\{[a-zA-Z]+\}/);
+  it("substitutes every placeholder of every string in both languages", () => {
+    // The variable bag is derived from each string rather than hardcoded. A
+    // fixed bag would prove nothing about a placeholder added later: i18next
+    // replaces an unsupplied variable with an empty string rather than leaving
+    // the braces, so the value would silently vanish and a brace-hunting
+    // assertion would still pass.
+    for (const [language, table] of [
+      ["fr", fr],
+      ["en", en],
+    ] as const) {
+      const i18n = createI18n(language);
+      for (const [key, raw] of Object.entries(table as Record<string, string>)) {
+        const names = raw.match(/\{([a-zA-Z]+)\}/g) ?? [];
+        const vars = Object.fromEntries(
+          names.map((n) => [n.slice(1, -1), `<${n.slice(1, -1)}>`]),
+        );
+        const rendered = i18n.t(key, vars);
+
+        expect(`${language}.${key}=${rendered}`).not.toMatch(/\{[a-zA-Z]+\}/);
+        // Every placeholder's value must appear, so an unsupplied variable
+        // collapsing to an empty string cannot pass unnoticed.
+        for (const name of Object.keys(vars)) {
+          expect(`${language}.${key}=${rendered}`).toContain(`<${name}>`);
+        }
+      }
     }
   });
 });
