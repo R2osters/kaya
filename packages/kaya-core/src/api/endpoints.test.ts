@@ -160,10 +160,16 @@ describe("KayaApi", () => {
 
   it("lists ratings via /users/:id/ratings, not /ratings?userId=", async () => {
     const { api, mock } = build();
-    mock.onGet("/users/u1/ratings").reply(200, { average: "4.5", count: "2", ratings: [] });
+    mock
+      .onGet("/users/u1/ratings")
+      .reply(200, { page: "2", limit: "20", average: "4.5", count: "2", ratings: [] });
 
     const summary = await api.listRatings("u1");
     expect(summary.average).toBe(4.5);
+    // The list is paginated; without page and limit a caller cannot fetch the
+    // next page of a driver's ratings.
+    expect(summary.page).toBe(2);
+    expect(summary.limit).toBe(20);
   });
 
   it("marks a notification read via PUT, not POST", async () => {
