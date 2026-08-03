@@ -7,6 +7,9 @@ import {
   KayaButton,
   KayaCard,
   KayaSkeleton,
+  KayaSkeletonCard,
+  KayaSkeletonList,
+  KayaSkeletonListTile,
   KayaTextField,
   RatingStars,
   StatusPill,
@@ -68,5 +71,24 @@ describe("package entry point: components", () => {
   it("reaches KayaSkeleton through the package root", () => {
     render(<KayaSkeleton testID="root-skeleton" />);
     expect(screen.getByTestId("root-skeleton")).toBeTruthy();
+  });
+
+  it("reaches KayaSkeletonListTile through the package root", () => {
+    render(<KayaSkeletonListTile testID="root-skeleton-tile" />);
+    // These composites group themselves out of the accessibility tree
+    // (importantForAccessibility="no-hide-descendants") so a screen reader
+    // announces "busy" once instead of once per box; RNTL hides that
+    // subtree from default queries too, so opt back in here.
+    expect(screen.getByTestId("root-skeleton-tile", { includeHiddenElements: true })).toBeTruthy();
+  });
+
+  it("reaches KayaSkeletonList through the package root", () => {
+    render(<KayaSkeletonList testID="root-skeleton-list" />);
+    expect(screen.getByTestId("root-skeleton-list", { includeHiddenElements: true })).toBeTruthy();
+  });
+
+  it("reaches KayaSkeletonCard through the package root", () => {
+    render(<KayaSkeletonCard testID="root-skeleton-card" />);
+    expect(screen.getByTestId("root-skeleton-card", { includeHiddenElements: true })).toBeTruthy();
   });
 });
