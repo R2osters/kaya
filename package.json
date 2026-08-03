@@ -16,5 +16,8 @@
     "husky": "^9.1.7",
     "lint-staged": "^15.2.10",
     "typescript": "~5.9.2"
+  },
+  "overrides": {
+    "expo": "~54.0.0"
   }
 }
