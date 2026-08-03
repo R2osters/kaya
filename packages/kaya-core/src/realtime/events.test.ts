@@ -84,5 +84,10 @@ describe("socket event schemas", () => {
     // unlocks a delivery room is @SubscribeMessage('chat:join') { delivery_id }.
     // There is no "delivery:join" event on the gateway at all.
     expect(SOCKET_EVENTS.joinDelivery).toBe("chat:join");
+    // The gateway's only handler that unlocks an order room is
+    // @SubscribeMessage('order:join') { order_id } (OrderJoin / onOrderJoin()
+    // in events.gateway.ts). Without emitting this, offer:new/offer:accepted/
+    // offer:rejected never arrive -- Socket.io rooms are opt-in.
+    expect(SOCKET_EVENTS.joinOrder).toBe("order:join");
   });
 });
