@@ -68,7 +68,7 @@ describe("auth interceptor", () => {
       return [200, {}];
     });
 
-    await client.post("/auth/login", {}, { skipAuth: true } as never);
+    await client.post("/auth/login", {}, { skipAuth: true });
     expect(seen).toBeUndefined();
   });
 
@@ -167,6 +167,49 @@ describe("auth interceptor", () => {
     await expect(client.get("/orders")).rejects.toMatchObject({
       kind: "conflict",
       message: "Offer already accepted",
+    });
+  });
+
+  it("treats a malformed refresh response as a failed refresh", async () => {
+    const store = new FakeStore();
+    let expired = 0;
+    const client = createHttpClient({
+      config,
+      store,
+      onSessionExpired: () => {
+        expired += 1;
+      },
+    });
+    const mock = new MockAdapter(client);
+
+    mock.onGet("/orders").reply(401, {});
+    // 200, but the body is not a token pair.
+    mock.onPost("/auth/refresh").reply(200, "not-a-token-pair");
+
+    await expect(client.get("/orders")).rejects.toMatchObject({
+      kind: "unauthorized",
+    });
+    expect(store.cleared).toBe(true);
+    expect(expired).toBe(1);
+  });
+
+  it("still rejects with the original failure when the sign-out handler throws", async () => {
+    const store = new FakeStore();
+    store.refresh = null;
+    const client = createHttpClient({
+      config,
+      store,
+      onSessionExpired: () => {
+        throw new Error("navigation blew up");
+      },
+    });
+    const mock = new MockAdapter(client);
+
+    mock.onGet("/orders").reply(401, {});
+
+    // The screen must see the unauthorized failure, not the routing error.
+    await expect(client.get("/orders")).rejects.toMatchObject({
+      kind: "unauthorized",
     });
   });
 });

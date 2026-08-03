@@ -98,11 +98,22 @@ export function createHttpClient(opts: {
 
       const tokens = await refreshTokens();
       if (tokens === null) {
-        await onSessionExpired();
+        // The caller's sign-out handler is not allowed to change what this
+        // request rejects with. Whatever it throws, the screen still sees the
+        // original unauthorized failure rather than a routing error.
+        try {
+          await onSessionExpired();
+        } catch {
+          // deliberately swallowed
+        }
         throw failure;
       }
 
       req.retried = true;
+      // Belt and braces: the request interceptor re-reads the store on the
+      // replay and would normally set this header itself, but it leaves the
+      // header untouched when the store hands back nothing. Setting it here
+      // means the replay carries the token we just obtained either way.
       req.headers.Authorization = `Bearer ${tokens.accessToken}`;
       try {
         return await client.request(req);
