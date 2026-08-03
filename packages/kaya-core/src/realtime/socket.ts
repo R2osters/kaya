@@ -134,12 +134,47 @@ interface RawEventEmitter {
  *     the target delivery server-side from the driver's own active delivery,
  *     so there is nothing in the payload to filter on. Scoping it would
  *     require guessing, which is worse than not filtering.
+ *
+ * Surviving reconnects and token refreshes:
+ * Room membership lives on the *server-side* Socket.io connection, not on
+ * this class. Two different things can invalidate it, and both are handled:
+ *   - `reconnection: true` means socket.io-client will silently reconnect
+ *     the same logical socket after a network blip (common on mobile data).
+ *     That reconnection is a brand new server-side connection, so the
+ *     server has forgotten every room the old connection joined -- but
+ *     `joinedDeliveryIds`/`joinedOrderIds` on this class still (correctly)
+ *     say they're joined, and the socket.io-client `Socket` re-emits its
+ *     `connect` event on every one of these automatic reconnections, not
+ *     just the first handshake. So `connect()` below attaches a `connect`
+ *     listener that replays `chat:join`/`order:join` for every id this class
+ *     still thinks is joined, every time the transport (re)connects.
+ *   - `connect()` called again (token refresh) tears down the old socket and
+ *     opens a genuinely new one -- see `connect()` -- and in that case the
+ *     joined-id sets are deliberately cleared, since a fresh socket really
+ *     has joined nothing yet.
+ *
+ * `on()` handlers surviving a rebuilt socket:
+ * `connect()` calling `disconnect()` first replaces `this.socket` with a new
+ * `Socket` instance. A handler attached only to the *old* instance (as a
+ * naive `on()` would do by closing over the socket at subscribe time) would
+ * silently stop receiving anything, and its returned unsubscribe function
+ * would detach from a socket that is already gone -- a no-op, not a leak,
+ * but also not what the caller asked for. So every listener registered
+ * through `on()` is kept in `this.listeners` for the lifetime of this
+ * class, `connect()` re-attaches all of them to whatever socket it just
+ * built, and the unsubscribe closure resolves `this.socket` at call time
+ * (not at `on()` time) so it detaches from whichever socket is current when
+ * it runs.
  */
 export class SocketService {
   private socket: Socket | null = null;
   private readonly joinedDeliveryIds = new Set<string>();
   private readonly joinedOrderIds = new Set<string>();
   private readonly onPayloadError: NonNullable<SocketServiceOptions["onPayloadError"]>;
+  /** Every handler registered via `on()`, replayed onto each new socket `connect()` builds. */
+  private readonly listeners: Array<{ event: string; listener: (raw: unknown) => void }> = [];
+  /** Handlers registered via `onConnectionChange()`. */
+  private readonly connectionListeners = new Set<(connected: boolean) => void>();
 
   constructor(
     private readonly config: ApiConfig,
@@ -160,26 +195,88 @@ export class SocketService {
    */
   connect(accessToken: string): void {
     if (this.socket !== null) this.disconnect();
-    this.socket = io(this.config.socketUrl, {
+    const socket = io(this.config.socketUrl, {
       transports: ["websocket"],
       auth: { token: accessToken },
       reconnection: true,
       reconnectionDelay: 1_000,
       reconnectionDelayMax: 10_000,
     });
+    this.socket = socket;
     // A freshly opened socket is not in any room yet -- any ids joined
     // against a previous socket are no longer valid.
     this.joinedDeliveryIds.clear();
     this.joinedOrderIds.clear();
+
+    // Re-attach every handler registered via on() (possibly before this
+    // connect() call, possibly against a now-torn-down previous socket) --
+    // see the class doc's "on() handlers surviving a rebuilt socket".
+    const rawSocket = socket as unknown as RawEventEmitter;
+    for (const { event, listener } of this.listeners) {
+      rawSocket.on(event, listener);
+    }
+
+    socket.on("connect", () => {
+      this.notifyConnectionChange(true);
+      // Re-join every room this class still thinks is joined -- see the
+      // class doc's "Surviving reconnects and token refreshes". This also
+      // runs harmlessly on the very first connect, when both sets are empty.
+      for (const deliveryId of this.joinedDeliveryIds) {
+        socket.emit(SOCKET_EVENTS.joinDelivery, { delivery_id: deliveryId });
+      }
+      for (const orderId of this.joinedOrderIds) {
+        socket.emit(SOCKET_EVENTS.joinOrder, { order_id: orderId });
+      }
+    });
+    socket.on("disconnect", () => {
+      this.notifyConnectionChange(false);
+    });
+    socket.on("connect_error", () => {
+      this.notifyConnectionChange(false);
+    });
   }
 
   disconnect(): void {
+    const hadSocket = this.socket !== null;
     this.socket?.removeAllListeners();
     this.socket?.disconnect();
     this.socket = null;
     // Disconnecting drops every server-side room membership too.
     this.joinedDeliveryIds.clear();
     this.joinedOrderIds.clear();
+    // removeAllListeners() above strips the socket's own 'disconnect'
+    // listener before it can fire, so this is reported directly instead of
+    // relying on that event.
+    if (hadSocket) {
+      this.notifyConnectionChange(false);
+    }
+  }
+
+  /**
+   * Subscribes to connection-state transitions: `true` once the transport is
+   * up (initial connect and every automatic reconnection alike), `false` on
+   * disconnect (explicit or otherwise) and on a failed connection attempt.
+   * Intended for a "reconnecting..." banner. Does not replay the current
+   * state to a handler registered after the fact -- same policy as `on()`.
+   * Returns an unsubscribe function.
+   */
+  onConnectionChange(handler: (connected: boolean) => void): () => void {
+    this.connectionListeners.add(handler);
+    return () => {
+      this.connectionListeners.delete(handler);
+    };
+  }
+
+  private notifyConnectionChange(connected: boolean): void {
+    for (const listener of this.connectionListeners) {
+      try {
+        listener(connected);
+      } catch {
+        // Same rationale as onPayloadError below: this runs from inside
+        // socket.io's own event dispatch, so a throwing listener would
+        // otherwise escape as an uncaught exception.
+      }
+    }
   }
 
   /**
@@ -248,6 +345,26 @@ export class SocketService {
   }
 
   /**
+   * Client-side send for the delivery chat (server -> `@SubscribeMessage('chat:message')`
+   * / `onMessage()` in events.gateway.ts, which persists the message and
+   * rebroadcasts it to the delivery room). This is a genuinely live gateway
+   * handler, not dead API surface: `KayaApi.sendMessage` covers the REST
+   * fallback (sending while the socket is down), but the socket path is what
+   * the legacy Dart client's `SocketService.sendMessage` used for the normal
+   * case, and the port had dropped it. At least one of `text`/`imageUrl` must
+   * be given, matching the gateway's own validation (`onMessage` drops a
+   * payload with neither).
+   */
+  sendMessage(deliveryId: string, payload: { text?: string; imageUrl?: string } = {}): void {
+    const body: { delivery_id: string; message_text?: string; image_url?: string } = {
+      delivery_id: deliveryId,
+    };
+    if (payload.text !== undefined) body.message_text = payload.text;
+    if (payload.imageUrl !== undefined) body.image_url = payload.imageUrl;
+    this.socket?.emit(SOCKET_EVENTS.chatMessage, body);
+  }
+
+  /**
    * Subscribes to a typed server event. Returns an unsubscribe function.
    *
    * A payload that fails schema parsing is routed to `onPayloadError`
@@ -255,6 +372,11 @@ export class SocketService {
    * "Parse failures". A well-formed payload scoped to a delivery or order
    * that has not been joined (or was joined and then left) is silently
    * dropped -- see "Local room-membership filter".
+   *
+   * The listener survives a socket rebuilt by `connect()` (e.g. a token
+   * refresh) -- see the class doc's "on() handlers surviving a rebuilt
+   * socket" -- and the returned unsubscribe function resolves the current
+   * socket when it is called, not the one live at subscribe time.
    */
   on<K extends keyof SocketEventMap>(
     event: K,
@@ -280,11 +402,27 @@ export class SocketService {
       }
       handler(parsed);
     };
+    this.listeners.push({ event, listener });
+    this.attachToCurrentSocket(event, listener);
+    return () => {
+      this.detachFromCurrentSocket(event, listener);
+      const index = this.listeners.findIndex(
+        (entry) => entry.event === event && entry.listener === listener,
+      );
+      if (index !== -1) {
+        this.listeners.splice(index, 1);
+      }
+    };
+  }
+
+  private attachToCurrentSocket(event: string, listener: (raw: unknown) => void): void {
     const socket = this.socket as unknown as RawEventEmitter | null;
     socket?.on(event, listener);
-    return () => {
-      socket?.off(event, listener);
-    };
+  }
+
+  private detachFromCurrentSocket(event: string, listener: (raw: unknown) => void): void {
+    const socket = this.socket as unknown as RawEventEmitter | null;
+    socket?.off(event, listener);
   }
 
   /** True if a parsed payload's room scope (if any) is currently joined -- see "Local room-membership filter" above. */
