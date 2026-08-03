@@ -8,7 +8,17 @@ import { colors } from "./colors";
  */
 export type TextStyleToken = TextStyle;
 
-export const typography = Object.freeze({
+/**
+ * Freezes each style as well as the map. Freezing only the map would leave
+ * `typography.body.color = "red"` working, and these tokens back every screen
+ * in both apps.
+ */
+const deepFreeze = <T extends Record<string, TextStyle>>(styles: T): Readonly<T> => {
+  for (const style of Object.values(styles)) Object.freeze(style);
+  return Object.freeze(styles);
+};
+
+export const typography = deepFreeze({
   screenTitle: { fontFamily: "Inter", fontSize: 28, fontWeight: "800", lineHeight: 32, color: colors.ink },
   sectionTitle: { fontFamily: "Inter", fontSize: 22, fontWeight: "700", lineHeight: 26, color: colors.ink },
   cardTitle: { fontFamily: "Inter", fontSize: 17, fontWeight: "700", lineHeight: 21, color: colors.ink },

@@ -1,3 +1,4 @@
+import * as root from "../index";
 import { colors, minTouch, radii, shadows, spacing, typography } from "./index";
 
 describe("design tokens", () => {
@@ -55,8 +56,95 @@ describe("design tokens", () => {
     expect(typography.button).toMatchObject({ fontSize: 16, fontWeight: "700" });
   });
 
-  it("freezes the tokens so a screen cannot mutate them for everyone", () => {
+  it("carries the exact shadow values, not merely plausible ones", () => {
+    // The Flutter originals used a negative BoxShadow spread that React Native
+    // cannot express, so these numbers are a translation. Asserting only their
+    // types would let 0.6 pass where 0.06 was meant.
+    expect(shadows.card).toEqual({
+      shadowColor: "#0B1220",
+      shadowOpacity: 0.06,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 3,
+    });
+    expect(shadows.soft).toEqual({
+      shadowColor: "#0B1220",
+      shadowOpacity: 0.04,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 2,
+    });
+    expect(shadows.sheet).toEqual({
+      shadowColor: "#0B1220",
+      shadowOpacity: 0.1,
+      shadowRadius: 20,
+      shadowOffset: { width: 0, height: -8 },
+      elevation: 12,
+    });
+  });
+
+  it("multiplies out Flutter's line-height ratios", () => {
+    // Flutter's `height` is a multiplier; React Native's lineHeight is
+    // absolute. These are the products, and they are the values most likely to
+    // be silently wrong.
+    expect(typography.screenTitle.lineHeight).toBe(32); // 28 × 1.15
+    expect(typography.sectionTitle.lineHeight).toBe(26); // 22 × 1.2
+    expect(typography.cardTitle.lineHeight).toBe(21); // 17 × 1.25
+    expect(typography.body.lineHeight).toBe(21); // 15 × 1.4
+    expect(typography.bodyStrong.lineHeight).toBe(21);
+    expect(typography.bodySecondary.lineHeight).toBe(21);
+    expect(typography.price.lineHeight).toBe(22); // 20 × 1.1
+    expect(typography.priceLarge.lineHeight).toBe(29); // 26 × 1.1
+    // caption, overline and button carried no height in the Dart, and the
+    // literal types prove it: reading .lineHeight off them is a type error.
+  });
+
+  it("colours each text style from the palette", () => {
+    expect(typography.body.color).toBe(colors.ink);
+    expect(typography.bodySecondary.color).toBe(colors.inkSecondary);
+    expect(typography.caption.color).toBe(colors.inkSecondary);
+    expect(typography.overline.color).toBe(colors.inkTertiary);
+    expect(typography.button.color).toBe(colors.surface);
+  });
+
+  it("freezes the tokens all the way down, not just at the top", () => {
+    // A shallow freeze leaves nested offsets and text styles mutable, which is
+    // the shape that would actually bite: one screen's tweak reaching the other app.
     expect(Object.isFrozen(colors)).toBe(true);
     expect(Object.isFrozen(radii)).toBe(true);
+    expect(Object.isFrozen(spacing)).toBe(true);
+    expect(Object.isFrozen(shadows)).toBe(true);
+    expect(Object.isFrozen(shadows.card)).toBe(true);
+    expect(Object.isFrozen(shadows.card.shadowOffset)).toBe(true);
+    expect(Object.isFrozen(typography)).toBe(true);
+    expect(Object.isFrozen(typography.body)).toBe(true);
+
+    // Assert the outcome, not the mechanism: whether a write to a frozen
+    // object throws or fails silently depends on the strictness of the
+    // transform, but the value must be unchanged either way.
+    try {
+      (shadows.card.shadowOffset as { height: number }).height = 999;
+    } catch {
+      // strict mode; either behaviour is fine
+    }
+    try {
+      (typography.body as { color: string }).color = "red";
+    } catch {
+      // strict mode; either behaviour is fine
+    }
+    expect(shadows.card.shadowOffset.height).toBe(6);
+    expect(typography.body.color).toBe(colors.ink);
+  });
+});
+
+describe("package entry point", () => {
+  it("re-exports the tokens from the package root", () => {
+    // package.json points main/types at src/index.ts; without it every
+    // `import { colors } from "@kaya/ui"` in the apps fails to resolve.
+    expect(root.colors).toBe(colors);
+    expect(root.radii).toBe(radii);
+    expect(root.typography).toBe(typography);
+    expect(root.shadows).toBe(shadows);
+    expect(root.minTouch).toBe(minTouch);
   });
 });
