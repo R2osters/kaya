@@ -1,13 +1,20 @@
 {
   "name": "kaya-monorepo",
+  "version": "0.1.0",
   "private": true,
+  "description": "Kaya delivery platform monorepo. Runtime code lives in backend/, apps/ and packages/; git hooks and commit tooling are configured here.",
   "workspaces": ["packages/*", "apps/*"],
   "scripts": {
+    "prepare": "husky",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.5.0",
+    "@commitlint/config-conventional": "^19.5.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.10",
     "typescript": "~5.9.2"
   }
 }
