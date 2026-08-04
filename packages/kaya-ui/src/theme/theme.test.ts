@@ -29,6 +29,10 @@ describe("design tokens", () => {
     expect(colors.markerDropoff).toBe(colors.primary);
   });
 
+  it("carries a scrim for a modal barrier", () => {
+    expect(colors.scrim).toBe("rgba(11, 18, 32, 0.55)");
+  });
+
   it("carries the radius and spacing scales", () => {
     expect(radii).toEqual({ field: 14, button: 16, cardTight: 18, card: 20, sheet: 28, pill: 999 });
     expect(spacing).toEqual({ xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32 });
