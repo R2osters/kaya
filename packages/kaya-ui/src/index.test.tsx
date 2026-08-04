@@ -20,6 +20,8 @@ import {
   MapLibreMapView,
   MapView,
   pickupMarker,
+  StylizedMapFallback,
+  vehicleMarker,
   PushAdapter,
   RatingStars,
   registerMapProvider,
@@ -178,6 +180,17 @@ describe("package entry point: components", () => {
   it("reaches the marker constructors through the package root", () => {
     expect(pickupMarker({ lat: 5.6, lng: -0.19 }).color).toBe(colors.markerPickup);
     expect(dropoffMarker({ lat: 5.6, lng: -0.19 }).color).toBe(colors.markerDropoff);
+
+    const vehicle = vehicleMarker({ lat: 5.6, lng: -0.19 });
+    expect(vehicle.color).toBe(colors.primary);
+    expect(vehicle.isVehicle).toBe(true);
+  });
+
+  it("reaches StylizedMapFallback through the package root", () => {
+    // The fallback is what makes both apps runnable with no API key at all, so
+    // an app must be able to reach it deliberately, not only get it by default.
+    render(<StylizedMapFallback testID="root-fallback" />);
+    expect(screen.getByTestId("root-fallback")).toBeTruthy();
   });
 
   it("reaches registerMapProvider, hasMapProvider and MapLibreMapView through the package root", () => {
