@@ -3,6 +3,7 @@ import { Text } from "react-native";
 import {
   BottomSheetShell,
   EmptyState,
+  ImageAdapter,
   KayaAvatar,
   KayaButton,
   KayaCard,
@@ -12,6 +13,7 @@ import {
   KayaSkeletonList,
   KayaSkeletonListTile,
   KayaTextField,
+  LocationAdapter,
   RatingStars,
   SecureTokenStore,
   StatusPill,
@@ -26,6 +28,28 @@ jest.mock("expo-secure-store", () => ({
   setItemAsync: jest.fn().mockResolvedValue(undefined),
   deleteItemAsync: jest.fn().mockResolvedValue(undefined),
   AFTER_FIRST_UNLOCK: "AFTER_FIRST_UNLOCK",
+}));
+
+// Same rationale, for the LocationAdapter and ImageAdapter reachability
+// tests below -- mocked identically to their own adapter test files.
+jest.mock("expo-location", () => ({
+  requestForegroundPermissionsAsync: jest.fn().mockResolvedValue({ status: "denied" }),
+  getForegroundPermissionsAsync: jest.fn().mockResolvedValue({ status: "denied" }),
+  getCurrentPositionAsync: jest.fn(),
+  watchPositionAsync: jest.fn(),
+  Accuracy: { Balanced: 3 },
+}));
+
+jest.mock("expo-image-picker", () => ({
+  requestMediaLibraryPermissionsAsync: jest.fn().mockResolvedValue({ status: "denied" }),
+  requestCameraPermissionsAsync: jest.fn().mockResolvedValue({ status: "denied" }),
+  launchImageLibraryAsync: jest.fn(),
+  launchCameraAsync: jest.fn(),
+}));
+
+jest.mock("expo-image-manipulator", () => ({
+  manipulateAsync: jest.fn(),
+  SaveFormat: { JPEG: "jpeg", PNG: "png", WEBP: "webp" },
 }));
 
 // The previous task shipped a manifest pointing at a barrel that did not
@@ -108,6 +132,16 @@ describe("package entry point: components", () => {
   it("reaches SecureTokenStore through the package root", async () => {
     const store = new SecureTokenStore();
     await expect(store.readAccess()).resolves.toBeNull();
+  });
+
+  it("reaches LocationAdapter through the package root", async () => {
+    const adapter = new LocationAdapter();
+    await expect(adapter.requestPermission()).resolves.toBe("denied");
+  });
+
+  it("reaches ImageAdapter through the package root", async () => {
+    const adapter = new ImageAdapter();
+    await expect(adapter.pickFromLibrary()).resolves.toBeNull();
   });
 
   it("reaches KayaI18nProvider and useLocale through the package root", () => {

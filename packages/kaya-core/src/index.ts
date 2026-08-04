@@ -33,4 +33,7 @@ export * from "./realtime/socket";
 
 export * from "./storage/tokenStore";
 
+export * from "./platform/location";
+export * from "./platform/image";
+
 export * from "./i18n";
