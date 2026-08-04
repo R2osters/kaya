@@ -49,4 +49,10 @@ export function KayaCard({
   );
 }
 
-const styles = StyleSheet.create({ base: { overflow: "hidden" } });
+// No `overflow: "hidden"` here: React Native maps it to `masksToBounds = YES`
+// on iOS, which clips the layer's own shadow along with its content. The
+// Dart original clipped nothing, and nothing in this package or its
+// consumers relies on KayaCard clipping its children -- a caller that adds
+// rounded-corner content needing a real clip (e.g. an image filling the
+// card) should clip that child itself, not this shared shell.
+const styles = StyleSheet.create({ base: {} });
