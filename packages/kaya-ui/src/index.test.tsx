@@ -2,7 +2,10 @@ import { render, screen } from "@testing-library/react-native";
 import { Text } from "react-native";
 import {
   BottomSheetShell,
+  colors,
+  dropoffMarker,
   EmptyState,
+  hasMapProvider,
   ImageAdapter,
   KayaAvatar,
   KayaButton,
@@ -14,8 +17,12 @@ import {
   KayaSkeletonListTile,
   KayaTextField,
   LocationAdapter,
+  MapLibreMapView,
+  MapView,
+  pickupMarker,
   PushAdapter,
   RatingStars,
+  registerMapProvider,
   SecureTokenStore,
   StatusPill,
   useLocale,
@@ -161,6 +168,28 @@ describe("package entry point: components", () => {
   it("reaches PushAdapter through the package root", async () => {
     const adapter = new PushAdapter();
     await expect(adapter.getToken()).resolves.toBeNull();
+  });
+
+  it("reaches MapView through the package root, rendering the fallback with no provider registered", () => {
+    render(<MapView testID="root-map" />);
+    expect(screen.getByTestId("root-map")).toBeTruthy();
+  });
+
+  it("reaches the marker constructors through the package root", () => {
+    expect(pickupMarker({ lat: 5.6, lng: -0.19 }).color).toBe(colors.markerPickup);
+    expect(dropoffMarker({ lat: 5.6, lng: -0.19 }).color).toBe(colors.markerDropoff);
+  });
+
+  it("reaches registerMapProvider, hasMapProvider and MapLibreMapView through the package root", () => {
+    // MapLibreMapView is not rendered here: it lazily requires the native
+    // @maplibre/maplibre-react-native module on first render (see
+    // MapLibreMapView.tsx), which is not installed in this workspace yet by
+    // design (see that file's doc comment). This only checks the export
+    // shape -- the same thing the rest of this suite checks for every other
+    // export -- without paying for a native module this repo cannot link.
+    expect(typeof registerMapProvider).toBe("function");
+    expect(typeof hasMapProvider).toBe("function");
+    expect(typeof MapLibreMapView).toBe("function");
   });
 
   it("reaches KayaI18nProvider and useLocale through the package root", () => {
