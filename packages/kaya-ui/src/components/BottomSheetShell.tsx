@@ -58,7 +58,12 @@ export function BottomSheetShell({
       >
         <Pressable
           testID={testID ? `${testID}-backdrop` : undefined}
-          accessibilityRole="button"
+          // Only a button to assistive technology once the caller has said
+          // what it does. An unlabelled button covering the entire screen is
+          // worse than an unreachable one: a screen reader announces "button"
+          // and the user has no idea what pressing it would dismiss.
+          accessible={dismissAccessibilityLabel !== undefined}
+          accessibilityRole={dismissAccessibilityLabel !== undefined ? "button" : undefined}
           accessibilityLabel={dismissAccessibilityLabel}
           style={StyleSheet.absoluteFill}
           onPress={onClose}

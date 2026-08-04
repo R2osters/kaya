@@ -3,6 +3,15 @@ import { spacing } from "../theme";
 import { KayaSkeleton } from "./KayaSkeleton";
 
 export interface KayaSkeletonCardProps {
+  /**
+   * Announced by a screen reader while this stands in for content, e.g.
+   * "Chargement des courses". Without it this is an `accessible` node with
+   * nothing to read: the child boxes are deliberately hidden from the
+   * accessibility tree, so a blind user focuses it and hears silence — no
+   * different from an empty list. Copy comes from the caller's i18n, never
+   * from this package.
+   */
+  accessibilityLabel?: string;
   testID?: string;
 }
 
@@ -30,12 +39,17 @@ const FOOTER_HEIGHT = 32;
  * `KayaSkeletonListTile` — one "loading" announcement for the whole card
  * rather than one per line.
  */
-export function KayaSkeletonCard({ testID }: KayaSkeletonCardProps) {
+export function KayaSkeletonCard({ accessibilityLabel, testID }: KayaSkeletonCardProps) {
   return (
     <View
       testID={testID}
-      accessible
-      accessibilityState={{ busy: true }}
+      accessible={accessibilityLabel !== undefined}
+      accessibilityRole="progressbar"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={accessibilityLabel !== undefined ? { busy: true } : undefined}
+      // Android needs this to keep the child boxes out of the tree.
+      // iOS needs nothing: `accessible` already merges descendants into
+      // a single element there.
       importantForAccessibility="no-hide-descendants"
       style={styles.card}
     >

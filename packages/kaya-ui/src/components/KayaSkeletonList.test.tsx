@@ -19,12 +19,21 @@ describe("KayaSkeletonList", () => {
     expect(screen.getAllByTestId(/^list-tile-\d+-avatar$/, hidden)).toHaveLength(4);
   });
 
-  it("announces busy once for the whole list, not once per tile", () => {
-    render(<KayaSkeletonList count={4} testID="list" />);
-    expect(screen.getByTestId("list", hidden).props.accessibilityState).toEqual({ busy: true });
-    // Individual tiles carry no accessibility state of their own — only the
-    // list root announces busy, so a screen reader hears "loading" once
-    // rather than once per row.
-    expect(screen.getByTestId("list-tile-0", hidden).props.accessibilityState).toBeUndefined();
+  it("announces the caller's label once, at its own root", () => {
+    render(<KayaSkeletonList accessibilityLabel="Chargement" testID="list" />);
+    const root = screen.getByTestId("list", hidden);
+    expect(root.props.accessible).toBe(true);
+    expect(root.props.accessibilityLabel).toBe("Chargement");
+    expect(root.props.accessibilityState).toEqual({ busy: true });
+  });
+
+  it("is not an accessibility element at all without a label", () => {
+    // An `accessible` node with nothing to read is worse than none: a screen
+    // reader focuses it and says nothing, which is indistinguishable from an
+    // empty list. Copy has to come from the caller's i18n.
+    render(<KayaSkeletonList testID="list" />);
+    const root = screen.getByTestId("list", hidden);
+    expect(root.props.accessible).toBe(false);
+    expect(root.props.accessibilityState).toBeUndefined();
   });
 });

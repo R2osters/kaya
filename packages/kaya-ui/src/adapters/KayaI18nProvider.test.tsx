@@ -160,4 +160,47 @@ describe("KayaI18nProvider", () => {
 
     expect(onLocaleChangeError).toHaveBeenCalledWith(error);
   });
+
+  it("keeps a setLocale switch through an unrelated re-render with an inline error handler", () => {
+    // The ordinary way to pass onLocaleChangeError is an inline arrow, whose
+    // identity changes every render. If that identity feeds the sync effect,
+    // any parent re-render re-runs it and drags the UI back to the unchanged
+    // `locale` prop: a driver taps "English" and watches it snap to French.
+    const { rerender } = render(
+      <KayaI18nProvider locale="fr" onLocaleChangeError={() => undefined}>
+        <LocaleProbe />
+      </KayaI18nProvider>,
+    );
+
+    fireEvent.press(screen.getByTestId("switch-to-en"));
+    expect(screen.getByTestId("locale-value")).toHaveTextContent("en");
+
+    // Same locale prop, brand-new handler identity — an incidental re-render.
+    rerender(
+      <KayaI18nProvider locale="fr" onLocaleChangeError={() => undefined}>
+        <LocaleProbe />
+      </KayaI18nProvider>,
+    );
+
+    expect(screen.getByTestId("locale-value")).toHaveTextContent("en");
+  });
+
+  it("still lets a genuine locale prop change override a local switch", () => {
+    // The flip side: the prop is controlled, so when it really changes it wins.
+    const { rerender } = render(
+      <KayaI18nProvider locale="fr">
+        <LocaleProbe />
+      </KayaI18nProvider>,
+    );
+
+    fireEvent.press(screen.getByTestId("switch-to-en"));
+    expect(screen.getByTestId("locale-value")).toHaveTextContent("en");
+
+    rerender(
+      <KayaI18nProvider locale="fr">
+        <LocaleProbe />
+      </KayaI18nProvider>,
+    );
+    expect(screen.getByTestId("locale-value")).toHaveTextContent("en");
+  });
 });

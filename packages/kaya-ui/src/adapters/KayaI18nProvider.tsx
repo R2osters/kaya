@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -75,13 +76,20 @@ export function KayaI18nProvider({ locale, children, onLocaleChangeError }: Kaya
   // to prevent (see adapters/LocationAdapter.ts) — reported to the caller
   // rather than left to surface as a bare console warning or a fatal,
   // depending on the RN configuration.
+  // Held in a ref rather than a dependency. A caller passing an inline arrow
+  // — the ordinary way — would otherwise give this a new identity on every
+  // render, re-running the sync effect below and reverting an uncommitted
+  // setLocale() back to the unchanged prop.
+  const onErrorRef = useRef(onLocaleChangeError);
+  onErrorRef.current = onLocaleChangeError;
+
   const changeLanguage = useCallback(
     (next: Locale) => {
       instance.changeLanguage(next).catch((error: unknown) => {
-        onLocaleChangeError?.(error);
+        onErrorRef.current?.(error);
       });
     },
-    [instance, onLocaleChangeError],
+    [instance],
   );
 
   // useState's initializer above only ever runs once, at mount — without
@@ -90,13 +98,21 @@ export function KayaI18nProvider({ locale, children, onLocaleChangeError }: Kaya
   // re-rendering with the result) would never reach `current` or the
   // i18next instance, and the UI would stay on whatever locale happened to
   // be current at mount time until a full remount.
+  //
+  // It syncs only when the *prop* actually changes, tracked here rather than
+  // by comparing against `current`. Comparing against `current` would undo a
+  // setLocale(): the user picks English, the prop is still "fr", and the next
+  // render of any parent would drag the UI back to French.
+  const lastLocaleProp = useRef(locale);
   useEffect(() => {
+    if (lastLocaleProp.current === locale) return;
+    lastLocaleProp.current = locale;
+
     const safe = resolveLocale(locale);
-    setCurrent((prev) => {
-      if (prev === safe) return prev;
-      changeLanguage(safe);
-      return safe;
-    });
+    // Side effect kept out of the state updater: React may invoke an updater
+    // twice, and under StrictMode that would fire changeLanguage twice.
+    setCurrent((prev) => (prev === safe ? prev : safe));
+    changeLanguage(safe);
   }, [locale, changeLanguage]);
 
   const setLocale = useCallback(

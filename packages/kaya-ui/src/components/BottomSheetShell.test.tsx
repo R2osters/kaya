@@ -105,8 +105,22 @@ describe("BottomSheetShell", () => {
       </BottomSheetShell>,
     );
     const backdrop = screen.getByTestId("sheet-backdrop");
+    expect(backdrop.props.accessible).toBe(true);
     expect(backdrop.props.accessibilityRole).toBe("button");
     expect(backdrop.props.accessibilityLabel).toBe("Fermer");
+  });
+
+  it("does not present an unlabelled full-screen button when no label is given", () => {
+    // "button", announced over the whole screen with no idea what it does, is
+    // worse than a backdrop assistive technology simply skips.
+    render(
+      <BottomSheetShell visible onClose={jest.fn()} testID="sheet">
+        <Text>contenu</Text>
+      </BottomSheetShell>,
+    );
+    const backdrop = screen.getByTestId("sheet-backdrop");
+    expect(backdrop.props.accessible).toBe(false);
+    expect(backdrop.props.accessibilityRole).toBeUndefined();
   });
 
   it("marks the presented content as a modal so focus cannot escape behind it", () => {
