@@ -53,6 +53,20 @@ describe("KayaCard", () => {
     });
   });
 
+  it("does not clip its own shadow on iOS", () => {
+    // overflow: "hidden" maps to masksToBounds = YES on iOS, which clips the
+    // layer's own shadow along with its content -- the shadow-prop
+    // assertions above would still pass even with that set, since RN keeps
+    // reporting the (now invisible) shadow style. This is the regression
+    // those assertions alone cannot catch.
+    render(
+      <KayaCard testID="card">
+        <Text>default</Text>
+      </KayaCard>,
+    );
+    expect(screen.getByTestId("card")).not.toHaveStyle({ overflow: "hidden" });
+  });
+
   it("can drop its border and shadow for nested use", () => {
     render(
       <KayaCard testID="card" border={false} shadow={false}>
