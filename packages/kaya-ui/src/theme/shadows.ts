@@ -1,4 +1,5 @@
 import type { ViewStyle } from "react-native";
+import { colors } from "./colors";
 
 /**
  * Soft depth, not heavy drops. The Flutter side expressed these as BoxShadow
@@ -19,14 +20,14 @@ const preset = (s: Shadow): Shadow => {
 
 export const shadows = Object.freeze({
   card: preset({
-    shadowColor: "#0B1220",
+    shadowColor: colors.ink,
     shadowOpacity: 0.06,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
     elevation: 3,
   }),
   soft: preset({
-    shadowColor: "#0B1220",
+    shadowColor: colors.ink,
     shadowOpacity: 0.04,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
@@ -38,7 +39,7 @@ export const shadows = Object.freeze({
    * upward cast is an iOS-only refinement. Do not "fix" the negative offset.
    */
   sheet: preset({
-    shadowColor: "#0B1220",
+    shadowColor: colors.ink,
     shadowOpacity: 0.1,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: -8 },

@@ -123,7 +123,7 @@ export function StylizedMapFallback({ markers = [], testID }: MapViewProps) {
         )}
 
         {markers.map((marker, index) => (
-          // eslint-disable-next-line react/no-array-index-key -- markers have no stable id in this contract
+          // markers have no stable id in this contract, so the index is the key.
           <MarkerGlyph key={`marker-${index}`} marker={marker} />
         ))}
       </Svg>

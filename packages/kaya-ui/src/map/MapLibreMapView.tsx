@@ -116,7 +116,7 @@ export function MapLibreMapView({ center, markers = [], route, testID }: MapView
 
       {markers.map((marker, index) => (
         <PointAnnotation
-          // eslint-disable-next-line react/no-array-index-key -- markers have no stable id in this contract
+          // markers have no stable id in this contract, so the index is the key.
           key={`marker-${index}`}
           id={`marker-${index}`}
           coordinate={[marker.point.lng, marker.point.lat]}
