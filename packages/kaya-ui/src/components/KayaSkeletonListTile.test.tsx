@@ -20,8 +20,21 @@ describe("KayaSkeletonListTile", () => {
     expect(screen.getByTestId("tile-row-chip", hidden)).toHaveStyle({ width: 48, height: 20 });
   });
 
-  it("announces busy once, at its own root", () => {
+  it("announces the caller's label once, at its own root", () => {
+    render(<KayaSkeletonListTile accessibilityLabel="Chargement" testID="tile" />);
+    const root = screen.getByTestId("tile", hidden);
+    expect(root.props.accessible).toBe(true);
+    expect(root.props.accessibilityLabel).toBe("Chargement");
+    expect(root.props.accessibilityState).toEqual({ busy: true });
+  });
+
+  it("is not an accessibility element at all without a label", () => {
+    // An `accessible` node with nothing to read is worse than none: a screen
+    // reader focuses it and says nothing, which is indistinguishable from an
+    // empty list. Copy has to come from the caller's i18n.
     render(<KayaSkeletonListTile testID="tile" />);
-    expect(screen.getByTestId("tile", hidden).props.accessibilityState).toEqual({ busy: true });
+    const root = screen.getByTestId("tile", hidden);
+    expect(root.props.accessible).toBe(false);
+    expect(root.props.accessibilityState).toBeUndefined();
   });
 });

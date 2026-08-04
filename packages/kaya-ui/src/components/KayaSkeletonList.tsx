@@ -3,6 +3,15 @@ import { spacing } from "../theme";
 import { SkeletonListTileRow } from "./skeletonListTileRow";
 
 export interface KayaSkeletonListProps {
+  /**
+   * Announced by a screen reader while this stands in for content, e.g.
+   * "Chargement des courses". Without it this is an `accessible` node with
+   * nothing to read: the child boxes are deliberately hidden from the
+   * accessibility tree, so a blind user focuses it and hears silence — no
+   * different from an empty list. Copy comes from the caller's i18n, never
+   * from this package.
+   */
+  accessibilityLabel?: string;
   count?: number;
   testID?: string;
 }
@@ -26,12 +35,17 @@ const DEFAULT_COUNT = 4;
  * accessibility grouping) and announces `busy` exactly once, at the list's
  * own root.
  */
-export function KayaSkeletonList({ count = DEFAULT_COUNT, testID }: KayaSkeletonListProps) {
+export function KayaSkeletonList({ count = DEFAULT_COUNT, accessibilityLabel, testID }: KayaSkeletonListProps) {
   return (
     <View
       testID={testID}
-      accessible
-      accessibilityState={{ busy: true }}
+      accessible={accessibilityLabel !== undefined}
+      accessibilityRole="progressbar"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={accessibilityLabel !== undefined ? { busy: true } : undefined}
+      // Android needs this to keep the child boxes out of the tree.
+      // iOS needs nothing: `accessible` already merges descendants into
+      // a single element there.
       importantForAccessibility="no-hide-descendants"
       style={styles.list}
     >

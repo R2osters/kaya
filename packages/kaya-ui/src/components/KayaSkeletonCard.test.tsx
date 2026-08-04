@@ -19,8 +19,21 @@ describe("KayaSkeletonCard", () => {
     expect(screen.getByTestId("card-footer-2", hidden)).toHaveStyle({ width: 80, height: 32 });
   });
 
-  it("announces busy once, at its own root", () => {
+  it("announces the caller's label once, at its own root", () => {
+    render(<KayaSkeletonCard accessibilityLabel="Chargement" testID="card" />);
+    const root = screen.getByTestId("card", hidden);
+    expect(root.props.accessible).toBe(true);
+    expect(root.props.accessibilityLabel).toBe("Chargement");
+    expect(root.props.accessibilityState).toEqual({ busy: true });
+  });
+
+  it("is not an accessibility element at all without a label", () => {
+    // An `accessible` node with nothing to read is worse than none: a screen
+    // reader focuses it and says nothing, which is indistinguishable from an
+    // empty list. Copy has to come from the caller's i18n.
     render(<KayaSkeletonCard testID="card" />);
-    expect(screen.getByTestId("card", hidden).props.accessibilityState).toEqual({ busy: true });
+    const root = screen.getByTestId("card", hidden);
+    expect(root.props.accessible).toBe(false);
+    expect(root.props.accessibilityState).toBeUndefined();
   });
 });
