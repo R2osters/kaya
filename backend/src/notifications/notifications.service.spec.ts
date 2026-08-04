@@ -71,6 +71,26 @@ describe('NotificationsService', () => {
       );
     });
 
+    it("does not let a caller's own data override the real notification type", async () => {
+      // input.data is built up by whichever service triggers the
+      // notification and is not under this service's control; if it happens
+      // to carry its own `type` key, the notification's real type must
+      // still win the FCM payload.
+      const { service } = build();
+
+      await service.notify('u1', {
+        type: 'offer',
+        title: 'Nouvelle offre',
+        body: 'Kwame propose 28 GHS',
+        data: { type: 'not-a-real-type', orderId: 'o1' },
+      });
+
+      expect(push.send).toHaveBeenCalledWith(
+        'tok-1',
+        expect.objectContaining({ data: { type: 'offer', orderId: 'o1' } }),
+      );
+    });
+
     it('persists the notification before attempting delivery', async () => {
       const { prisma, service } = build();
 
