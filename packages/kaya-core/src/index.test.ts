@@ -26,6 +26,42 @@ describe("@kaya/core public surface", () => {
     expect(core.ApiFailure).toBeDefined();
   });
 
+  it("exports the LocationProvider and ImageProvider contracts (type-only; a mismatch here fails to compile)", async () => {
+    // LocationProvider and ImageProvider are pure interfaces -- @kaya/core
+    // declares the contract but ships no runtime value for them, matching
+    // the platform-free rule the lint config enforces (no expo-* import,
+    // not even for a type). This exercises the barrel re-export by
+    // implementing each interface inline and calling through it.
+    const location: core.LocationProvider = {
+      requestPermission: async () => "denied",
+      getCurrent: async () => null,
+      watch: () => () => {},
+    };
+    await expect(location.requestPermission()).resolves.toBe("denied");
+    await expect(location.getCurrent()).resolves.toBeNull();
+    expect(typeof location.watch(() => {}, { intervalMs: 5000, distanceFilterM: 10 })).toBe(
+      "function",
+    );
+
+    const image: core.ImageProvider = {
+      pickFromLibrary: async () => null,
+      capture: async () => null,
+      compress: async (uri: string) => ({
+        uri,
+        width: 100,
+        height: 100,
+        bytes: 1024,
+      }),
+    };
+    await expect(image.pickFromLibrary()).resolves.toBeNull();
+    await expect(image.compress("file://x.jpg")).resolves.toEqual({
+      uri: "file://x.jpg",
+      width: 100,
+      height: 100,
+      bytes: 1024,
+    });
+  });
+
   it("exports the wire coercion helpers, including isPlainObject", () => {
     expect(typeof core.isPlainObject).toBe("function");
     expect(typeof core.decimalLike).toBe("function");
