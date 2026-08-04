@@ -160,5 +160,34 @@ describe("LocationAdapter", () => {
       }).not.toThrow();
       expect(remove).toHaveBeenCalledTimes(1);
     });
+
+    it("reports a watch that cannot be established instead of leaving it unhandled", async () => {
+      // GPS switched off mid-run. Unhandled, this is a promise rejection that
+      // some React Native configurations turn fatal — over something every
+      // other method on this contract treats as recoverable.
+      const failure = new Error("location services disabled");
+      mockedWatch.mockRejectedValue(failure);
+      mockedGetPermissions.mockResolvedValue({ status: "granted" });
+
+      const onError = jest.fn();
+      const adapter = new LocationAdapter();
+      adapter.watch(jest.fn(), { intervalMs: 5_000, distanceFilterM: 10, onError });
+
+      await flush();
+
+      expect(onError).toHaveBeenCalledWith(failure);
+    });
+
+    it("does not blow up when no onError is supplied", async () => {
+      mockedWatch.mockRejectedValue(new Error("location services disabled"));
+      mockedGetPermissions.mockResolvedValue({ status: "granted" });
+
+      const adapter = new LocationAdapter();
+      expect(() =>
+        adapter.watch(jest.fn(), { intervalMs: 5_000, distanceFilterM: 10 }),
+      ).not.toThrow();
+
+      await flush();
+    });
   });
 });

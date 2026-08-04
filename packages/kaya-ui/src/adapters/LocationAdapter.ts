@@ -60,7 +60,17 @@ export class LocationAdapter implements LocationProvider {
         return;
       }
       subscription = sub;
-    })();
+    })().catch((error: unknown) => {
+      // GPS switched off mid-run, or a transient platform error. Left
+      // unhandled this is an unhandled promise rejection — a console warning
+      // in some React Native configurations and a fatal in others, over
+      // something the contract calls recoverable everywhere else.
+      //
+      // It is reported rather than merely swallowed: the position stream is
+      // now dead, and a driver whose client sees a frozen marker deserves
+      // better than silence. Same shape as SocketService's onPayloadError.
+      options.onError?.(error);
+    });
 
     return () => {
       stopped = true;

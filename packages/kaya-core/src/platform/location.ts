@@ -14,6 +14,17 @@ export interface LocationWatchOptions {
    * intervalMs has elapsed. Filters out GPS jitter while stationary.
    */
   distanceFilterM: number;
+  /**
+   * Called if the watch cannot be established or dies afterwards — GPS
+   * switched off mid-run, a transient platform error. The stream is over when
+   * this fires; nothing further will arrive.
+   *
+   * It exists because the alternative is silence: the driver keeps driving,
+   * the client watches a marker that stopped moving, and neither is told. The
+   * adapter does not throw here, since an inbound platform callback is not a
+   * place a caller can catch from.
+   */
+  onError?: (error: unknown) => void;
 }
 
 /**
