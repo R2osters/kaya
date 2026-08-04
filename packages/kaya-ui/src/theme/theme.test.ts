@@ -143,6 +143,7 @@ describe("package entry point", () => {
     // `import { colors } from "@kaya/ui"` in the apps fails to resolve.
     expect(root.colors).toBe(colors);
     expect(root.radii).toBe(radii);
+    expect(root.spacing).toBe(spacing);
     expect(root.typography).toBe(typography);
     expect(root.shadows).toBe(shadows);
     expect(root.minTouch).toBe(minTouch);
