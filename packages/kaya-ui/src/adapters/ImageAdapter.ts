@@ -16,8 +16,18 @@ export class ImageAdapter implements ImageProvider {
     if (permission.status !== "granted") {
       return null;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({ quality: 1 });
-    return firstAsset(result);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({ quality: 1 });
+      return firstAsset(result);
+    } catch {
+      // A recoverable read failure (a permission race, a picker that throws
+      // instead of resolving on some devices) degrades to null for the same
+      // reason LocationAdapter.getCurrent() and PushAdapter.getToken() do --
+      // see adapters/LocationAdapter.ts. A throw here would crash the
+      // pickup/delivery photo screen calling this instead of leaving it in
+      // the same "no photo obtained" state a cancel already produces.
+      return null;
+    }
   }
 
   async capture(): Promise<ImageAsset | null> {
@@ -25,8 +35,14 @@ export class ImageAdapter implements ImageProvider {
     if (permission.status !== "granted") {
       return null;
     }
-    const result = await ImagePicker.launchCameraAsync({ quality: 1 });
-    return firstAsset(result);
+    try {
+      const result = await ImagePicker.launchCameraAsync({ quality: 1 });
+      return firstAsset(result);
+    } catch {
+      // Same convention as pickFromLibrary() above -- e.g. launchCameraAsync
+      // throwing on a simulator with no camera, or a revoked-permission race.
+      return null;
+    }
   }
 
   async compress(uri: string, options: CompressOptions = {}): Promise<CompressedImage> {
