@@ -45,6 +45,18 @@ describe("ImageAdapter", () => {
       await expect(adapter.pickFromLibrary()).resolves.toBeNull();
     });
 
+    it("resolves null -- never rejects -- when the picker throws", async () => {
+      // A permission race or a picker that throws instead of resolving on
+      // some devices is a recoverable read failure, same convention as
+      // LocationAdapter.getCurrent(). A crashed pickup/delivery photo screen
+      // is what this degrade-to-null exists to prevent.
+      mockedRequestLibraryPermission.mockResolvedValue({ status: "granted" });
+      mockedLaunchLibrary.mockRejectedValue(new Error("picker unavailable"));
+      const adapter = new ImageAdapter();
+
+      await expect(adapter.pickFromLibrary()).resolves.toBeNull();
+    });
+
     it("resolves the picked asset", async () => {
       mockedRequestLibraryPermission.mockResolvedValue({ status: "granted" });
       mockedLaunchLibrary.mockResolvedValue({
@@ -73,6 +85,16 @@ describe("ImageAdapter", () => {
     it("resolves null when the user cancels the camera", async () => {
       mockedRequestCameraPermission.mockResolvedValue({ status: "granted" });
       mockedLaunchCamera.mockResolvedValue({ canceled: true, assets: null });
+      const adapter = new ImageAdapter();
+
+      await expect(adapter.capture()).resolves.toBeNull();
+    });
+
+    it("resolves null -- never rejects -- when the camera throws", async () => {
+      // e.g. launchCameraAsync throwing on a simulator with no camera, or a
+      // revoked-permission race between the check above and the launch.
+      mockedRequestCameraPermission.mockResolvedValue({ status: "granted" });
+      mockedLaunchCamera.mockRejectedValue(new Error("camera unavailable"));
       const adapter = new ImageAdapter();
 
       await expect(adapter.capture()).resolves.toBeNull();

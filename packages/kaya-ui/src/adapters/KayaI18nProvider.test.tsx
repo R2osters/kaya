@@ -1,7 +1,17 @@
-import type { Locale } from "@kaya/core";
+import { createI18n, type Locale } from "@kaya/core";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { Pressable, Text } from "react-native";
 import { KayaI18nProvider, useLocale } from "./KayaI18nProvider";
+
+// createI18n is wrapped in jest.fn() (delegating to the real implementation
+// by default) so the one test below that needs a changeLanguage() rejection
+// can substitute a controllable fake instance for a single call, without
+// touching how every other test resolves locales.
+jest.mock("@kaya/core", () => {
+  const actual = jest.requireActual("@kaya/core");
+  return { ...actual, createI18n: jest.fn(actual.createI18n) };
+});
+const mockedCreateI18n = createI18n as jest.MockedFunction<typeof createI18n>;
 
 function LocaleProbe() {
   const { locale, setLocale } = useLocale();
@@ -81,5 +91,73 @@ describe("KayaI18nProvider", () => {
 
     fireEvent.press(screen.getByTestId("switch-to-unsupported"));
     expect(screen.getByTestId("locale-value").props.children).toBe("fr");
+  });
+
+  it("follows a changed locale prop after mount, without needing setLocale or a remount", () => {
+    // Phase 1C's failure scenario: the app reads a saved language from
+    // SecureStore asynchronously, then re-renders with the resolved locale.
+    // useState's initializer only runs once, so without a controlled sync
+    // the UI would stay on the mount-time locale until a full remount.
+    const { rerender } = render(
+      <KayaI18nProvider locale="fr">
+        <LocaleProbe />
+      </KayaI18nProvider>,
+    );
+    expect(screen.getByTestId("locale-value").props.children).toBe("fr");
+
+    rerender(
+      <KayaI18nProvider locale="en">
+        <LocaleProbe />
+      </KayaI18nProvider>,
+    );
+    expect(screen.getByTestId("locale-value").props.children).toBe("en");
+  });
+
+  it("does not re-sync when the locale prop is re-rendered with the same value", () => {
+    // A locally-driven switch (setLocale) must survive an incidental parent
+    // re-render that keeps passing the same, unchanged `locale` prop --
+    // otherwise every render would fight a local switch back to the prop.
+    const { rerender } = render(
+      <KayaI18nProvider locale="fr">
+        <LocaleProbe />
+      </KayaI18nProvider>,
+    );
+
+    fireEvent.press(screen.getByTestId("switch-to-en"));
+    expect(screen.getByTestId("locale-value").props.children).toBe("en");
+
+    rerender(
+      <KayaI18nProvider locale="fr">
+        <LocaleProbe />
+      </KayaI18nProvider>,
+    );
+    expect(screen.getByTestId("locale-value").props.children).toBe("en");
+  });
+
+  it("reports a failed language change instead of leaving it an unhandled rejection", async () => {
+    // Same convention as LocationAdapter.watch's onError: a rejected
+    // changeLanguage() (e.g. a language-loading backend failure) must not
+    // become a silent no-op or a bare unhandled-rejection warning.
+    const error = new Error("changeLanguage failed");
+    // I18nextProvider only stores this in context (see its source) and
+    // nothing in this tree calls useTranslation, so a changeLanguage-only
+    // stub is all a real i18n instance needs to fake here.
+    mockedCreateI18n.mockReturnValueOnce({
+      changeLanguage: jest.fn().mockRejectedValueOnce(error),
+    } as unknown as ReturnType<typeof createI18n>);
+
+    const onLocaleChangeError = jest.fn();
+    render(
+      <KayaI18nProvider onLocaleChangeError={onLocaleChangeError}>
+        <LocaleProbe />
+      </KayaI18nProvider>,
+    );
+
+    fireEvent.press(screen.getByTestId("switch-to-en"));
+    // Flushes the rejected promise's microtask so the .catch() handler runs
+    // before the assertion below.
+    await Promise.resolve().then().then();
+
+    expect(onLocaleChangeError).toHaveBeenCalledWith(error);
   });
 });
