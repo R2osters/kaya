@@ -47,7 +47,17 @@ export class NotificationsService {
       await this.push.send(user.fcmToken, {
         title: input.title,
         body: input.body,
-        data: this.stringifyData(input.data),
+        // `type` travels in the data payload as well as being persisted on the
+        // row above. Without it every push arrives at the client indistinguishable
+        // from every other, so a tap on "new offer" cannot route to the offers
+        // screen — the client would have to guess from which id keys happen to
+        // be present, which breaks the moment two notification kinds share one.
+        //
+        // Spread first, `type` last: a caller-supplied `data` map is
+        // arbitrary (built up by whichever service triggers the
+        // notification) and must not be able to smuggle its own `type` key
+        // in and silently override the notification's real one.
+        data: { ...this.stringifyData(input.data), type: input.type },
       });
     } catch (err) {
       this.logger.warn(`Push delivery failed for user ${userId}: ${(err as Error).message}`);
