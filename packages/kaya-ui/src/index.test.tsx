@@ -14,6 +14,7 @@ import {
   KayaSkeletonListTile,
   KayaTextField,
   LocationAdapter,
+  PushAdapter,
   RatingStars,
   SecureTokenStore,
   StatusPill,
@@ -50,6 +51,19 @@ jest.mock("expo-image-picker", () => ({
 jest.mock("expo-image-manipulator", () => ({
   manipulateAsync: jest.fn(),
   SaveFormat: { JPEG: "jpeg", PNG: "png", WEBP: "webp" },
+}));
+
+// Same rationale, for the PushAdapter reachability test below -- mocked
+// identically to src/adapters/PushAdapter.test.ts.
+jest.mock("@react-native-firebase/messaging", () => ({
+  AuthorizationStatus: { NOT_DETERMINED: -1, DENIED: 0, AUTHORIZED: 1, PROVISIONAL: 2, EPHEMERAL: 3 },
+  getMessaging: jest.fn(() => ({})),
+  getToken: jest.fn(),
+  hasPermission: jest.fn().mockResolvedValue(0),
+  onMessage: jest.fn(),
+  onNotificationOpenedApp: jest.fn(),
+  onTokenRefresh: jest.fn(),
+  requestPermission: jest.fn(),
 }));
 
 // The previous task shipped a manifest pointing at a barrel that did not
@@ -142,6 +156,11 @@ describe("package entry point: components", () => {
   it("reaches ImageAdapter through the package root", async () => {
     const adapter = new ImageAdapter();
     await expect(adapter.pickFromLibrary()).resolves.toBeNull();
+  });
+
+  it("reaches PushAdapter through the package root", async () => {
+    const adapter = new PushAdapter();
+    await expect(adapter.getToken()).resolves.toBeNull();
   });
 
   it("reaches KayaI18nProvider and useLocale through the package root", () => {

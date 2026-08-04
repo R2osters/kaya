@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@kaya/core": "*",
+    "@react-native-firebase/app": "^26.1.0",
+    "@react-native-firebase/messaging": "^26.1.0",
     "expo-image-manipulator": "~14.0.8",
     "expo-image-picker": "~17.0.11",
     "expo-location": "~19.0.8",
