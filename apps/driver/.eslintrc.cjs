@@ -47,5 +47,23 @@ module.exports = {
       },
     ],
   },
+  overrides: [
+    {
+      // Native launch-screen config (splash.backgroundColor,
+      // android.adaptiveIcon.backgroundColor) is generated before the JS
+      // tree mounts, so it sits outside this rule the same way
+      // packages/kaya-ui/src/theme/colors.ts itself does -- see the comment
+      // on APP_NAME in app.config.ts.
+      files: ["app.config.ts"],
+      rules: { "no-restricted-syntax": "off" },
+    },
+    {
+      // Tests exercising app.config.ts's build-time guard need a plain
+      // require() so jest.resetModules() forces a fresh module evaluation
+      // per case -- an import would be hoisted and cached once.
+      files: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+      rules: { "@typescript-eslint/no-require-imports": "off" },
+    },
+  ],
   ignorePatterns: ["node_modules/", ".expo/", "android/", "ios/", "dist/"],
 };
