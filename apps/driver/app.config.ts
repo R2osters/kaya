@@ -15,34 +15,20 @@ const APP_NAME = "Kaya Driver";
  */
 const APPLICATION_ID = "com.kaya.kaya_driver";
 
-/**
- * True for any build that is not a developer running the app locally in dev
- * mode: `expo export`/`eas build` and any native release build set
- * NODE_ENV=production; an EAS build additionally reports which profile it
- * ran through. Checking the profile rather than bare EAS_BUILD means an EAS
- * *development* or *preview* profile is not treated as production here.
- */
-const IS_PRODUCTION_BUILD =
-  process.env.NODE_ENV === "production" || process.env.EAS_BUILD_PROFILE === "production";
-
-const SKIP_AUTH = process.env.SKIP_AUTH === "true";
+// Plain CommonJS, imported by path: Expo evaluates app.config.ts through a
+// CJS loader that will not resolve a TypeScript module outside the app
+// directory, so the shared guard ships as .js rather than .ts.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { assertDevFlagsAreSafe } = require("../../tools/devFlagGuard.js") as {
+  assertDevFlagsAreSafe: (env?: NodeJS.ProcessEnv) => { skipAuth: boolean; otpDisabled: boolean };
+};
 
 /**
- * SKIP_AUTH exists so a screen can be opened without a backend during
- * development -- it must never be a way into a real user's account. A
- * runtime `if` inside a screen cannot gate it: the flag's whole purpose is
- * to change behaviour *before* any screen renders, so the check has to live
- * here, at config evaluation time, which every build path (`expo start`,
- * `expo prebuild`, `expo export`, `eas build`) runs before anything else.
- * Throwing here fails the build outright rather than shipping a binary that
- * silently honours the flag.
+ * Fails the build when SKIP_AUTH or OTP_DISABLED is set for anything that
+ * could reach real users. See tools/devFlagGuard.ts for why the check is on
+ * the backend being targeted rather than on the build type.
  */
-if (IS_PRODUCTION_BUILD && SKIP_AUTH) {
-  throw new Error(
-    "SKIP_AUTH must not be set for a production build. Unset the SKIP_AUTH " +
-      "environment variable before building for release.",
-  );
-}
+const DEV_FLAGS = assertDevFlagsAreSafe();
 
 const config: ExpoConfig = {
   name: APP_NAME,
@@ -87,8 +73,8 @@ const config: ExpoConfig = {
     // localhost fallback never ships as a bundled literal for this key.
     apiBaseUrl: process.env.API_BASE_URL ?? null,
     mapsApiKey: process.env.MAPS_API_KEY ?? null,
-    skipAuth: SKIP_AUTH,
-    otpDisabled: process.env.OTP_DISABLED === "true",
+    skipAuth: DEV_FLAGS.skipAuth,
+    otpDisabled: DEV_FLAGS.otpDisabled,
   },
 };
 
