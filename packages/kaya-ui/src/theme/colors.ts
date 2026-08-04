@@ -31,6 +31,12 @@ export const colors = Object.freeze({
   // Map markers: green = pickup, blue = drop-off
   markerPickup: "#12A150",
   markerDropoff: "#1466FF",
+
+  // Modal barrier behind a bottom sheet or dialog. `showModalBottomSheet`
+  // gave the Flutter original a barrier colour for free (Material's default
+  // Colors.black54); this is the same idea, tinted from `ink` rather than
+  // pure black to stay in the palette's own hue.
+  scrim: "rgba(11, 18, 32, 0.55)",
 } as const);
 
 export type ColorToken = keyof typeof colors;
