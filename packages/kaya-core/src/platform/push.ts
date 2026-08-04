@@ -18,15 +18,14 @@ export interface PushMessage {
    * AppNotification.type uses (models/notification.ts), via toPushMessage()
    * below.
    *
-   * IMPORTANT: as of this writing, backend's NotificationsService.notify()
-   * (backend/src/notifications/notifications.service.ts) does not put `type`
-   * into the FCM data payload it sends — it only stores it on the persisted
-   * Notification row. Until that gap is closed, every push received here
-   * normalizes to "system", regardless of what actually triggered it. A
-   * screen that needs to route on type today has to add `type` to the
-   * `data` payloads the backend already builds (order/offer/delivery ids are
-   * present there — see e.g. offers.service.ts's notifyClientOfOffer), not
-   * infer it from data's shape.
+   * Backend's NotificationsService.notify()
+   * (backend/src/notifications/notifications.service.ts) puts `type` into
+   * the FCM data payload it sends, alongside storing it on the persisted
+   * Notification row, so a screen can route on it directly off the push
+   * without waiting on a fetch. The "unknown value falls back to system"
+   * fallback above still applies to whatever value actually arrives -- a
+   * malformed or unexpected payload degrades rather than crashing the
+   * screen -- but the ordinary case is a real, routable type on every push.
    */
   type: NotificationType;
   /** The notification's display title, if the message carried one (data-only messages do not). */
