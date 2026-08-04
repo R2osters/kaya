@@ -15,8 +15,12 @@ export interface KayaSkeletonListTileProps {
  * child skeleton boxes out of the accessibility tree — `accessible`
  * collapses the subtree into a single node on iOS, and
  * `importantForAccessibility="no-hide-descendants"` does the equivalent on
- * Android. Without this, a screen reader would hear "loading" once per box
- * (KayaSkeleton always announces `busy` on itself) instead of once per row.
+ * Android. The child boxes (via `SkeletonListTileRow`) are never given their
+ * own `accessibilityLabel`, so `KayaSkeleton` does not self-announce for any
+ * of them today — but the grouping is what actually guarantees a screen
+ * reader hears "loading" exactly once per row, rather than depending on that
+ * staying true. Without it, a future box that does pick up a label would
+ * leak a second, redundant announcement into this row.
  */
 export function KayaSkeletonListTile({ testID }: KayaSkeletonListTileProps) {
   return (
