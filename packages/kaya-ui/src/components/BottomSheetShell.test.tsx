@@ -1,7 +1,21 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { Pressable, Text } from "react-native";
+import { SafeAreaProvider, type Metrics } from "react-native-safe-area-context";
 import { BottomSheetShell } from "./BottomSheetShell";
-import { colors } from "../theme";
+import { colors, spacing } from "../theme";
+
+function metricsWithBottomInset(bottom: number): Metrics {
+  return {
+    frame: { x: 0, y: 0, width: 320, height: 640 },
+    insets: { top: 0, left: 0, right: 0, bottom },
+  };
+}
+
+function panelPaddingBottom(): number {
+  const style = screen.getByTestId("sheet-panel").props.style;
+  const flattened = Array.isArray(style) ? Object.assign({}, ...style) : style;
+  return flattened.paddingBottom;
+}
 
 describe("BottomSheetShell", () => {
   it("renders children when visible", () => {
@@ -156,5 +170,44 @@ describe("BottomSheetShell", () => {
     );
     expect(screen.getByText("contenu")).toBeTruthy();
     expect(screen.getByTestId("sheet-content").props.showsVerticalScrollIndicator).toBe(false);
+  });
+
+  it("pads the sheet for the device's real bottom safe-area inset once one is available", () => {
+    // Task 4 wires react-native-safe-area-context's provider at the app root,
+    // settling this component's deferred fixed-padding item (see the module
+    // comment on `styles.sheet`): a device reporting a 34px home-indicator
+    // inset should get exactly that much bottom padding, not the old
+    // hardcoded value, so content never sits under the indicator.
+    render(
+      <SafeAreaProvider initialMetrics={metricsWithBottomInset(34)}>
+        <BottomSheetShell visible onClose={jest.fn()} testID="sheet">
+          <Text>contenu</Text>
+        </BottomSheetShell>
+      </SafeAreaProvider>,
+    );
+    expect(panelPaddingBottom()).toBe(34);
+  });
+
+  it("falls back to the design system's default bottom padding when the inset is zero or unavailable", () => {
+    // A device with no home indicator (or a test with no SafeAreaProvider at
+    // all -- see every other case in this file) must not lose the breathing
+    // room the fixed padding used to guarantee unconditionally.
+    render(
+      <BottomSheetShell visible onClose={jest.fn()} testID="sheet">
+        <Text>contenu</Text>
+      </BottomSheetShell>,
+    );
+    expect(panelPaddingBottom()).toBe(spacing.xxl);
+  });
+
+  it("never pads below the design system default even when the reported inset is smaller", () => {
+    render(
+      <SafeAreaProvider initialMetrics={metricsWithBottomInset(10)}>
+        <BottomSheetShell visible onClose={jest.fn()} testID="sheet">
+          <Text>contenu</Text>
+        </BottomSheetShell>
+      </SafeAreaProvider>,
+    );
+    expect(panelPaddingBottom()).toBe(spacing.xxl);
   });
 });

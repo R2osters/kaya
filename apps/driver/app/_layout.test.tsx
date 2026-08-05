@@ -10,6 +10,7 @@ let mockStatus: "unknown" | "authenticated" | "anonymous" = "unknown";
 let mockPathname = "/splash";
 const mockReplace = jest.fn();
 const mockRestoreSession = jest.fn();
+const mockLoadSavedLocale = jest.fn();
 
 jest.mock("expo-router", () => ({
   Stack: () => null,
@@ -30,10 +31,24 @@ jest.mock("../src/state/authStore", () => {
   return { useAuthStore };
 });
 
+// The async-read-then-controlled-prop path this store feeds KayaI18nProvider
+// has its own dedicated coverage in _layout.locale.test.tsx, with a real
+// (unmocked) localeStore -- mocked wholesale here since this file's guard
+// tests have nothing to do with locale.
+jest.mock("../src/state/localeStore", () => {
+  const useLocaleStore = (selector: (state: { locale: undefined }) => unknown) =>
+    selector({ locale: undefined });
+  Object.assign(useLocaleStore, {
+    getState: () => ({ locale: undefined, loadSavedLocale: mockLoadSavedLocale, setLocale: jest.fn() }),
+  });
+  return { useLocaleStore };
+});
+
 describe("RootLayout's auth guard", () => {
   beforeEach(() => {
     mockReplace.mockClear();
     mockRestoreSession.mockClear();
+    mockLoadSavedLocale.mockClear();
   });
 
   it("restores the session exactly once, on mount", () => {
@@ -43,6 +58,15 @@ describe("RootLayout's auth guard", () => {
     render(<RootLayout />);
 
     expect(mockRestoreSession).toHaveBeenCalledTimes(1);
+  });
+
+  it("restores the saved locale exactly once, on mount", () => {
+    mockStatus = "unknown";
+    mockPathname = "/splash";
+
+    render(<RootLayout />);
+
+    expect(mockLoadSavedLocale).toHaveBeenCalledTimes(1);
   });
 
   it("rule 1: holds an unknown status on splash without redirecting", () => {
