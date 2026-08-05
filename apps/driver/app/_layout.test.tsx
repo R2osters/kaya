@@ -14,8 +14,15 @@ const mockLoadSavedLocale = jest.fn();
 
 jest.mock("expo-router", () => ({
   Stack: () => null,
-  useRouter: () => ({ replace: (...args: unknown[]) => mockReplace(...args) }),
   usePathname: () => mockPathname,
+  // The guard redirects declaratively rather than calling router.replace in
+  // an effect: nothing rendered from the root layout may navigate before the
+  // navigator has mounted. Recording the href here is how a test sees where
+  // the guard decided to send the user.
+  Redirect: ({ href }: { href: string }) => {
+    mockReplace(href);
+    return null;
+  },
 }));
 
 // authGuard.ts itself is left unmocked -- its three rules already have
@@ -44,6 +51,13 @@ jest.mock("../src/state/localeStore", () => {
   return { useLocaleStore };
 });
 
+// The guard defers its redirect to a second render, because nothing rendered
+// from the root layout may navigate before the navigator has mounted. That
+// deferral is not assertable here: Testing Library flushes effects
+// synchronously, so the second render has already happened by the time an
+// assertion runs. It is verified on a device instead -- launching the app
+// with the deferral removed produces "Attempted to navigate before mounting
+// the Root Layout component" in logcat, and zero such errors with it.
 describe("RootLayout's auth guard", () => {
   beforeEach(() => {
     mockReplace.mockClear();
@@ -92,6 +106,8 @@ describe("RootLayout's auth guard", () => {
 
     expect(mockReplace).toHaveBeenCalledWith("/welcome");
   });
+
+
 
   it("rule 1: holds an unknown status on splash without redirecting", () => {
     mockStatus = "unknown";

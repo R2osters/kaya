@@ -25,4 +25,17 @@ config.resolver.nodeModulesPaths = [
 // Without this, @kaya/core and @kaya/ui fail to resolve entirely.
 config.resolver.unstable_enableSymlinks = true;
 
+// Expo Router turns every file under app/ into a route, and the test files are
+// colocated there. Without this they are bundled as routes, which drags
+// @testing-library into the app graph -- its logger requires Node's `console`,
+// which Metro cannot resolve, and the whole bundle fails. Nothing in the test
+// suites catches it: they run under jest, never through Metro.
+const TEST_FILES = /.*\.test\.(ts|tsx)$/;
+const existingBlockList = config.resolver.blockList;
+config.resolver.blockList = Array.isArray(existingBlockList)
+  ? [...existingBlockList, TEST_FILES]
+  : existingBlockList
+    ? [existingBlockList, TEST_FILES]
+    : [TEST_FILES];
+
 module.exports = config;

@@ -1,7 +1,7 @@
 import { KayaI18nProvider } from "@kaya/ui";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Stack, usePathname, useRouter } from "expo-router";
-import { useEffect } from "react";
+import { Redirect, Stack, usePathname } from "expo-router";
+import { useEffect, useState } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { resolveAuthRedirect } from "../src/navigation/authGuard";
 import { useAuthStore } from "../src/state/authStore";
@@ -41,19 +41,28 @@ function useLocaleRestoration(): void {
  * (state change via `refreshListenable`, navigation via `state.matchedLocation`).
  * See src/navigation/authGuard.ts for the three rules themselves.
  */
-function AuthGuard(): null {
+function AuthGuard(): React.ReactElement | null {
   const status = useAuthStore((s) => s.status);
   const pathname = usePathname();
-  const router = useRouter();
-
+  // Nothing rendered from the root layout may navigate on the first pass:
+  // the <Stack> sibling below is what creates the navigator, and expo-router
+  // throws "Attempted to navigate before mounting the Root Layout component"
+  // for anything that tries earlier -- an effect calling router.replace, a
+  // <Redirect>, and a useRootNavigationState gate all fail the same way.
+  // Flipping this in an effect forces a second render, by which point the
+  // navigator exists. The whole test suite passed against every one of those
+  // broken versions, because a mocked router accepts anything.
+  const [navigatorMounted, setNavigatorMounted] = useState(false);
   useEffect(() => {
-    const target = resolveAuthRedirect(status, pathname);
-    if (target !== null) {
-      router.replace(target);
-    }
-  }, [status, pathname, router]);
+    setNavigatorMounted(true);
+  }, []);
 
-  return null;
+  if (!navigatorMounted) return null;
+
+  const target = resolveAuthRedirect(status, pathname);
+  if (target === null) return null;
+
+  return <Redirect href={target} />;
 }
 
 /**
@@ -86,8 +95,16 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <KayaI18nProvider locale={locale}>
-          <AuthGuard />
+          {/* Order matters. React runs effects child-first and, among
+              siblings, in render order -- so AuthGuard rendered before
+              <Stack> fires its redirect while the navigator does not exist
+              yet, and expo-router throws "Attempted to navigate before
+              mounting the Root Layout component". Rendering it after <Stack>
+              is what guarantees the navigator has mounted first. AuthGuard's
+              own deferral is the second half of the fix; neither half was
+              enough on its own on a real device. */}
           <Stack screenOptions={{ headerShown: false }} />
+          <AuthGuard />
         </KayaI18nProvider>
       </QueryClientProvider>
     </SafeAreaProvider>
