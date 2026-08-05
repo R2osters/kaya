@@ -10,7 +10,7 @@ jest.mock("expo-secure-store", () => ({
 }));
 
 import * as SecureStore from "expo-secure-store";
-import { useLocaleStore } from "./localeStore";
+import { resetLocaleChoiceForTests, useLocaleStore } from "./localeStore";
 
 const mockedGet = SecureStore.getItemAsync as jest.Mock;
 const mockedSet = SecureStore.setItemAsync as jest.Mock;
@@ -20,6 +20,9 @@ describe("localeStore", () => {
     mockedGet.mockReset();
     mockedSet.mockReset();
     useLocaleStore.setState({ locale: undefined });
+    // Module-level flag: correct to persist for an app session, but it
+    // would leak a previous case's setLocale into the next one here.
+    resetLocaleChoiceForTests();
   });
 
   it("starts with no locale -- KayaI18nProvider resolves that to its own default", () => {
@@ -67,5 +70,35 @@ describe("localeStore", () => {
 
     expect(useLocaleStore.getState().locale).toBe("en");
     expect(mockedSet).toHaveBeenCalledWith("kaya.locale", "en");
+  });
+  it("does not let a slow keychain read overwrite a language the user just picked", async () => {
+    // The read is async. A user who switches to English before the previous
+    // session's saved "fr" comes back must not be dragged back to French --
+    // the same revert phase 1B fixed in KayaI18nProvider, reached here
+    // through a state race instead of a prop identity change.
+    let resolveRead: ((value: string | null) => void) | undefined;
+    mockedGet.mockReturnValue(
+      new Promise<string | null>((resolve) => {
+        resolveRead = resolve;
+      }),
+    );
+
+    const hydration = useLocaleStore.getState().loadSavedLocale();
+    await useLocaleStore.getState().setLocale("en");
+
+    resolveRead?.("fr");
+    await hydration;
+
+    expect(useLocaleStore.getState().locale).toBe("en");
+  });
+
+  it("still hydrates a saved locale when the user has made no choice", async () => {
+    // The guard must not disable hydration outright -- only defer to a real
+    // choice. This is the ordinary startup path.
+    mockedGet.mockResolvedValue("en");
+
+    await useLocaleStore.getState().loadSavedLocale();
+
+    expect(useLocaleStore.getState().locale).toBe("en");
   });
 });

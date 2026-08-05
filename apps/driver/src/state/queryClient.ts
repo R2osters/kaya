@@ -11,6 +11,24 @@ import { useAuthStore } from "./authStore";
  * replayed the original request once, synchronously, before this can ever
  * surface here as an error.
  */
+/**
+ * Only the two kinds that mean "the request never got an answer". Everything
+ * else in FailureKind is deliberately absent, and the omissions are the
+ * interesting part:
+ *
+ *  - `server` (5xx) is NOT retried. A 500 from this backend is a bug, not
+ *    congestion, and three more attempts turn one alert into four while the
+ *    user waits out the backoff for the same error. Revisit only with
+ *    evidence of genuinely transient 5xx in production.
+ *  - `unauthorized` has already survived a token refresh and a replay inside
+ *    createHttpClient by the time it reaches here; retrying repeats that.
+ *  - `validation`, `forbidden`, `notFound`, `conflict` describe the request
+ *    or the state, and asking again unchanged cannot change either.
+ *  - `cancelled` was the caller's own decision.
+ *  - `unknown` is unclassified by definition, so it fails closed.
+ *
+ * An unrecognised kind also fails closed: Set.has returns false.
+ */
 const RETRYABLE_KINDS = new Set(["network", "timeout"]);
 
 /** Caps how many times a query re-attempts a network/timeout failure. */

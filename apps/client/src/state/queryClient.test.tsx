@@ -142,6 +142,34 @@ describe("queryClient", () => {
       expect(retry(3, error)).toBe(false);
     });
 
+    it("retries only network and timeout, never a server error", async () => {
+      // Every FailureKind is listed so the decision is visible: a kind added
+      // to @kaya/core later fails this test rather than silently inheriting
+      // "no retry" from a Set miss. `server` in particular is a deliberate
+      // exclusion -- a 500 here is a backend bug, and three more attempts
+      // make four alerts while the user waits out the backoff.
+      const kinds = [
+        ["network", true],
+        ["timeout", true],
+        ["server", false],
+        ["unauthorized", false],
+        ["forbidden", false],
+        ["notFound", false],
+        ["conflict", false],
+        ["validation", false],
+        ["cancelled", false],
+        ["unknown", false],
+      ] as const;
+
+      for (const [kind, retryable] of kinds) {
+        const decide = testQueryClient().getDefaultOptions().queries?.retry;
+        const failure = new ApiFailure({ kind, message: kind });
+        const decided =
+          typeof decide === "function" ? decide(0, failure) : Boolean(decide);
+        expect(`${kind}:${String(decided)}`).toBe(`${kind}:${String(retryable)}`);
+      }
+    });
+
     it("does not retry a query that fails with a validation error", async () => {
       const client = testQueryClient();
       const queryFn = jest

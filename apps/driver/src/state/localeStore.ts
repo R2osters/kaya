@@ -30,19 +30,35 @@ export interface LocaleStoreState {
   setLocale: (locale: Locale) => Promise<void>;
 }
 
+/**
+ * Set the moment the user picks a language, and never cleared. The keychain
+ * read at startup is asynchronous, so a user who switches language before it
+ * resolves would otherwise have their choice overwritten by the value the
+ * previous session had saved — the same revert phase 1B fixed in
+ * KayaI18nProvider, reached here through a state race rather than a prop
+ * identity change. An explicit choice always outranks a stale saved one.
+ */
+let userChoseLocale = false;
+
 export const useLocaleStore = create<LocaleStoreState>((set) => ({
   locale: undefined,
 
   loadSavedLocale: async () => {
     const saved = await readSavedLocale();
-    if (saved !== null) set({ locale: saved });
+    if (saved !== null && !userChoseLocale) set({ locale: saved });
   },
 
   setLocale: async (locale) => {
+    userChoseLocale = true;
     set({ locale });
     await SecureStore.setItemAsync(LOCALE_KEY, locale);
   },
 }));
+
+/** Test seam: resets the module-level flag between cases. */
+export function resetLocaleChoiceForTests(): void {
+  userChoseLocale = false;
+}
 
 async function readSavedLocale(): Promise<Locale | null> {
   try {
