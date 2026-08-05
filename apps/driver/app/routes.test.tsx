@@ -14,6 +14,20 @@ import { resources } from "@kaya/core";
 // @kaya/core and @kaya/ui, so expo-router's own internals are unaffected.)
 import { getNameFromFilePath, stripInvisibleSegmentsFromPath } from "expo-router/build/matchers";
 
+// The placeholders now render the route index, so they pull Link and
+// usePathname from expo-router. Mocked here rather than pulled in for real:
+// this suite is about which routes exist, not about navigation behaviour.
+jest.mock("expo-router", () => {
+  const { Text } = jest.requireActual("react-native");
+  return {
+    Link: ({ children, testID }: { children: React.ReactNode; testID?: string }) => (
+      <Text testID={testID}>{children}</Text>
+    ),
+    usePathname: () => "/",
+  };
+});
+
+
 /**
  * One row per route this task builds (task 5's brief). `file` is the path
  * relative to app/, exactly as expo-router would see it; `testID` and `key`
@@ -126,7 +140,11 @@ describe("driver route tree (task 5)", () => {
     );
 
     expect(screen.getByTestId(testID)).toBeTruthy();
-    expect(screen.getByText(resources.fr.translation[key])).toBeTruthy();
+    // Scoped to the title node: the route index below repeats every screen
+    // name as a link, so a bare getByText would match more than one.
+    expect(screen.getByTestId(`${testID}-title`)).toHaveTextContent(
+      resources.fr.translation[key],
+    );
     screen.unmount();
   });
 

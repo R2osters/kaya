@@ -181,5 +181,13 @@
   "screenDeliveryDetail": "Détail de la livraison",
   "screenStats": "Statistiques",
   "screenWithdraw": "Retrait",
-  "screenShowcase": "Vitrine du design system"
+  "screenShowcase": "Vitrine du design system",
+  "navGroupAuth": "Authentification",
+  "navGroupMain": "Principal",
+  "navGroupOrder": "Course",
+  "navGroupPayment": "Paiement et alertes",
+  "navGroupDriverWork": "Travail",
+  "navGroupDriverMoney": "Gains",
+  "navGroupDesignSystem": "Design system",
+  "navExplorerHint": "Coquille de navigation : chaque écran affiche son nom. Les écrans réels arrivent aux phases suivantes."
 }

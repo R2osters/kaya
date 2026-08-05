@@ -181,5 +181,13 @@
   "screenDeliveryDetail": "Delivery detail",
   "screenStats": "Stats",
   "screenWithdraw": "Withdraw",
-  "screenShowcase": "Design system showcase"
+  "screenShowcase": "Design system showcase",
+  "navGroupAuth": "Authentication",
+  "navGroupMain": "Main",
+  "navGroupOrder": "Delivery",
+  "navGroupPayment": "Payment and alerts",
+  "navGroupDriverWork": "Work",
+  "navGroupDriverMoney": "Earnings",
+  "navGroupDesignSystem": "Design system",
+  "navExplorerHint": "Navigation shell: each screen names itself. The real screens arrive in later phases."
 }
