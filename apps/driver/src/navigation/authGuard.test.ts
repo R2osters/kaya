@@ -59,5 +59,24 @@ describe("resolveAuthRedirect", () => {
       expect(resolveAuthRedirect("authenticated", "/profile")).toBeNull();
       expect(resolveAuthRedirect("authenticated", "/deliveries")).toBeNull();
     });
+
+    it("leaves an authenticated driver on /verify-documents", () => {
+      // The driver's own Dart guard carves this out of rule 3. A driver whose
+      // documents are still pending is authenticated: bouncing them to /home
+      // would leave them no way to finish verifying, and so no way to work.
+      expect(resolveAuthRedirect("authenticated", "/verify-documents")).toBeNull();
+    });
+  });
+
+  describe("/verify-documents, which the client app has no equivalent of", () => {
+    it("is reachable before signing in", () => {
+      expect(resolveAuthRedirect("anonymous", "/verify-documents")).toBeNull();
+    });
+
+    it("still yields to the unknown-status hold", () => {
+      // Rule 1 outranks everything: nothing renders until the keychain read
+      // has settled, or a signed-in driver flashes the welcome screen.
+      expect(resolveAuthRedirect("unknown", "/verify-documents")).toBe("/splash");
+    });
   });
 });

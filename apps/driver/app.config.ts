@@ -1,4 +1,8 @@
 import type { ExpoConfig } from "expo/config";
+// The guard ships as CommonJS with a .d.ts alongside: Expo evaluates this
+// file through a loader that will not resolve a TypeScript module from
+// outside the app directory.
+import { assertDevFlagsAreSafe } from "../../tools/devFlagGuard.js";
 
 /**
  * The product's final brand name is not chosen yet (BLUEPRINT.md decisions
@@ -14,14 +18,6 @@ const APP_NAME = "Kaya Driver";
  * together, once the final product name is chosen, before first publication.
  */
 const APPLICATION_ID = "com.kaya.kaya_driver";
-
-// Plain CommonJS, imported by path: Expo evaluates app.config.ts through a
-// CJS loader that will not resolve a TypeScript module outside the app
-// directory, so the shared guard ships as .js rather than .ts.
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { assertDevFlagsAreSafe } = require("../../tools/devFlagGuard.js") as {
-  assertDevFlagsAreSafe: (env?: NodeJS.ProcessEnv) => { skipAuth: boolean; otpDisabled: boolean };
-};
 
 /**
  * Fails the build when SKIP_AUTH or OTP_DISABLED is set for anything that
