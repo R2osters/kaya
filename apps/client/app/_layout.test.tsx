@@ -69,6 +69,30 @@ describe("RootLayout's auth guard", () => {
     expect(mockLoadSavedLocale).toHaveBeenCalledTimes(1);
   });
 
+  it("sends the forced '/' entry point to splash on a cold start", () => {
+    // Expo Router always resolves a fresh launch to "/", which go_router had
+    // no equivalent of: app/index.tsx redirects there, and the guard --
+    // seeing a path that is not "/splash" while the status is still unknown
+    // -- independently sends it the same way. Both agree, so this is a
+    // duplicate replace to one target rather than a fight or a loop, but it
+    // is the one pathname a real launch passes through and nothing covered it.
+    mockStatus = "unknown";
+    mockPathname = "/";
+
+    render(<RootLayout />);
+
+    expect(mockReplace).toHaveBeenCalledWith("/splash");
+  });
+
+  it("does not leave '/' pointing anywhere else once the status is known", () => {
+    mockStatus = "anonymous";
+    mockPathname = "/";
+
+    render(<RootLayout />);
+
+    expect(mockReplace).toHaveBeenCalledWith("/welcome");
+  });
+
   it("rule 1: holds an unknown status on splash without redirecting", () => {
     mockStatus = "unknown";
     mockPathname = "/splash";
