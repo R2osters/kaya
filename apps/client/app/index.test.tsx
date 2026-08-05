@@ -1,19 +1,23 @@
-import { KayaI18nProvider } from "@kaya/ui";
-import { render, screen } from "@testing-library/react-native";
-import IndexScreen from "./index";
+import { render } from "@testing-library/react-native";
+import IndexRoute from "./index";
 
-describe("IndexScreen", () => {
-  it("renders a Text styled from @kaya/ui's typography tokens and a KayaButton, proving the workspace resolves", () => {
-    render(
-      <KayaI18nProvider>
-        <IndexScreen />
-      </KayaI18nProvider>,
-    );
+// expo-router's real <Redirect> needs a mounted navigator to act on; this
+// unit only needs to prove IndexRoute asks for "/splash", not that
+// navigation actually happens -- that end-to-end behaviour is covered by
+// AuthGuard's own tests (src/navigation/authGuard.test.ts, app/_layout.test.tsx),
+// which is where the real navigator lives.
+const mockRedirect = jest.fn();
+jest.mock("expo-router", () => ({
+  Redirect: (props: { href: string }) => {
+    mockRedirect(props.href);
+    return null;
+  },
+}));
 
-    // French copy comes from @kaya/core's i18n resources (KayaI18nProvider
-    // defaults to "fr") -- a broken Metro/Jest workspace symlink resolution
-    // fails this test in CI rather than only showing up on a device.
-    expect(screen.getByText("Livrez tout, partout")).toBeTruthy();
-    expect(screen.getByTestId("continue-button")).toBeTruthy();
+describe("IndexRoute", () => {
+  it("redirects to /splash -- the real splash screen, not this file", () => {
+    render(<IndexRoute />);
+
+    expect(mockRedirect).toHaveBeenCalledWith("/splash");
   });
 });

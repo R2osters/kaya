@@ -35,7 +35,13 @@ export function RatingStars({ value, size = 18, onRate, count = 5, testID }: Rat
         const kind = kindAt(i, value);
         const color = kind === "outline" ? colors.inkTertiary : colors.amber;
         const icon = <StarGlyph kind={kind} size={size} color={color} />;
-        const starTestID = `star-${i}`;
+        // Scoped to the instance's own testID when one is given, so two
+        // RatingStars on the same screen (e.g. the design-system showcase)
+        // don't both produce "star-0".."star-4" and collide under
+        // getByTestId. Falls back to the bare "star-{i}" form when no
+        // testID is supplied, which is what every test in this file below
+        // (written before this fix existed) already asserts against.
+        const starTestID = testID ? `${testID}-star-${i}` : `star-${i}`;
 
         if (onRate === undefined) {
           return (

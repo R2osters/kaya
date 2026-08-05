@@ -1,32 +1,15 @@
-import { KayaButton, typography } from "@kaya/ui";
-import { useTranslation } from "react-i18next";
-import { StyleSheet, Text, View } from "react-native";
+import { Redirect } from "expo-router";
 
 /**
- * Placeholder first screen. Its only job in this task is proving the
- * workspace resolves: a KayaButton and a Text styled from @kaya/ui's
- * typography tokens, with copy pulled from @kaya/core's i18n resources
- * rather than hardcoded. The real splash/welcome/auth-guard flow is task 3;
- * the full route tree is task 5.
+ * The router's entry point -- Expo Router always resolves a fresh launch to
+ * "/", so something has to live here. Redirects straight to "/splash", the
+ * real splash placeholder (see splash.tsx), which is also the path
+ * AuthGuard's rule 1 checks for in app/_layout.tsx and legacy/flutter/driver/
+ * lib/router.dart's `redirect` before it: the Dart original's go_router had
+ * no "/" route at all, and set `initialLocation: '/splash'` directly.
+ * Expo Router has no equivalent of `initialLocation` -- this file is what
+ * bridges the gap, so "/" is never a place the auth guard has to know about.
  */
-export default function IndexScreen() {
-  const { t } = useTranslation();
-
-  return (
-    <View style={styles.container} testID="index-screen">
-      <Text style={typography.screenTitle}>{t("authWelcomeTitle")}</Text>
-      <Text style={typography.bodySecondary}>{t("authWelcomeSubtitle")}</Text>
-      <KayaButton label={t("actionContinue")} onPress={() => {}} testID="continue-button" />
-    </View>
-  );
+export default function IndexRoute() {
+  return <Redirect href="/splash" />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 16,
-    padding: 24,
-  },
-});

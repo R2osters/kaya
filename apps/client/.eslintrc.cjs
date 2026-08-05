@@ -64,6 +64,16 @@ module.exports = {
       files: ["src/**/*.test.ts", "src/**/*.test.tsx"],
       rules: { "@typescript-eslint/no-require-imports": "off" },
     },
+    {
+      // app/routes.test.tsx (task 5) requires each route file individually,
+      // one per table row -- a dynamic require, not a static import, so a
+      // single missing/broken route file fails only its own row instead of
+      // aborting the whole suite. Dynamic `import()` was tried first and
+      // rejected: Jest's CJS transform needs --experimental-vm-modules to
+      // support it, which nothing else in this project's config sets up.
+      files: ["app/**/*.test.ts", "app/**/*.test.tsx"],
+      rules: { "@typescript-eslint/no-require-imports": "off" },
+    },
   ],
   ignorePatterns: ["node_modules/", ".expo/", "android/", "ios/", "dist/"],
 };

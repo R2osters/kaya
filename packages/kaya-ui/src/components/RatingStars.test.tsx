@@ -59,4 +59,22 @@ describe("RatingStars", () => {
     fireEvent.press(screen.getByTestId("star-3"));
     expect(onRate).toHaveBeenCalledWith(4);
   });
+
+  it("scopes each star's testID to the instance's own testID, so two RatingStars on one screen don't collide", () => {
+    // Before the fix, every star was "star-{i}" regardless of the row's own
+    // testID -- render two rows on one screen (the design-system showcase
+    // does exactly this) and getByTestId("star-0") was ambiguous between
+    // them. Scoping to the instance testID is what makes both rows
+    // independently addressable.
+    render(
+      <>
+        <RatingStars value={5} testID="rating-one" />
+        <RatingStars value={0} testID="rating-two" />
+      </>,
+    );
+
+    expect(screen.getByTestId("rating-one-star-0").props.accessibilityLabel).toBe("filled");
+    expect(screen.getByTestId("rating-two-star-0").props.accessibilityLabel).toBe("outline");
+    expect(screen.queryByTestId("star-0")).toBeNull();
+  });
 });

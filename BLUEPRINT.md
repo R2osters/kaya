@@ -111,6 +111,8 @@ Chaque jalon est démontrable indépendamment. Route skills entre parenthèses.
 - 2026-07-11 — Popup nouvelle demande livreur déclenchée par polling nearby + FCM (pas d'événement socket driver-facing en v1) — décision m4-flutter validée.
 - 2026-07-12 — **OTP délivré par Firebase Phone Auth**, plus de code maison (`otp_codes` supprimée). Décision utilisateur, suite à un bug du prefill dev (code factice `123456` vs code réel généré côté backend). Couvre les 4 `OtpPurpose` : `registration`/`phone_verification` (migration du flux existant) et `login`/`password_reset` (features neuves, absentes avant ce jour). Projet Firebase `kaya-a24e7` (Spark/free), test number `+233201234567` → `123456` pour dev. Détails : `docs/superpowers/specs/2026-07-12-firebase-phone-auth-design.md`.
 
+- 2026-08-05 — Phase 1C task 5 (Expo route tree): the brief listed the client/driver's first route as `index` (splash), but Expo Router always resolves a fresh launch to `/`, while the auth guard (ported from go_router, task 1C-3) checks the literal path `/splash` — go_router's `initialLocation` had no `/` equivalent to reuse. Resolved by giving each app both files: `app/index.tsx` is a bare `<Redirect href="/splash" />`, and `app/splash.tsx` is the real splash placeholder. Without the second file, the guard's own redirect target would not exist.
+
 ## Acceptance
 
 « Les deux applications Flutter (Client et Livreur) reproduisent fidèlement les prototypes Kaya, et une course complète — création, enchère, paiement séquestre sandbox, suivi temps réel, chat, livraison, commission dégressive, notation, retrait — fonctionne de bout en bout sur Android et iOS contre le backend NestJS dockerisé, pour un utilisateur ghanéen (GHS) et un utilisateur togolais (XOF). »
