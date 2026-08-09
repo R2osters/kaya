@@ -12,6 +12,15 @@ const mockReplace = jest.fn();
 const mockRestoreSession = jest.fn();
 const mockLoadSavedLocale = jest.fn();
 
+// The three startup services RootLayout mounts are stubbed here: each has its
+// own dedicated suite (src/map/register.test.tsx,
+// src/realtime/useSocketBridge.test.tsx, src/push/usePushRegistration.test.tsx),
+// and running the real ones here would drag @kaya/ui's native-backed adapters
+// into a test about the route guard.
+jest.mock("../src/map/register", () => ({ registerAppMapProvider: jest.fn() }));
+jest.mock("../src/realtime/useSocketBridge", () => ({ useSocketBridge: jest.fn() }));
+jest.mock("../src/push/usePushRegistration", () => ({ usePushRegistration: jest.fn() }));
+
 jest.mock("expo-router", () => ({
   Stack: () => null,
   usePathname: () => mockPathname,

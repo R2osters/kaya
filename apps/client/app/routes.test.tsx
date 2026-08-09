@@ -13,6 +13,7 @@ import { resources } from "@kaya/core";
 // (the app-layer no-restricted-imports rule only forbids deep imports into
 // @kaya/core and @kaya/ui, so expo-router's own internals are unaffected.)
 import { getNameFromFilePath, stripInvisibleSegmentsFromPath } from "expo-router/build/matchers";
+import { ROUTE_GROUPS } from "../src/navigation/routeIndex";
 
 // The placeholders now render the route index, so they pull Link and
 // usePathname from expo-router. Mocked here rather than pulled in for real:
@@ -36,8 +37,8 @@ jest.mock("expo-router", () => {
  * "index.tsx" is deliberately not in this table: it is a bare `<Redirect
  * href="/splash" />` (see index.tsx and index.test.tsx), not a
  * RoutePlaceholder, so it has nothing in common with the shape asserted on
- * below. Its own behaviour is covered by index.test.tsx. "_showcase.tsx" is
- * not a route at all -- see _showcase.test.tsx.
+ * below. Its own behaviour is covered by index.test.tsx. "showcase.tsx" is a
+ * route, but not a RoutePlaceholder either -- see showcase.test.tsx.
  */
 interface RouteRow {
   file: string;
@@ -169,7 +170,42 @@ describe("client route tree (task 5)", () => {
     expect(pathnames.has("/home")).toBe(true);
   });
 
-  it("covers every route named in task 5's brief plus splash, index.tsx and _showcase.tsx aside", () => {
+  it("covers every route named in task 5's brief plus splash, index.tsx and showcase.tsx aside", () => {
     expect(ROUTES).toHaveLength(20);
+  });
+
+  it("every href in the route explorer resolves to a real route", () => {
+    // The explorer (src/navigation/routeIndex.ts) is the only way to walk the
+    // shell, and a dead entry in it is invisible: expo-router does not throw
+    // on a missing route, the tap simply does nothing. This caught exactly
+    // that -- the design-system entry pointed at "/_showcase", and
+    // expo-router does not route an underscore-prefixed file at all, so the
+    // one screen the phase exists to show a human could not be opened.
+    //
+    // Dynamic segments are compared by shape: the explorer links concrete ids
+    // ("/tracking/demo-delivery") at routes declared with a parameter
+    // ("/tracking/[deliveryId]").
+    const declared = ROUTES.map((r) => r.pathname).concat("/showcase");
+
+    const matches = (href: string): boolean =>
+      declared.some((pathname) => {
+        const hrefParts = href.split("/");
+        const routeParts = pathname.split("/");
+        if (hrefParts.length !== routeParts.length) return false;
+        return routeParts.every(
+          (part, i) => part.startsWith("[") || part === hrefParts[i],
+        );
+      });
+
+    const dead = ROUTE_GROUPS.flatMap((group) => group.routes)
+      .map((route) => route.href)
+      .filter((href) => !matches(href));
+
+    expect(dead).toEqual([]);
+  });
+
+  it("the showcase is a route, so a human can open it on a device", () => {
+    expect(fs.existsSync(path.join(__dirname, "showcase.tsx"))).toBe(true);
+    expect(pathnameFor("showcase.tsx")).toBe("/showcase");
   });
 });

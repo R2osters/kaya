@@ -58,6 +58,6 @@ export const ROUTE_GROUPS: RouteGroup[] = [
   },
   {
     titleKey: "navGroupDesignSystem",
-    routes: [{ href: "/_showcase", titleKey: "screenShowcase" }],
+    routes: [{ href: "/showcase", titleKey: "screenShowcase" }],
   },
 ];

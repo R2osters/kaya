@@ -1,6 +1,6 @@
 import { KayaI18nProvider } from "@kaya/ui";
 import { fireEvent, render, screen } from "@testing-library/react-native";
-import ShowcaseScreen from "./_showcase";
+import ShowcaseScreen from "./showcase";
 
 /**
  * Renders every @kaya/ui component once and asserts each is present. This is

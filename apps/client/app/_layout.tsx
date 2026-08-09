@@ -3,10 +3,20 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Redirect, Stack, usePathname } from "expo-router";
 import { useEffect, useState } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { registerAppMapProvider } from "../src/map/register";
 import { resolveAuthRedirect } from "../src/navigation/authGuard";
+import { usePushRegistration } from "../src/push/usePushRegistration";
+import { useSocketBridge } from "../src/realtime/useSocketBridge";
 import { useAuthStore } from "../src/state/authStore";
 import { useLocaleStore } from "../src/state/localeStore";
 import { queryClient } from "../src/state/queryClient";
+
+// At module scope, not in an effect: a screen deeper in the tree can render a
+// <MapView> in its own first commit, which happens before this layout's
+// effects run. Registering there would show the stylized fallback for a frame
+// and then swap it for the real map. The call is idempotent -- the registry
+// holds one slot -- so a fast refresh re-running this module is harmless.
+registerAppMapProvider();
 
 /**
  * Reads the session once, on mount. `useAuthStore.getState()` rather than the
@@ -66,6 +76,21 @@ function AuthGuard(): React.ReactElement | null {
 }
 
 /**
+ * Renders nothing; exists so the two session-scoped background jobs sit
+ * *inside* `QueryClientProvider`. `useSocketBridge` calls `useQueryClient`,
+ * which cannot see a provider that its own component renders -- putting these
+ * hooks in `RootLayout` itself throws "No QueryClient set".
+ *
+ * Both are gated on the auth status internally, so this mounts unconditionally
+ * and each decides for itself when there is a session to act on.
+ */
+function SessionServices(): null {
+  useSocketBridge();
+  usePushRegistration();
+  return null;
+}
+
+/**
  * Root layout. Provider stack, outside in:
  *
  * - `SafeAreaProvider` (react-native-safe-area-context) so any screen or
@@ -105,6 +130,7 @@ export default function RootLayout() {
               enough on its own on a real device. */}
           <Stack screenOptions={{ headerShown: false }} />
           <AuthGuard />
+          <SessionServices />
         </KayaI18nProvider>
       </QueryClientProvider>
     </SafeAreaProvider>

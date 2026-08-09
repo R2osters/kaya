@@ -31,11 +31,16 @@ import {
  * nothing new: every prop below is a value already used elsewhere in the
  * design system, composed here purely for visual inspection.
  *
- * Deliberately not a route: `_showcase.tsx`'s leading underscore keeps it
- * out of expo-router's generated route tree (same convention as `_layout`
- * files being reserved), since it is a developer-facing acceptance surface,
- * not something an end user should ever be able to navigate to. See
- * _showcase.test.tsx for how it is rendered and asserted on instead.
+ * This was `_showcase.tsx` until the route explorer shipped: the leading
+ * underscore kept it out of expo-router's generated route tree, on the
+ * reasoning that a developer-facing surface should not be reachable by an end
+ * user. But `routeIndex.ts` then listed `/_showcase` under "design system",
+ * which made it a dead link on every placeholder screen -- expo-router does
+ * not route an underscore-prefixed file, so tapping it went nowhere and
+ * nothing failed. Reachable wins: the showcase is the phase's visual
+ * acceptance surface, a human has to be able to open it on a device, and it
+ * disappears with the placeholders in phases 2 and 3 anyway. See
+ * showcase.test.tsx for the automated half.
  *
  * Section headings below ("KayaButton", "RatingStars", ...) name the
  * component being demonstrated -- API identifiers, not product copy -- and
@@ -109,7 +114,7 @@ export default function ShowcaseScreen() {
           which row it belonged to, so `getByTestId("star-0")` was ambiguous
           between them. Each row's stars are now scoped to the row's own
           testID ("showcase-rating-one-star-0" vs "showcase-rating-two-star-0"),
-          which _showcase.test.tsx asserts directly.
+          which showcase.test.tsx asserts directly.
       */}
       <Section title="RatingStars">
         <RatingStars value={4.3} testID="showcase-rating-one" />

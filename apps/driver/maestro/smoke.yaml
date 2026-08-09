@@ -1,0 +1,99 @@
+appId: com.kaya.kaya_driver
+name: Kaya driver shell smoke
+---
+# Phase 1C acceptance flow. Run against a development build (Expo Go cannot
+# load @react-native-firebase/messaging) with the dockerised backend up:
+#
+#   docker compose up -d
+#   npm run android -w driver
+#   maestro test apps/driver/maestro/smoke.yaml
+#
+# What this proves: the app boots, session restoration settles, the route guard
+# sends an anonymous session to welcome rather than stranding it on the splash
+# screen, the route tree is walkable, and the shared design system renders.
+# Every one of those has failed on a device while passing under Jest.
+#
+# One step from the plan's flow is deliberately missing: signing in with a
+# seeded account. The login route is a placeholder with no form to type into --
+# the real screen is phase 2 -- so a sign-in step here would have to fake its
+# way through and would assert nothing. It lands with the screen it needs.
+
+- launchApp:
+    clearState: true
+
+# Guard rule 1 holds every navigation on the splash route while `status` is
+# `unknown`; rule 2 then sends an anonymous session to welcome. Seeing welcome
+# is therefore proof that restoreSession() settled -- the failure this guards
+# against is the app sitting on splash forever, which is what an unhandled
+# rejection in restoration produces.
+- assertVisible:
+    id: "welcome-screen"
+
+# The screen names itself through @kaya/core's i18n resources rather than a
+# hardcoded string, so a broken i18n wire-up surfaces here as a missing key
+# instead of as text that happens to look right.
+- assertVisible:
+    id: "welcome-screen-title"
+
+# The route explorer every placeholder renders. Tapping through it is what
+# proves expo-router resolved the file-based route: a route file that does not
+# exist is invisible until someone navigates to it, and a dead link in the
+# explorer does nothing at all rather than failing.
+- tapOn:
+    id: "link-/home"
+- assertVisible:
+    id: "home-screen"
+
+- tapOn:
+    id: "link-/earnings"
+- assertVisible:
+    id: "earnings-screen"
+
+# A dynamic route, which resolves through different expo-router rules than a
+# static one.
+- tapOn:
+    id: "link-/delivery/demo-delivery"
+- assertVisible:
+    id: "delivery-screen"
+
+- back
+- assertVisible:
+    id: "earnings-screen"
+
+# The design-system showcase: the phase's visual acceptance surface, and the
+# reason it is a real route rather than an underscore-prefixed file. Asserting
+# a component from each family here is what makes "the design system is
+# visible" a checked claim rather than a screenshot someone remembers taking.
+- tapOn:
+    id: "link-/showcase"
+- assertVisible:
+    id: "showcase-screen"
+- assertVisible:
+    id: "showcase-button-primary"
+- assertVisible:
+    id: "showcase-card"
+- assertVisible:
+    id: "showcase-pill-success"
+- assertVisible:
+    id: "showcase-rating-one"
+- assertVisible:
+    id: "showcase-avatar-initials"
+- assertVisible:
+    id: "showcase-textfield"
+- assertVisible:
+    id: "showcase-empty-state"
+- assertVisible:
+    id: "showcase-skeleton-card"
+
+# The map renders through @kaya/ui's registry. With no MAPS_API_KEY set this is
+# the keyless MapLibre style; with one it is the keyed tile source. Either way
+# the registry resolved, which is what src/map/register.tsx exists to do.
+- assertVisible:
+    id: "showcase-map"
+
+# The bottom sheet is the one component with real interaction in the showcase,
+# and its scrim/modal semantics were a phase 1B fix -- worth one tap.
+- tapOn:
+    id: "showcase-sheet-trigger"
+- assertVisible:
+    id: "showcase-sheet"
