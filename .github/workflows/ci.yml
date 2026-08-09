@@ -5,6 +5,22 @@ on:
     branches: [main]
   pull_request:
 
+# The Flutter job that used to live here ran `flutter analyze` and `flutter
+# test` across legacy/flutter/{kaya_core,client,driver} on every pull request.
+# It was removed when phase 1C landed, for two reasons. The cost is the smaller
+# one: a Flutter toolchain install and three suites on every PR, including PRs
+# that only touch packages/ or backend/. The real problem is the signal -- a
+# green "flutter" check reads as "the mobile apps are covered", and since the
+# React Native migration it means the opposite: it covers the code being
+# retired while saying nothing about the code that replaced it.
+#
+# The Flutter tree stays under legacy/ as the reference the port is read
+# against (every @kaya/core and @kaya/ui module cites its Dart original), and
+# it can still be run by hand from there. It is no longer a gate.
+#
+# What gates the apps now: core.yml, ui.yml, client.yml and driver.yml, one per
+# workspace, each running lint + typecheck + test.
+
 jobs:
   backend:
     runs-on: ubuntu-latest
@@ -23,31 +39,3 @@ jobs:
       - run: npm run lint --if-present
       - run: npm run build
       - run: npm test
-
-  flutter:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: 3.24.4
-          channel: stable
-          cache: true
-      - name: Analyze & test kaya_core
-        working-directory: legacy/flutter/kaya_core
-        run: |
-          flutter pub get
-          flutter analyze
-          flutter test
-      - name: Analyze & test client app
-        working-directory: legacy/flutter/client
-        run: |
-          flutter pub get
-          flutter analyze
-          flutter test
-      - name: Analyze & test driver app
-        working-directory: legacy/flutter/driver
-        run: |
-          flutter pub get
-          flutter analyze
-          flutter test

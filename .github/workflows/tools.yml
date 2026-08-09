@@ -1,0 +1,25 @@
+name: tools
+
+# tools/ holds devFlagGuard, which both apps' app.config.ts calls at build
+# time to refuse a build that would ship SKIP_AUTH or OTP_DISABLED against
+# anything but a local backend. It is a workspace with its own suite and had
+# no CI job of its own -- meaning the one check standing between a dev auth
+# bypass and a real user's account was the only workspace nothing verified.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck -w @kaya/tools --if-present
+      - run: npm test -w @kaya/tools
