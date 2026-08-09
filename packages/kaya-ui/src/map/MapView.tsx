@@ -64,6 +64,24 @@ export function hasMapProvider(): boolean {
 }
 
 /**
+ * Clears the registration, so `MapView` renders the stylized fallback again.
+ *
+ * This exists for tests. The registry is module-level state, so a test that
+ * registers a provider leaks it into every later test in the same module
+ * registry -- and the only tool available before this function was
+ * `jest.resetModules()`, which throws away the whole module graph to reset one
+ * variable, and silently breaks any assertion that compares against an
+ * identity imported before the reset. Every app test that touched a map was
+ * carrying that workaround.
+ *
+ * It is not app API: a running app registers exactly one provider at startup
+ * and never unregisters it.
+ */
+export function resetMapProvider(): void {
+  registeredProvider = null;
+}
+
+/**
  * Map abstraction: renders whatever provider the host app registered via
  * `registerMapProvider`, or a stylized keyless fallback when nothing is
  * registered. This is what keeps `@kaya/ui` itself free of any maps SDK

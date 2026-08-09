@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react-native";
-import { Text } from "react-native";
+import { Text, View } from "react-native";
 import {
   BottomSheetShell,
   colors,
@@ -25,6 +25,7 @@ import {
   PushAdapter,
   RatingStars,
   registerMapProvider,
+  resetMapProvider,
   SecureTokenStore,
   StatusPill,
   useLocale,
@@ -193,16 +194,27 @@ describe("package entry point: components", () => {
     expect(screen.getByTestId("root-fallback")).toBeTruthy();
   });
 
-  it("reaches registerMapProvider, hasMapProvider and MapLibreMapView through the package root", () => {
-    // MapLibreMapView is not rendered here: it lazily requires the native
-    // @maplibre/maplibre-react-native module on first render (see
-    // MapLibreMapView.tsx), which is not installed in this workspace yet by
-    // design (see that file's doc comment). This only checks the export
-    // shape -- the same thing the rest of this suite checks for every other
-    // export -- without paying for a native module this repo cannot link.
+  it("reaches the map registry and MapLibreMapView through the package root", () => {
+    // MapLibreMapView is not rendered here. The package is installed now
+    // (phase 1C), but it is a native module: rendering it resolves
+    // @maplibre/maplibre-react-native, which throws under Jest with no native
+    // bridge linked. Its *types* are what the compiler now checks against the
+    // real package -- see MapLibreMapView.tsx. This asserts the export shape,
+    // the same thing the rest of this suite asserts for every other export.
     expect(typeof registerMapProvider).toBe("function");
     expect(typeof hasMapProvider).toBe("function");
+    expect(typeof resetMapProvider).toBe("function");
     expect(typeof MapLibreMapView).toBe("function");
+  });
+
+  it("resetMapProvider, reached through the package root, undoes a registration", () => {
+    // This is the call app test suites use in place of jest.resetModules().
+    registerMapProvider(() => <View testID="root-registered" />);
+    expect(hasMapProvider()).toBe(true);
+
+    resetMapProvider();
+
+    expect(hasMapProvider()).toBe(false);
   });
 
   it("reaches KayaI18nProvider and useLocale through the package root", () => {
