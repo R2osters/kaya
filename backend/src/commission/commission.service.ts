@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { CountryConfig, Prisma } from '@prisma/client';
+import { roundMoney } from '../common/money';
 
 export interface CommissionBreakdown {
   rate: Prisma.Decimal;
@@ -18,7 +19,13 @@ export interface CommissionBreakdown {
  *   11-14 -> tier3 (12%)
  *   >= 15 -> tier4 (9%)
  *
- * net_earnings = base_price - commission - litigation_fee. Money is Decimal.
+ * net_earnings = base_price - commission - litigation_fee. Money is Decimal,
+ * and every amount is rounded to the *currency's* own smallest unit (see
+ * common/money.ts) rather than to two decimals for everyone. XOF has no
+ * fractional part at all, and rounding its parts to 2dp made a breakdown stop
+ * summing to its total once displayed -- the driver's earnings screen showing
+ * three numbers that do not add up, with the difference accumulating in an
+ * append-only ledger.
  */
 @Injectable()
 export class CommissionService {
@@ -27,16 +34,22 @@ export class CommissionService {
     dailyDeliveryNumber: number,
     config: Pick<
       CountryConfig,
-      'commissionTier1' | 'commissionTier2' | 'commissionTier3' | 'commissionTier4' | 'litigationFee'
+      | 'commissionTier1'
+      | 'commissionTier2'
+      | 'commissionTier3'
+      | 'commissionTier4'
+      | 'litigationFee'
+      | 'currencyCode'
     >,
   ): CommissionBreakdown {
     const rate = this.rateFor(dailyDeliveryNumber, config);
-    const commission = basePrice.mul(rate).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
-    const litigationFee = new Prisma.Decimal(config.litigationFee);
-    const netEarnings = basePrice
-      .minus(commission)
-      .minus(litigationFee)
-      .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+    const currency = config.currencyCode;
+    const commission = roundMoney(basePrice.mul(rate), currency);
+    const litigationFee = roundMoney(new Prisma.Decimal(config.litigationFee), currency);
+    // Subtracts the already-rounded parts, so net is exactly what is left
+    // after them rather than a separately-rounded figure that can differ by
+    // one unit from base - commission - litigation.
+    const netEarnings = roundMoney(basePrice.minus(commission).minus(litigationFee), currency);
 
     return { rate: new Prisma.Decimal(rate), commission, litigationFee, netEarnings };
   }

@@ -1,11 +1,8 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { CountryCode, Prisma } from '@prisma/client';
+import { roundMoney } from '../common/money';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  DISTANCE_PROVIDER,
-  DistanceProvider,
-  LatLng,
-} from '../maps/distance-provider.interface';
+import { DISTANCE_PROVIDER, DistanceProvider, LatLng } from '../maps/distance-provider.interface';
 
 export interface PriceQuote {
   distanceKm: Prisma.Decimal;
@@ -44,11 +41,13 @@ export class PricingService {
     );
 
     const distance = new Prisma.Decimal(distanceKm);
-    const minPrice = distance
-      .mul(config.pricePerKm)
-      .plus(config.basePickupFee)
-      // Money resolves to 2 decimals.
-      .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+    // Rounded to the currency's own smallest unit, not to two decimals for
+    // everyone: XOF has no fractional part, so a quote of 1 250,50 F is a
+    // price no gateway in the CFA zone can charge. See common/money.ts.
+    const minPrice = roundMoney(
+      distance.mul(config.pricePerKm).plus(config.basePickupFee),
+      config.currencyCode,
+    );
 
     return {
       distanceKm: distance,

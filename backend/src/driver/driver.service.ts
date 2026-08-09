@@ -10,6 +10,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AppConfigService } from '../config/app-config.service';
 import { LedgerService } from '../ledger/ledger.service';
+import { roundMoney } from '../common/money';
 import { CommissionService } from '../commission/commission.service';
 import { localDayStartUtc } from '../common/country-timezone';
 import { WithdrawDto } from './dto/withdraw.dto';
@@ -71,7 +72,9 @@ export class DriverService {
     // Method must be enabled for the country.
     const methods = (config.withdrawalMethods as string[]) ?? [];
     if (!methods.includes(dto.method)) {
-      throw new BadRequestException(`Withdrawal method "${dto.method}" is not available in your country.`);
+      throw new BadRequestException(
+        `Withdrawal method "${dto.method}" is not available in your country.`,
+      );
     }
 
     // account_details shape per method.
@@ -92,7 +95,10 @@ export class DriverService {
     }
 
     const feePct = new Prisma.Decimal(this.config.get('WITHDRAWAL_FEE_PCT'));
-    const feeAmount = amount.mul(feePct).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+    // Rounded to the currency's own unit: a withdrawal fee of 12,50 F cannot
+    // be charged in the CFA zone, and the ledger this is written to is
+    // append-only. See common/money.ts.
+    const feeAmount = roundMoney(amount.mul(feePct), config.currencyCode);
 
     return this.prisma.$transaction(async (t) => {
       // Debit balance immediately to prevent double-spend; admin processes later.

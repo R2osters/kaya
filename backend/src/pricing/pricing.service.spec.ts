@@ -24,7 +24,11 @@ describe('PricingService', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('computes min price = distance_km * price_per_km + base_pickup_fee', async () => {
-    distanceProvider.distance.mockResolvedValue({ distanceKm: 10, durationMin: 24, source: 'haversine' });
+    distanceProvider.distance.mockResolvedValue({
+      distanceKm: 10,
+      durationMin: 24,
+      source: 'haversine',
+    });
     const service = new PricingService(
       createPrismaMock(ghanaConfig) as never,
       distanceProvider as never,
@@ -43,7 +47,11 @@ describe('PricingService', () => {
   });
 
   it('applies the XOF tariff (150/km + 300)', async () => {
-    distanceProvider.distance.mockResolvedValue({ distanceKm: 4, durationMin: 12, source: 'haversine' });
+    distanceProvider.distance.mockResolvedValue({
+      distanceKm: 4,
+      durationMin: 12,
+      source: 'haversine',
+    });
     const togoConfig = {
       ...ghanaConfig,
       currencyCode: 'XOF',
@@ -64,6 +72,59 @@ describe('PricingService', () => {
     // 4 * 150 + 300 = 900
     expect(quote.minPrice.toFixed(2)).toBe('900.00');
     expect(quote.currency).toBe('XOF');
+  });
+
+  it('quotes XOF in whole francs, not centimes', async () => {
+    // A fractional distance is the normal case once real road routing is on
+    // (MAPS_PROVIDER=osrm returns two decimals of a kilometre), and 1 250,50 F
+    // is a price no gateway in the CFA zone can charge.
+    distanceProvider.distance.mockResolvedValue({
+      distanceKm: 4.27,
+      durationMin: 13,
+      source: 'osrm',
+    });
+    const togoConfig = {
+      ...ghanaConfig,
+      currencyCode: 'XOF',
+      currencySymbol: 'CFA',
+      pricePerKm: new Prisma.Decimal('150'),
+      basePickupFee: new Prisma.Decimal('300'),
+    };
+    const service = new PricingService(
+      createPrismaMock(togoConfig) as never,
+      distanceProvider as never,
+    );
+
+    const quote = await service.quote(
+      CountryCode.TGO,
+      { lat: 6.1, lng: 1.2 },
+      { lat: 6.2, lng: 1.25 },
+    );
+
+    // 4.27 * 150 + 300 = 940.5 -> 941 (half away from zero), not 940.50
+    expect(quote.minPrice.toString()).toBe('941');
+    expect(quote.minPrice.decimalPlaces()).toBe(0);
+  });
+
+  it('still quotes GHS with pesewas', async () => {
+    distanceProvider.distance.mockResolvedValue({
+      distanceKm: 4.27,
+      durationMin: 13,
+      source: 'osrm',
+    });
+    const service = new PricingService(
+      createPrismaMock(ghanaConfig) as never,
+      distanceProvider as never,
+    );
+
+    const quote = await service.quote(
+      CountryCode.GHA,
+      { lat: 5.6, lng: -0.19 },
+      { lat: 5.61, lng: -0.2 },
+    );
+
+    expect(quote.minPrice.decimalPlaces()).toBeLessThanOrEqual(2);
+    expect(quote.currency).toBe('GHS');
   });
 
   it('throws when the country has no active config', async () => {
