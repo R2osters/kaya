@@ -11,8 +11,8 @@ suivi GPS temps réel, chat intégré, conformité locale (PCSRC / carte pro / p
 
 ```mermaid
 flowchart LR
-  subgraph Mobile [Flutter 3.24+]
-    C[App Client] --- K[(kaya_core<br/>thème · API · socket · i18n)]
+  subgraph Mobile [React Native 0.81 · Expo 54]
+    C[App Client] --- K[("@kaya/core + @kaya/ui<br/>thème · API · socket · i18n")]
     D[App Livreur] --- K
   end
   K -- REST /api/v1 + JWT --> A[NestJS API]
@@ -30,14 +30,20 @@ Monorepo :
 | Dossier | Contenu |
 |---|---|
 | `backend/` | API NestJS 10 + Prisma (auth OTP/JWT, commandes, enchères, escrow, commission, litiges, admin) |
-| `packages/kaya_core/` | Package Flutter partagé (design system « Accra Minimalist Delivery », modèles, Dio, Socket.io, i18n FR/EN) |
-| `apps/client/` · `apps/driver/` | Les deux apps mobiles mono-rôle (Riverpod, go_router) |
+| `packages/kaya-core/` | Package partagé sans UI : modèles + schémas Zod, client API axios, règles monétaires, service Socket.io, clés de cache, i18n FR/EN. Ne dépend ni de React ni d'Expo — une règle de lint le vérifie |
+| `packages/kaya-ui/` | Design system « Accra Minimalist Delivery » : thème, composants, abstraction carte, adaptateurs plateforme (keychain, localisation, images, push) |
+| `apps/client/` · `apps/driver/` | Les deux apps mono-rôle (Expo Router, TanStack Query, Zustand) |
+| `tools/` | `devFlagGuard` : refuse un build qui embarquerait `SKIP_AUTH` ailleurs qu'en local |
+| `legacy/flutter/` | L'implémentation Flutter d'origine, gardée comme référence de portage (plus testée en CI) |
 | `admin/` | SPA admin minimale (statique) |
 | `docs/` | Doc d'architecture, référence design, audit sécurité, OpenAPI |
 
 ## Démarrage développement
 
-Prérequis : Node 20, Flutter ≥ 3.22, Docker Desktop.
+Prérequis : Node 20+ (22 en CI), Docker Desktop, Android Studio ou Xcode.
+
+> Les apps ont besoin d'un **development build**, pas d'Expo Go :
+> `@react-native-firebase/messaging` ne tourne pas sous Expo Go.
 
 ```bash
 # 1. Infrastructure (PostGIS + Redis + MinIO)
@@ -52,11 +58,12 @@ npx prisma migrate dev
 npm run db:seed                      # country_configs GHA/TGO/BEN + admin
 npm run start:dev                    # API sur :3000, Swagger sur /docs
 
-# 3. Apps mobiles (autre terminal)
-cd apps/client   # ou apps/driver
-flutter pub get
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000   # émulateur Android
-# iOS/simulateur : http://localhost:3000 · Maps réels : --dart-define=MAPS_API_KEY=...
+# 3. Apps mobiles (autre terminal, depuis la racine du monorepo)
+npm ci
+API_BASE_URL=http://10.0.2.2:3000 npm run android -w client   # émulateur Android
+# iOS/simulateur : http://localhost:3000
+# Tuiles de carte réelles : MAPS_API_KEY=... (sinon style OSM sans clé)
+# Le showcase du design system : route /showcase dans les deux apps
 ```
 
 Paiement en dev : gateway **mock** (aucune clé requise) —
@@ -75,18 +82,27 @@ Paiement en dev : gateway **mock** (aucune clé requise) —
 | Stockage | `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`, `S3_PUBLIC_URL`, `S3_FORCE_PATH_STYLE`, `UPLOAD_MAX_BYTES` | MinIO en dev, R2/S3 en prod |
 | OTP | `OTP_PROVIDER`, `OTP_LENGTH`, `OTP_TTL_MIN`, `OTP_SEND_MAX`, `OTP_SEND_WINDOW_MIN` | provider `dev` = code en console |
 | Métier | `OFFER_TTL_MIN`, tarifs par pays en DB (`country_configs`) | modifiables via l'API admin |
-| Intégrations | `GOOGLE_MAPS_API_KEY`, `PAYSTACK_SECRET_KEY`, `KKIAPAY_SECRET_KEY`, `FIREBASE_SERVICE_ACCOUNT` | absentes ⇒ fallbacks/mocks de dev |
+| Cartographie | `MAPS_PROVIDER` (`haversine` \| `osrm` \| `google`), `OSRM_BASE_URL`, `GOOGLE_MAPS_API_KEY` | `haversine` est une ligne droite × 1,3 : pratique, mais faux de ±15 % sur un vrai réseau routier, et le prix d'une course en dépend. `osrm` donne la distance routière réelle |
+| Géocodage | `GEOCODING_PROVIDER` (`photon` \| `static`), `PHOTON_BASE_URL` | `photon` sans clé par défaut, repli sur une liste de repères hors-ligne. Nominatim est écarté : sa politique interdit l'auto-complétion |
+| Intégrations | `PAYSTACK_SECRET_KEY`, `KKIAPAY_SECRET_KEY`, `FIREBASE_SERVICE_ACCOUNT` | absentes ⇒ fallbacks/mocks de dev |
 
 ## Tests & CI
 
 ```bash
-cd backend && npm test          # 77 tests unitaires + e2e (e2e auto-skippés sans DB)
-cd packages/kaya_core && flutter test
-cd apps/client && flutter test  # idem apps/driver
+cd backend && npm test        # unitaires + e2e (e2e auto-skippés sans DB)
+npm test --workspaces         # @kaya/core, @kaya/ui, client, driver, tools
 ```
 
-CI GitHub Actions : `.github/workflows/ci.yml` (backend : prisma validate + lint +
-build + test · flutter : analyze + test sur les 3 paquets).
+Flux de fumée sur appareil (development build + backend dockerisé) :
+
+```bash
+maestro test apps/client/maestro/smoke.yaml
+```
+
+CI GitHub Actions, un workflow par périmètre : `ci.yml` (backend : prisma
+validate + lint + build + test), `core.yml`, `ui.yml`, `client.yml`,
+`driver.yml`, `tools.yml` (lint + typecheck + test chacun). Le job Flutter a été
+retiré avec la migration — voir le journal des décisions du 2026-08-09.
 
 ## Production
 

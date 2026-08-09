@@ -1,5 +1,18 @@
 # Phase 1C — The two Expo shells Implementation Plan
 
+> **STATUS: complete (7/7), merged 2026-08-09.** Tasks 1-5 shipped on
+> `claude/phase1c-expo-shells` and sat unmerged for several days while `main`
+> carried only this plan; tasks 6 and 7 were written after the merge. What was
+> built deviates from the plan in two places, both recorded in BLUEPRINT.md's
+> decisions log: map registration selects a *tile source* for MapLibre rather
+> than swapping in `react-native-maps`, and the Maestro flow does not sign in
+> (the login route is still a placeholder with no form -- that step lands with
+> the screen in phase 2).
+>
+> Every carried risk in the table below is settled. The MapLibre ambient type
+> was the interesting one: typing the component against the real package found
+> five wrong prop names out of six, none of which any test could have caught.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Stand up `apps/client` and `apps/driver` as running Expo applications on top of the merged `@kaya/core` and `@kaya/ui`: the full route tree in placeholders, the authentication guard, the query and state providers, the realtime bridge, i18n, and a design-system showcase screen.
@@ -49,11 +62,11 @@ These come from the phase 1B ledger and final review. Each is assigned to a task
 
 This task is deliberately the whole environment problem in one place. Expect it to be the longest, and do not let a later task inherit an unresolved install.
 
-- [ ] **Step 1: Create both apps with the Expo template, then strip them**
+- [x] **Step 1: Create both apps with the Expo template, then strip them**
 
 Use `npx create-expo-app@latest` with the blank TypeScript template into `apps/client` and `apps/driver`, then remove everything the template adds that this project does not use. Application ids stay provisional: `com.kaya.kaya_client` and `com.kaya.kaya_driver`, per the decisions log — the final name is not chosen, so no branding is hardcoded and `APP_NAME` stays a constant.
 
-- [ ] **Step 2: Wire the workspace dependencies**
+- [x] **Step 2: Wire the workspace dependencies**
 
 Both apps depend on `@kaya/core` and `@kaya/ui` by workspace protocol. Metro must resolve symlinked workspace packages — set `metro.config.js` accordingly and verify by importing a token, not by reading the config.
 
@@ -62,21 +75,21 @@ Three known dependency frictions, all of which must be resolved here rather than
 - The root `overrides.expo` pin of `~54.0.0` was added so `jest-expo` resolved the right Expo. Now that the apps pin Expo themselves, check whether that override still helps or now fights them.
 - `react-native-reanimated` is a peer dependency of `@kaya/ui`; each app must install it **and** add its Babel plugin. A missing plugin fails at bundle time with a message that does not mention reanimated.
 
-- [ ] **Step 3: Produce a development build and run it**
+- [x] **Step 3: Produce a development build and run it**
 
 `@react-native-firebase/messaging` does not run under Expo Go, so `expo prebuild` plus a development build is mandatory. Get at least one app running on a device or emulator before continuing, and **paste the actual evidence into your report** — a screenshot path or the Metro log line showing the bundle served. A phase that assumes this works and discovers otherwise in Task 7 has wasted six tasks.
 
 If a development build cannot be produced in this environment, stop and report that rather than proceeding: every later task's verification depends on it.
 
-- [ ] **Step 4: Prove the packages resolve**
+- [x] **Step 4: Prove the packages resolve**
 
 Each app's first screen renders a `KayaButton` and a `Text` styled from `typography`, imported from `@kaya/ui`. Write a test asserting the screen renders, so a broken workspace resolution fails in CI and not only on a device.
 
-- [ ] **Step 5: Extend lint and CI**
+- [x] **Step 5: Extend lint and CI**
 
 Both apps get the colour-literal rule and the no-deep-import rule. Probe each rule with a file that violates it, paste the failing output into your report, then delete the probe — the phase 1A purity rule silently missed a package because nobody did this. Add both apps to CI.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ---
 
@@ -196,4 +209,4 @@ The Maestro flow is the phase's acceptance: launch, land on welcome, sign in wit
 
 **The task most likely to go wrong is Task 1**, and it is first for that reason. A development build is mandatory rather than optional, three separate dependency frictions are known in advance, and every later task's verification depends on the result. If it cannot be made to work in this environment, the honest outcome is to stop there and say so.
 
-**Carried from phase 1A's final review, still open and not this phase's to fix:** the backend rounds money to two decimals for every currency while the client rounds XOF to zero, so an accumulated balance drifts about half a franc per delivery. It must be settled before the driver earnings screen ships in phase 3.
+**Carried from phase 1A's final review:** the backend rounded money to two decimals for every currency while the client rounded XOF to zero, drifting about half a franc per delivery. ~~Not this phase's to fix.~~ **Settled 2026-08-09** -- `backend/src/common/money.ts` now rounds to the currency's own unit, mirroring `@kaya/core`. The drift was the smaller half of it: the real defect was that a commission breakdown stopped summing to its total once displayed at zero decimals, which is what a driver's earnings screen shows.
