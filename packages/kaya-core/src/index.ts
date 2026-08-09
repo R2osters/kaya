@@ -30,6 +30,9 @@ export * from "./api/endpoints";
 
 export * from "./realtime/events";
 export * from "./realtime/socket";
+export * from "./realtime/cacheBridge";
+
+export * from "./query/keys";
 
 export * from "./storage/tokenStore";
 
