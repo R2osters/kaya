@@ -70,6 +70,15 @@ export const queryKeys = {
    */
   driverLocation: (livreurId: string) => ["drivers", livreurId, "location"] as const,
 
+  /**
+   * Address suggestions for a query. Keyed by the query text and country so
+   * two different searches do not overwrite each other, and so a back-and-forth
+   * between two spellings is served from cache rather than re-hitting the
+   * geocoder on every keystroke.
+   */
+  addressSearch: (text: string, countryCode?: string) =>
+    ["geocoding", "search", text, countryCode ?? null] as const,
+
   /** Notification inbox. */
   notifications: () => ["notifications"] as const,
 

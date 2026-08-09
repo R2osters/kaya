@@ -10,6 +10,7 @@ import { StorageModule } from './storage/storage.module';
 import { RedisModule } from './redis/redis.module';
 import { MapsModule } from './maps/maps.module';
 import { GeoModule } from './geo/geo.module';
+import { GeocodingModule } from './geocoding/geocoding.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { LedgerModule } from './ledger/ledger.module';
@@ -45,6 +46,7 @@ import { HealthController } from './health/health.controller';
     RedisModule,
     MapsModule,
     GeoModule,
+    GeocodingModule,
     NotificationsModule,
     RealtimeModule,
     StorageModule,

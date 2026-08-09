@@ -9,6 +9,7 @@ export * from "./wire/coerce";
 export * from "./wire/enums";
 
 export * from "./models/geo";
+export * from "./models/address";
 export * from "./models/user";
 export * from "./models/countryConfig";
 export * from "./models/priceQuote";

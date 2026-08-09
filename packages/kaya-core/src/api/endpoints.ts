@@ -10,6 +10,7 @@ import {
   loginChallengeSchema,
   parseSocialLoginOutcome,
 } from "../models/auth";
+import { type AddressSuggestion, addressSuggestionSchema } from "../models/address";
 import { type Delivery, deliverySchema } from "../models/delivery";
 import { type Message, messageSchema } from "../models/message";
 import { type AppNotification, appNotificationSchema } from "../models/notification";
@@ -351,6 +352,31 @@ export class KayaApi {
    */
   async logout(body: unknown): Promise<void> {
     await this.http.post("/auth/logout", body);
+  }
+
+  // --- Geocoding ------------------------------------------------------------
+
+  /**
+   * Address type-ahead for the order-creation and address-search screens
+   * (`GET /geocoding/search`).
+   *
+   * `countryCode` is optional here because the backend defaults it to the
+   * caller's own country, which is what a screen almost always wants -- an
+   * unfiltered search for "Accra" returns places on three continents, and one
+   * picked by a tired thumb prices a delivery nobody can explain.
+   *
+   * Fewer than two characters is rejected by the backend's DTO, so callers
+   * should not issue a request below that; the screen shows recent addresses
+   * until then.
+   */
+  async searchAddresses(params: {
+    q: string;
+    countryCode?: string;
+    language?: string;
+    limit?: number;
+  }): Promise<AddressSuggestion[]> {
+    const res = await this.http.get("/geocoding/search", { params });
+    return listOf(addressSuggestionSchema)(res.data);
   }
 
   // --- Orders ---------------------------------------------------------------

@@ -840,4 +840,56 @@ describe("KayaApi", () => {
 
     await expect(api.markAllNotificationsRead()).resolves.toBeUndefined();
   });
+  describe("searchAddresses", () => {
+    const OSU = {
+      label: "Osu, Accra, Ghana",
+      name: "Osu",
+      city: "Accra",
+      countryCode: "GH",
+      lat: 5.5605929,
+      lng: -0.1824391,
+    };
+
+    it("parses the suggestion list", async () => {
+      const { api, mock } = build();
+      mock.onGet("/geocoding/search").reply(200, [OSU]);
+
+      const results = await api.searchAddresses({ q: "Osu" });
+
+      expect(results).toEqual([OSU]);
+    });
+
+    it("passes the query, country, language and limit through as params", async () => {
+      const { api, mock } = build();
+      mock.onGet("/geocoding/search").reply(200, []);
+
+      await api.searchAddresses({ q: "Osu", countryCode: "GH", language: "fr", limit: 5 });
+
+      expect(mock.history.get[0]?.params).toEqual({
+        q: "Osu",
+        countryCode: "GH",
+        language: "fr",
+        limit: 5,
+      });
+    });
+
+    it("coerces string coordinates, which is how a JSON backend may send them", async () => {
+      const { api, mock } = build();
+      mock.onGet("/geocoding/search").reply(200, [{ ...OSU, lat: "5.5605929", lng: "-0.1824391" }]);
+
+      const [first] = await api.searchAddresses({ q: "Osu" });
+
+      // These are a money field in everything but name: the price is
+      // distance_km x price_per_km, and distance comes from these two numbers.
+      expect(first?.lat).toBe(5.5605929);
+      expect(first?.lng).toBe(-0.1824391);
+    });
+
+    it("degrades an unexpected envelope to an empty list rather than throwing", async () => {
+      const { api, mock } = build();
+      mock.onGet("/geocoding/search").reply(200, { data: [OSU] });
+
+      await expect(api.searchAddresses({ q: "Osu" })).resolves.toEqual([]);
+    });
+  });
 });

@@ -40,9 +40,26 @@ export const envSchema = z.object({
   BCRYPT_ROUNDS: z.coerce.number().int().min(8).max(15).default(12),
 
   // --- Maps / distance (M2) ---
-  // "haversine" needs no API key (dev/default); "google" uses Distance Matrix.
-  MAPS_PROVIDER: z.enum(['haversine', 'google']).default('haversine'),
+  // "haversine" is a straight line inflated by a constant and needs no API key
+  // (dev/default); "osrm" is real road distance from a routing server; "google"
+  // uses Distance Matrix. Every delivery is priced on distance_km, so this
+  // choice is a pricing decision, not an infrastructure one -- see
+  // maps/providers/osrm.provider.ts for the measured error the constant carries.
+  MAPS_PROVIDER: z.enum(['haversine', 'osrm', 'google']).default('haversine'),
   GOOGLE_MAPS_API_KEY: z.string().default(''),
+  // Public demo server by default: keyless, fine for dev, explicitly not for
+  // production (no SLA, and its usage policy does not cover a commercial app).
+  // Production points this at a self-hosted OSRM built from a Ghana/Togo/Benin
+  // OSM extract.
+  OSRM_BASE_URL: z.string().default('https://router.project-osrm.org'),
+
+  // --- Geocoding (address type-ahead) ---
+  // "photon" is the keyless OSM geocoder built for type-ahead (dev/default,
+  // degrades to the static landmark list when unreachable); "static" forces
+  // that offline list. Nominatim is deliberately absent: its usage policy
+  // forbids auto-complete, which is the only thing this endpoint does.
+  GEOCODING_PROVIDER: z.enum(['photon', 'static']).default('photon'),
+  PHOTON_BASE_URL: z.string().default('https://photon.komoot.io'),
 
   // --- Push notifications (M2) ---
   // FCM service-account JSON (string). When empty, the dev log provider is used.
