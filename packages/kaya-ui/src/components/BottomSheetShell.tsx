@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, radii, shadows, spacing, typography } from "../theme";
 
 export interface BottomSheetShellProps {
@@ -42,6 +43,16 @@ export function BottomSheetShell({
   testID,
 }: BottomSheetShellProps) {
   const { height: windowHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  // Real device insets, now that phase 1C task 4 wires up a SafeAreaProvider
+  // at the app root (this was fixed padding before that provider existed --
+  // see the removed `paddingBottom` in `styles.sheet` below). `spacing.xxl`
+  // stays the floor: a device that reports zero inset (no home indicator, or
+  // this component under test with no provider at all) must not lose the
+  // breathing room the fixed value used to guarantee unconditionally; a
+  // device with a real indicator gets exactly enough padding to clear it,
+  // never less.
+  const bottomPadding = Math.max(insets.bottom, spacing.xxl);
 
   // Mounting the Modal only while visible (rather than handing `visible`
   // straight to <Modal>) keeps "renders children only when visible" a plain,
@@ -70,7 +81,10 @@ export function BottomSheetShell({
         />
         <View
           testID={testID ? `${testID}-panel` : undefined}
-          style={[styles.sheet, { maxHeight: windowHeight * MAX_HEIGHT_RATIO }]}
+          style={[
+            styles.sheet,
+            { maxHeight: windowHeight * MAX_HEIGHT_RATIO, paddingBottom: bottomPadding },
+          ]}
         >
           <View style={styles.handle} />
           {title !== undefined && (
@@ -99,7 +113,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: radii.sheet,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.md,
-    paddingBottom: spacing.xxl,
+    // paddingBottom is computed from the safe-area inset above and applied
+    // inline, not here -- it needs a value only available at render time.
     ...shadows.sheet,
   },
   handle: {

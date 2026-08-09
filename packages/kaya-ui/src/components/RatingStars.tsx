@@ -35,7 +35,13 @@ export function RatingStars({ value, size = 18, onRate, count = 5, testID }: Rat
         const kind = kindAt(i, value);
         const color = kind === "outline" ? colors.inkTertiary : colors.amber;
         const icon = <StarGlyph kind={kind} size={size} color={color} />;
-        const starTestID = `star-${i}`;
+        // Always scoped to the row's own testID, never a bare "star-{i}".
+        // Two rows on one screen — a delivery history listing several rated
+        // trips, say — would otherwise both emit "star-0".."star-4" and make
+        // getByTestId ambiguous. Falling back to the bare form for a row
+        // without a testID would leave that collision reachable by default,
+        // so a row that wants addressable stars has to name itself.
+        const starTestID = testID === undefined ? undefined : `${testID}-star-${i}`;
 
         if (onRate === undefined) {
           return (

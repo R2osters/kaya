@@ -13,6 +13,7 @@
 ## Global Constraints
 
 - **A development build is required, not Expo Go.** `@react-native-firebase/messaging` cannot run under Expo Go. This is the single biggest environment risk in the phase and Task 1 exists to settle it.
+- **On Windows, the Android build must run from a short path.** With `newArchEnabled=true`, the new architecture's JSI codegen produces paths over 260 characters — the longest observed is `RNFBMessagingTurboModulesJSI-generated.cpp` under `@react-native-firebase/messaging`. `ninja` fails on those regardless of the `LongPathsEnabled` registry setting, because it does not use the Windows long-path APIs. A checkout at `D:\kc` builds; one at `D:\prototype\kaya\.claude\worktrees\<name>\` does not, on a 68-character prefix alone. Keep roughly 40 characters or fewer before the repository root.
 - Apps import from `@kaya/core` and `@kaya/ui` only — never a deep path into either, and never from each other.
 - No component, schema, money rule or API call is written in an app. If one seems necessary, that is a signal it belongs in a package.
 - **No colour literal anywhere.** The lint rule in `@kaya/ui` must be extended to both apps.

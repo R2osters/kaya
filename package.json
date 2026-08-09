@@ -3,7 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "description": "Kaya delivery platform monorepo. Runtime code lives in backend/, apps/ and packages/; git hooks and commit tooling are configured here.",
-  "workspaces": ["packages/*", "apps/*"],
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "tools"
+  ],
   "scripts": {
     "prepare": "husky",
     "test": "npm run test --workspaces --if-present",
@@ -18,6 +22,8 @@
     "typescript": "~5.9.2"
   },
   "overrides": {
-    "expo": "~54.0.0"
+    "expo": "~54.0.0",
+    "react": "19.1.0",
+    "react-native": "0.81.5"
   }
 }
