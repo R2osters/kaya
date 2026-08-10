@@ -38,6 +38,13 @@ const DRIVER = {
   phone: '+233202222222',
   fullName: 'Kofi Boateng',
   role: 'livreur',
+  // Ghana requires a PCSRC licence number matching
+  // /^PCSRC-\d{4}-\d{6}$/ and a QR code -- see src/auth/driver-validation.ts.
+  // Registering a driver without them is rejected, which is worth knowing
+  // before phase 3 builds the sign-up wizard for exactly these fields.
+  driverLicenseNumber: 'PCSRC-2024-001234',
+  driverQrCode: 'KAYA-DEMO-DRIVER-QR',
+  vehicleType: 'moto',
 };
 
 /** Mirrors MOCK_PREFIX in src/auth/verifiers/mock.verifier.ts. */
