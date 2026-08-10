@@ -233,8 +233,13 @@ describe("client route tree (task 5)", () => {
     // ("/tracking/[deliveryId]").
     const declared = ROUTES.map((r) => r.pathname).concat("/showcase");
 
-    const matches = (href: string): boolean =>
+    const matches = (rawHref: string): boolean =>
       declared.some((pathname) => {
+        // A query string is not part of the route. Several explorer entries
+        // carry demo params (a payment needs a delivery id and an amount), and
+        // comparing those against a file path would report a live route as
+        // dead.
+        const href = rawHref.split("?")[0] ?? rawHref;
         const hrefParts = href.split("/");
         const routeParts = pathname.split("/");
         if (hrefParts.length !== routeParts.length) return false;

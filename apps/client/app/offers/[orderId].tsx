@@ -95,7 +95,17 @@ export default function OffersScreen() {
                 accept.mutate(item.id, {
                   // Routing on success only: a failed accept must not send the
                   // user to a delivery that was never created.
-                  onSuccess: (delivery) => router.replace(`/tracking/${delivery.id}`),
+                  //
+                  // To payment, not to tracking. The delivery is in escrow
+                  // until it is paid for; sending the client to watch a driver
+                  // they have not paid skips the step the whole model rests
+                  // on. Payment routes on to the receipt, and the receipt to
+                  // tracking.
+                  onSuccess: (delivery) =>
+                    router.replace(
+                      `/payment?deliveryId=${delivery.id}` +
+                        `&amount=${item.proposedPrice}&currency=${currency}`,
+                    ),
                 })
               }
             />

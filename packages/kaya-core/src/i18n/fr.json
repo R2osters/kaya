@@ -227,5 +227,7 @@
   "authStepIdentity": "Identité",
   "authStepSecurity": "Sécurité",
   "authNext": "Continuer",
-  "authBack": "Retour"
+  "authBack": "Retour",
+  "trackChat": "Contacter le livreur",
+  "trackRate": "Noter la livraison"
 }

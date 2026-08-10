@@ -227,5 +227,7 @@
   "authStepIdentity": "Identity",
   "authStepSecurity": "Security",
   "authNext": "Continue",
-  "authBack": "Back"
+  "authBack": "Back",
+  "trackChat": "Message the driver",
+  "trackRate": "Rate this delivery"
 }

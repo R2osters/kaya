@@ -130,7 +130,7 @@ describe("OffersScreen", () => {
     expect(mockAcceptMutate).toHaveBeenCalledWith("offer-2", expect.anything());
   });
 
-  it("routes to tracking only once the delivery exists", () => {
+  it("routes to payment only once the delivery exists", () => {
     mockOffers = { data: { orderId: "order-1", minPrice: 25, offers: [offer()] }, isPending: false };
     renderScreen();
     fireEvent.press(screen.getByTestId("offer-0-accept"));
@@ -142,7 +142,12 @@ describe("OffersScreen", () => {
     };
     options.onSuccess({ id: "delivery-1" });
 
-    expect(mockReplace).toHaveBeenCalledWith("/tracking/delivery-1");
+    // To payment, not tracking: the delivery is in escrow until it is paid
+    // for, and sending a client to watch a driver they have not paid skips the
+    // step the whole model rests on.
+    expect(mockReplace).toHaveBeenCalledWith(
+      "/payment?deliveryId=delivery-1&amount=30&currency=GHS",
+    );
   });
 
   it("stops every Accept button while one acceptance is in flight", () => {

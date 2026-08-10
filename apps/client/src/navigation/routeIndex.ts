@@ -50,8 +50,8 @@ export const ROUTE_GROUPS: RouteGroup[] = [
   {
     titleKey: "navGroupPayment",
     routes: [
-      { href: "/payment", titleKey: "screenPayment" },
-      { href: "/payment/receipt", titleKey: "screenPaymentReceipt" },
+      { href: "/payment?deliveryId=demo-delivery&amount=25&currency=GHS", titleKey: "screenPayment" },
+      { href: "/payment/receipt?deliveryId=demo-delivery", titleKey: "screenPaymentReceipt" },
       { href: "/notifications", titleKey: "screenNotifications" },
     ],
   },

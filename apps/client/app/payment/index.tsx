@@ -58,6 +58,12 @@ export default function PaymentScreen() {
   const [dismissed, setDismissed] = useState(false);
 
   const pay = () => {
+    // Opened without a delivery -- from a bookmark, a mistyped link, or the
+    // route explorer before its entry carried params -- there is nothing to
+    // pay for, and initializing with an empty id would 404 after the user had
+    // already been sent to a gateway.
+    if (deliveryId === undefined || deliveryId === "") return;
+
     setDismissed(false);
     setOutcome(null);
 

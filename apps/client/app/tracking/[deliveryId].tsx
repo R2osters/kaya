@@ -1,5 +1,6 @@
 import { liveTimelineStep, timelineStep, toApiFailure, type Delivery } from "@kaya/core";
 import {
+  KayaButton,
   KayaCard,
   KayaSkeleton,
   MapView,
@@ -10,7 +11,7 @@ import {
   typography,
   vehicleMarker,
 } from "@kaya/ui";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import {
@@ -41,6 +42,7 @@ const STEP_LABELS = ["trackEnRoute", "trackPickedUp", "trackInTransit", "trackDe
  */
 export default function TrackingScreen() {
   const { t } = useTranslation();
+  const router = useRouter();
   const { deliveryId } = useLocalSearchParams<{ deliveryId: string }>();
 
   const delivery = useDelivery(deliveryId);
@@ -95,6 +97,26 @@ export default function TrackingScreen() {
           ))}
         </View>
       </KayaCard>
+
+      {/* The two things a client does from here. Neither was reachable from
+          any screen before -- chat and rating existed only behind the dev
+          route explorer, which meant the journey dead-ended at tracking. */}
+      <KayaButton
+        label={t("trackChat")}
+        variant="secondary"
+        onPress={() => router.push(`/chat/${deliveryId}`)}
+        expand
+        testID="tracking-chat"
+      />
+
+      {step === 3 && (
+        <KayaButton
+          label={t("trackRate")}
+          onPress={() => router.push(`/rating/${deliveryId}`)}
+          expand
+          testID="tracking-rate"
+        />
+      )}
     </ScrollView>
   );
 }

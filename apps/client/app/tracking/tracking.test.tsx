@@ -1,6 +1,6 @@
 import { deliverySchema, resources } from "@kaya/core";
 import { KayaI18nProvider, resetMapProvider } from "@kaya/ui";
-import { render, screen } from "@testing-library/react-native";
+import { fireEvent, render, screen } from "@testing-library/react-native";
 import TrackingScreen, { currentStep } from "./[deliveryId]";
 
 let mockDelivery: { data?: unknown; isPending: boolean; error: unknown } = {
@@ -12,7 +12,10 @@ let mockLiveStatus: { status: string } | undefined;
 let mockDriverLocation: { lat: number; lng: number } | undefined;
 let mockLocationArg: string | null = null;
 
+const mockPush = jest.fn();
+
 jest.mock("expo-router", () => ({
+  useRouter: () => ({ push: mockPush }),
   useLocalSearchParams: () => ({ deliveryId: "delivery-1" }),
 }));
 
@@ -58,6 +61,7 @@ function renderScreen() {
 }
 
 beforeEach(() => {
+  mockPush.mockReset();
   resetMapProvider();
   mockDelivery = { data: delivery(), isPending: false, error: null };
   mockLiveStatus = undefined;
@@ -140,5 +144,26 @@ describe("TrackingScreen", () => {
     renderScreen();
 
     expect(screen.getByTestId("tracking-error")).toBeTruthy();
+  });
+  it("offers a way to reach the driver", () => {
+    // Chat existed only behind the dev route explorer before this: the
+    // journey dead-ended at tracking.
+    renderScreen();
+
+    fireEvent.press(screen.getByTestId("tracking-chat"));
+
+    expect(mockPush).toHaveBeenCalledWith("/chat/delivery-1");
+  });
+
+  it("offers rating only once the delivery is done", () => {
+    mockLiveStatus = { status: "in_transit" };
+    renderScreen();
+    expect(screen.queryByTestId("tracking-rate")).toBeNull();
+
+    mockLiveStatus = { status: "delivered" };
+    renderScreen();
+
+    fireEvent.press(screen.getByTestId("tracking-rate"));
+    expect(mockPush).toHaveBeenCalledWith("/rating/delivery-1");
   });
 });
