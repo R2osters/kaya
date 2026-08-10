@@ -1,4 +1,4 @@
-import { deliverySchema, timelineStep } from "./delivery";
+import { deliverySchema, liveTimelineStep, timelineStep } from "./delivery";
 import { isLive, isScheduled, orderSchema } from "./order";
 import { offerSchema } from "./offer";
 
@@ -142,4 +142,37 @@ describe("timelineStep", () => {
       expect(d.driver).toBeNull();
     },
   );
+});
+
+describe("liveTimelineStep", () => {
+  it("maps the delivery vocabulary", () => {
+    expect(liveTimelineStep("in_progress")).toBe(2);
+    expect(liveTimelineStep("completed")).toBe(3);
+  });
+
+  it("maps the order vocabulary, which the same channel also carries", () => {
+    // transition() emits OrderStatus values down delivery:status, because an
+    // order-lifecycle transition also advances its delivery.
+    expect(liveTimelineStep("driver_en_route")).toBe(0);
+    expect(liveTimelineStep("picked_up")).toBe(1);
+    expect(liveTimelineStep("in_transit")).toBe(2);
+    expect(liveTimelineStep("delivered")).toBe(3);
+  });
+
+  it("returns null for a status that says nothing about position", () => {
+    // Guessing a step from a cancellation moves the timeline forward on an
+    // event meaning the opposite; the caller falls back to the cached delivery.
+    expect(liveTimelineStep("cancelled")).toBeNull();
+    expect(liveTimelineStep("disputed")).toBeNull();
+  });
+
+  it("returns null for an unrecognised status rather than defaulting to 0", () => {
+    expect(liveTimelineStep("some_future_status")).toBeNull();
+    expect(liveTimelineStep("")).toBeNull();
+  });
+
+  it("never goes backwards for the same stage in either vocabulary", () => {
+    expect(liveTimelineStep("in_transit")).toBe(liveTimelineStep("in_progress"));
+    expect(liveTimelineStep("delivered")).toBe(liveTimelineStep("completed"));
+  });
 });

@@ -75,3 +75,41 @@ export function timelineStep(d: Delivery): 0 | 1 | 2 | 3 {
   }
   return 0;
 }
+
+/**
+ * The same 4-step position, derived from a live `delivery:status` event
+ * instead of from the cached delivery.
+ *
+ * The event reaches a tracking screen with no round trip, while the `Delivery`
+ * behind `timelineStep` only refreshes once the invalidation it triggers has
+ * come back. Reading the event first is the difference between a timeline that
+ * advances when the driver acts and one that advances a second later.
+ *
+ * The status string is deliberately not the DeliveryStatus enum:
+ * `DeliveriesService.transition()` emits OrderStatus values (picked_up,
+ * driver_en_route, in_transit, delivered) down this channel as well, because
+ * an order-lifecycle transition also advances its delivery. Both vocabularies
+ * are mapped here.
+ *
+ * Returns null for a status that says nothing about position -- `cancelled`,
+ * `disputed`, or anything unrecognised -- and the caller falls back to
+ * `timelineStep`. Guessing a step from a cancellation would move the timeline
+ * forward on an event that means the opposite.
+ */
+export function liveTimelineStep(status: string): 0 | 1 | 2 | 3 | null {
+  switch (status) {
+    case "driver_en_route":
+    case "accepted":
+      return 0;
+    case "picked_up":
+      return 1;
+    case "in_transit":
+    case "in_progress":
+      return 2;
+    case "delivered":
+    case "completed":
+      return 3;
+    default:
+      return null;
+  }
+}

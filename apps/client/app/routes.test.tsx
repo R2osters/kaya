@@ -128,6 +128,8 @@ const ROUTES: RouteRow[] = [
     pathname: "/tracking/[deliveryId]",
     testID: "tracking-screen",
     key: "screenTracking",
+    // Phase 2A: real screen, covered by app/tracking/tracking.test.tsx.
+    implemented: true,
   },
   { file: "chat/[deliveryId].tsx", pathname: "/chat/[deliveryId]", testID: "chat-screen", key: "screenChat" },
   {
