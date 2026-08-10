@@ -88,8 +88,14 @@ const ROUTES: RouteRow[] = [
     // Phase 2 slice C: real screen, covered by app/(auth)/auth-screens.test.tsx.
     implemented: true,
   },
-  { file: "(tabs)/home.tsx", pathname: "/home", testID: "home-screen", key: "screenHome" },
-  { file: "(tabs)/history.tsx", pathname: "/history", testID: "history-screen", key: "screenHistory" },
+  { file: "(tabs)/home.tsx", pathname: "/home", testID: "home-screen", key: "screenHome",
+    // Phase 2 slice D: real screen, covered by app/(tabs)/tabs.test.tsx.
+    implemented: true,
+  },
+  { file: "(tabs)/history.tsx", pathname: "/history", testID: "history-screen", key: "screenHistory",
+    // Phase 2 slice D: real screen, covered by app/(tabs)/tabs.test.tsx.
+    implemented: true,
+  },
   { file: "(tabs)/inbox.tsx", pathname: "/inbox", testID: "inbox-screen", key: "screenInbox" },
   { file: "(tabs)/profile.tsx", pathname: "/profile", testID: "profile-screen", key: "screenProfile" },
   {
