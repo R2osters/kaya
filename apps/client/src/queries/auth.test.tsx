@@ -38,14 +38,20 @@ beforeEach(() => {
 });
 
 describe("devTokenFor", () => {
-  it("builds the dev-prefixed token the mock verifier accepts", () => {
-    expect(devTokenFor("+233201234567")).toBe("dev:+233201234567");
+  it("is long enough for the MinLength(20) every auth DTO puts on the token", () => {
+    // A shorter prefix was rejected by the endpoint before the verifier saw
+    // it, which only a run against the real backend revealed.
+    expect(devTokenFor("+233201234567").length).toBeGreaterThanOrEqual(20);
+  });
+
+  it("builds the prefixed token the mock verifier accepts", () => {
+    expect(devTokenFor("+233201234567")).toBe("kaya-mock-verifier:+233201234567");
   });
 
   it("trims, so a pasted number with whitespace still matches the account", () => {
     // The backend compares the token's subject to the phone on the account;
     // an untrimmed subject silently fails to match and reads as bad credentials.
-    expect(devTokenFor("  +233201234567 ")).toBe("dev:+233201234567");
+    expect(devTokenFor("  +233201234567 ")).toBe("kaya-mock-verifier:+233201234567");
   });
 });
 
@@ -58,7 +64,7 @@ describe("useSignIn", () => {
     await waitFor(() => expect(mockLoginOtp).toHaveBeenCalled());
     expect(mockLoginOtp).toHaveBeenCalledWith({
       phone: "+233201234567",
-      firebaseIdToken: "dev:+233201234567",
+      firebaseIdToken: "kaya-mock-verifier:+233201234567",
     });
   });
 
@@ -70,7 +76,7 @@ describe("useSignIn", () => {
     await waitFor(() => expect(mockLoginOtp).toHaveBeenCalled());
     expect(mockLoginOtp).toHaveBeenCalledWith({
       phone: "+233201234567",
-      firebaseIdToken: "dev:+233201234567",
+      firebaseIdToken: "kaya-mock-verifier:+233201234567",
     });
   });
 

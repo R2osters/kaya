@@ -4,21 +4,30 @@ import { api } from "../api/client";
 import { useAuthStore } from "../state/authStore";
 
 /**
+ * The prefix the backend's mock verifier requires. Mirrors MOCK_PREFIX in
+ * backend/src/auth/verifiers/mock.verifier.ts, and is long enough that the
+ * whole token clears the `@MinLength(20)` every auth DTO puts on
+ * `firebaseIdToken` -- a shorter one was rejected before the verifier was ever
+ * consulted, which only running it against the real backend revealed.
+ */
+const MOCK_TOKEN_PREFIX = "kaya-mock-verifier:";
+
+/**
  * Development sign-in: exchanges a phone number for a token pair through
  * `POST /auth/login/otp`.
  *
- * The `firebaseIdToken` it sends is `dev:<phone>`, which only the backend's
- * mock verifier accepts (backend/src/auth/verifiers/mock.verifier.ts). Against
- * a backend configured with the real Firebase verifier this call is rejected,
- * by design -- the mock rejects real tokens and the real verifier rejects
- * these, so the two configurations cannot be confused for one another.
+ * The `firebaseIdToken` it sends is only accepted by the backend's mock
+ * verifier. Against a backend configured with the real Firebase verifier this
+ * call is rejected, by design -- the mock rejects real tokens and the real
+ * verifier rejects these, so the two configurations cannot be confused for one
+ * another.
  *
  * Slice C replaces this with the real Firebase Phone Auth flow. What lives
  * here is the smallest thing that produces a genuine session, so the rest of
  * slice A can be built against a real backend rather than against fixtures.
  */
 export function devTokenFor(phone: string): string {
-  return `dev:${phone.trim()}`;
+  return `${MOCK_TOKEN_PREFIX}${phone.trim()}`;
 }
 
 export function useSignIn(): UseMutationResult<AuthResult, unknown, string> {

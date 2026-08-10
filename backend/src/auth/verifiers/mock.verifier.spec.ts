@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { AppConfigService } from '../../config/app-config.service';
 import { PhoneVerifier } from '../phone-verifier.interface';
-import { MockPhoneVerifier } from './mock.verifier';
+import { MOCK_PREFIX, MockPhoneVerifier } from './mock.verifier';
 import { selectPhoneVerifier } from './select-verifier';
 
 const PHONE = '+233201234567';
@@ -28,15 +28,17 @@ describe('MockPhoneVerifier', () => {
 
   describe('assertPhoneMatches', () => {
     it('accepts a dev token for the expected phone', async () => {
-      await expect(verifier.assertPhoneMatches(`dev:${PHONE}`, PHONE)).resolves.toBeUndefined();
+      await expect(
+        verifier.assertPhoneMatches(`${MOCK_PREFIX}${PHONE}`, PHONE),
+      ).resolves.toBeUndefined();
     });
 
     it('rejects a dev token for a different phone', async () => {
       // The bypass proves possession of the phone in the token, not of any
       // phone. Without this it would authenticate any account by id alone.
-      await expect(verifier.assertPhoneMatches('dev:+22890000000', PHONE)).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
+      await expect(
+        verifier.assertPhoneMatches(`${MOCK_PREFIX}+22890000000`, PHONE),
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
 
     it('rejects a token without the dev prefix', async () => {
@@ -48,11 +50,17 @@ describe('MockPhoneVerifier', () => {
       );
     });
 
+    it('is long enough for the MinLength(20) every auth DTO puts on the token', () => {
+      // A shorter prefix made the mock unusable: every endpoint rejected
+      // `dev:+233201234567` (17 chars) before the verifier was consulted.
+      expect(`${MOCK_PREFIX}${PHONE}`.length).toBeGreaterThanOrEqual(20);
+    });
+
     it('rejects an empty subject', async () => {
-      await expect(verifier.assertPhoneMatches('dev:', PHONE)).rejects.toBeInstanceOf(
+      await expect(verifier.assertPhoneMatches(MOCK_PREFIX, PHONE)).rejects.toBeInstanceOf(
         BadRequestException,
       );
-      await expect(verifier.assertPhoneMatches('dev:   ', PHONE)).rejects.toBeInstanceOf(
+      await expect(verifier.assertPhoneMatches(`${MOCK_PREFIX}   `, PHONE)).rejects.toBeInstanceOf(
         BadRequestException,
       );
     });
@@ -67,35 +75,35 @@ describe('MockPhoneVerifier', () => {
   describe('assertPhoneOrEmailMatches', () => {
     it('accepts either channel, since 2FA lets the user pick', async () => {
       await expect(
-        verifier.assertPhoneOrEmailMatches(`dev:${PHONE}`, PHONE, EMAIL),
+        verifier.assertPhoneOrEmailMatches(`${MOCK_PREFIX}${PHONE}`, PHONE, EMAIL),
       ).resolves.toBeUndefined();
       await expect(
-        verifier.assertPhoneOrEmailMatches(`dev:${EMAIL}`, PHONE, EMAIL),
+        verifier.assertPhoneOrEmailMatches(`${MOCK_PREFIX}${EMAIL}`, PHONE, EMAIL),
       ).resolves.toBeUndefined();
     });
 
     it('matches the email case-insensitively', async () => {
       await expect(
-        verifier.assertPhoneOrEmailMatches('dev:AMA@EXAMPLE.COM', PHONE, EMAIL),
+        verifier.assertPhoneOrEmailMatches(`${MOCK_PREFIX}AMA@EXAMPLE.COM`, PHONE, EMAIL),
       ).resolves.toBeUndefined();
     });
 
     it('rejects a subject that is neither', async () => {
       await expect(
-        verifier.assertPhoneOrEmailMatches('dev:someone@else.com', PHONE, EMAIL),
+        verifier.assertPhoneOrEmailMatches(`${MOCK_PREFIX}someone@else.com`, PHONE, EMAIL),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 
   describe('verifySocialToken', () => {
     it('returns the asserted email, lowercased', async () => {
-      await expect(verifier.verifySocialToken('dev:AMA@example.com')).resolves.toEqual({
+      await expect(verifier.verifySocialToken(`${MOCK_PREFIX}AMA@example.com`)).resolves.toEqual({
         email: 'ama@example.com',
       });
     });
 
     it('rejects a subject that is not an email', async () => {
-      await expect(verifier.verifySocialToken(`dev:${PHONE}`)).rejects.toBeInstanceOf(
+      await expect(verifier.verifySocialToken(`${MOCK_PREFIX}${PHONE}`)).rejects.toBeInstanceOf(
         BadRequestException,
       );
     });

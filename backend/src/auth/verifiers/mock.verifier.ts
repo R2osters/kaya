@@ -2,14 +2,22 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { PhoneVerifier } from '../phone-verifier.interface';
 
 /**
- * Prefix a mock token must carry. Chosen so a token cannot be mistaken for a
- * real Firebase JWT (which is three base64 segments separated by dots) and so
- * that anything arriving from a real client is rejected rather than trusted.
+ * Prefix a mock token must carry.
+ *
+ * Long enough that `${MOCK_PREFIX}${phone}` clears the `@MinLength(20)` every
+ * DTO puts on `firebaseIdToken` -- a shorter prefix made the mock unusable
+ * against the platform's own validation, which only running it revealed:
+ * `kaya-mock-verifier:+233201234567` is 17 characters and every auth endpoint rejected it
+ * before the verifier was ever consulted.
+ *
+ * Also chosen so a token cannot be mistaken for a real Firebase JWT (three
+ * base64 segments separated by dots), so anything arriving from a real client
+ * is rejected rather than trusted.
  */
-const MOCK_PREFIX = 'dev:';
+export const MOCK_PREFIX = 'kaya-mock-verifier:';
 
 /**
- * Development-only verifier. Accepts `dev:+233201234567` as proof of
+ * Development-only verifier. Accepts `kaya-mock-verifier:+233201234567` as proof of
  * possession of `+233201234567`, and nothing else.
  *
  * **This is an authentication bypass.** Anyone who can reach a backend running
@@ -22,13 +30,13 @@ const MOCK_PREFIX = 'dev:';
  *  - `AuthModule` refuses to construct this class when `NODE_ENV=production`.
  *    It throws at boot rather than logging a warning, because a warning in a
  *    startup log is not a control.
- *  - Only the `dev:` prefix is accepted. A real Firebase ID token presented to
+ *  - Only the `kaya-mock-verifier:` prefix is accepted. A real Firebase ID token presented to
  *    this verifier is rejected, so a client accidentally pointed at a mock
  *    backend fails loudly instead of appearing to work.
  *  - Every acceptance is logged at warn level with the phone it authenticated,
  *    so a backend left in this mode is obvious in its own logs.
  *
- * The email branch of `assertPhoneOrEmailMatches` accepts `dev:<email>` too,
+ * The email branch of `assertPhoneOrEmailMatches` accepts the same prefix with an email too,
  * since password-login 2FA lets the user pick the channel.
  */
 @Injectable()

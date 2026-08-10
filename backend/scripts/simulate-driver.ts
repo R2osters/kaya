@@ -40,6 +40,9 @@ const DRIVER = {
   role: 'livreur',
 };
 
+/** Mirrors MOCK_PREFIX in src/auth/verifiers/mock.verifier.ts. */
+const MOCK_TOKEN_PREFIX = 'kaya-mock-verifier:';
+
 const COUNTRY_CODE = 'GHA';
 const PASSWORD = 'DemoPass123!';
 
@@ -105,7 +108,7 @@ async function ensureAccount(account: typeof CLIENT): Promise<string> {
         ...account,
         password: PASSWORD,
         countryCode: COUNTRY_CODE,
-        firebaseIdToken: `dev:${account.phone}`,
+        firebaseIdToken: `${MOCK_TOKEN_PREFIX}${account.phone}`,
       }),
     });
     console.log(`  created ${account.role} ${account.phone}`);
@@ -118,7 +121,10 @@ async function ensureAccount(account: typeof CLIENT): Promise<string> {
 
   const session = await call<{ accessToken: string }>('/auth/login/otp', {
     method: 'POST',
-    body: JSON.stringify({ phone: account.phone, firebaseIdToken: `dev:${account.phone}` }),
+    body: JSON.stringify({
+      phone: account.phone,
+      firebaseIdToken: `${MOCK_TOKEN_PREFIX}${account.phone}`,
+    }),
   });
   return session.accessToken;
 }
