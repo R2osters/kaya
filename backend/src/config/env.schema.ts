@@ -61,6 +61,14 @@ export const envSchema = z.object({
   GEOCODING_PROVIDER: z.enum(['photon', 'static']).default('photon'),
   PHOTON_BASE_URL: z.string().default('https://photon.komoot.io'),
 
+  // --- Phone / identity verification ---
+  // "firebase" (default) verifies real Firebase Phone Auth ID tokens.
+  // "mock" accepts a `dev:<phone>` token and is an authentication bypass: the
+  // auth module refuses to boot with it under NODE_ENV=production. It exists
+  // because phone verification was the only external integration here without
+  // a keyless implementation, which left a fresh checkout unable to log in.
+  FIREBASE_VERIFIER: z.enum(['firebase', 'mock']).default('firebase'),
+
   // --- Push notifications (M2) ---
   // FCM service-account JSON (string). When empty, the dev log provider is used.
   FIREBASE_SERVICE_ACCOUNT: z.string().default(''),

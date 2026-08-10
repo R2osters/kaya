@@ -3,6 +3,7 @@ import {
   ConflictException,
   HttpException,
   HttpStatus,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -21,7 +22,7 @@ import { LoginVerifyDto } from './dto/login-verify.dto';
 import { PasswordResetDto } from './dto/password-reset.dto';
 import { SocialLoginDto } from './dto/social-login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
-import { FirebaseAdminService } from './firebase-admin.service';
+import { PHONE_VERIFIER, PhoneVerifier } from './phone-verifier.interface';
 import { TokenPair, TokenService } from './token.service';
 
 /** User shape returned to clients (never includes the password hash). */
@@ -33,7 +34,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly config: AppConfigService,
     private readonly tokens: TokenService,
-    private readonly firebaseAdmin: FirebaseAdminService,
+    @Inject(PHONE_VERIFIER) private readonly verifier: PhoneVerifier,
     private readonly storage: StorageService,
     private readonly redis: RedisService,
   ) {}
@@ -48,8 +49,7 @@ export class AuthService {
       );
     }
 
-    const includesLivreur =
-      dto.role === RegisterRole.livreur || dto.role === RegisterRole.both;
+    const includesLivreur = dto.role === RegisterRole.livreur || dto.role === RegisterRole.both;
 
     if (includesLivreur) {
       const error = validateDriverFields(dto.countryCode, {
@@ -61,7 +61,7 @@ export class AuthService {
       }
     }
 
-    await this.firebaseAdmin.assertPhoneMatches(dto.firebaseIdToken, dto.phone);
+    await this.verifier.assertPhoneMatches(dto.firebaseIdToken, dto.phone);
     await this.assertUnique(dto.email, dto.phone);
 
     let passwordHash: string | null = null;
@@ -151,7 +151,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials.');
     }
 
-    await this.firebaseAdmin.assertPhoneOrEmailMatches(dto.firebaseIdToken, user.phone, user.email);
+    await this.verifier.assertPhoneOrEmailMatches(dto.firebaseIdToken, user.phone, user.email);
     await this.redis.del(`login:challenge:${dto.challengeId}`);
 
     const pair = await this.tokens.issueTokenPair(user);
@@ -164,7 +164,7 @@ export class AuthService {
     | ({ user: PublicUser } & TokenPair)
     | { isNewAccount: true; socialDraftToken: string; email: string; fullName?: string }
   > {
-    const { email, name } = await this.firebaseAdmin.verifySocialToken(dto.firebaseIdToken);
+    const { email, name } = await this.verifier.verifySocialToken(dto.firebaseIdToken);
     const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
 
     if (!user) {
@@ -185,7 +185,7 @@ export class AuthService {
   }
 
   async loginWithOtp(dto: LoginOtpDto): Promise<{ user: PublicUser } & TokenPair> {
-    await this.firebaseAdmin.assertPhoneMatches(dto.firebaseIdToken, dto.phone);
+    await this.verifier.assertPhoneMatches(dto.firebaseIdToken, dto.phone);
 
     const user = await this.prisma.user.findFirst({ where: { phone: dto.phone } });
     if (!user) {
@@ -200,7 +200,7 @@ export class AuthService {
   }
 
   async resetPassword(dto: PasswordResetDto): Promise<{ success: boolean }> {
-    await this.firebaseAdmin.assertPhoneMatches(dto.firebaseIdToken, dto.phone);
+    await this.verifier.assertPhoneMatches(dto.firebaseIdToken, dto.phone);
 
     const user = await this.prisma.user.findFirst({ where: { phone: dto.phone } });
     if (!user) {

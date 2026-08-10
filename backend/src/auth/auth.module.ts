@@ -11,6 +11,9 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { FirebaseAdminService } from './firebase-admin.service';
+import { MockPhoneVerifier } from './verifiers/mock.verifier';
+import { PHONE_VERIFIER } from './phone-verifier.interface';
+import { selectPhoneVerifier } from './verifiers/select-verifier';
 
 @Module({
   imports: [
@@ -40,11 +43,17 @@ import { FirebaseAdminService } from './firebase-admin.service';
     AuthService,
     TokenService,
     FirebaseAdminService,
+    MockPhoneVerifier,
+    {
+      provide: PHONE_VERIFIER,
+      inject: [AppConfigService, FirebaseAdminService, MockPhoneVerifier],
+      useFactory: selectPhoneVerifier,
+    },
     JwtStrategy,
     // Global guards: authenticate everything (except @Public), then check @Roles.
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
-  exports: [AuthService, TokenService],
+  exports: [AuthService, TokenService, PHONE_VERIFIER],
 })
 export class AuthModule {}

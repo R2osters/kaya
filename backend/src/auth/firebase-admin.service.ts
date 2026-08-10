@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { App, cert, initializeApp, ServiceAccount } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { AppConfigService } from '../config/app-config.service';
+import { PhoneVerifier } from './phone-verifier.interface';
 
 /**
  * Verifies Firebase Phone Auth ID tokens (see
@@ -10,7 +11,8 @@ import { AppConfigService } from '../config/app-config.service';
  * provider's ('kaya-fcm'), so the two integrations fail independently.
  */
 @Injectable()
-export class FirebaseAdminService {
+export class FirebaseAdminService implements PhoneVerifier {
+  readonly name = 'firebase';
   private readonly logger = new Logger('FirebaseAuth');
   private app: App | null = null;
 
@@ -37,7 +39,9 @@ export class FirebaseAdminService {
       throw new BadRequestException('Invalid or expired phone verification.');
     }
     if (decoded.phone_number !== expectedPhone) {
-      throw new BadRequestException('Phone verification does not match the submitted phone number.');
+      throw new BadRequestException(
+        'Phone verification does not match the submitted phone number.',
+      );
     }
   }
 
