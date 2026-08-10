@@ -29,6 +29,27 @@ export const queryKeys = {
   order: (orderId: string) => ["orders", orderId] as const,
   /** Offers on an order -- prefixed by `order(orderId)`, see the module doc. */
   offers: (orderId: string) => ["orders", orderId, "offers"] as const,
+  /**
+   * A price quote for one pair of points.
+   *
+   * Both points are in the key, so moving a pin refetches and moving it back
+   * is served from cache -- a user comparing two possible pickup spots does not
+   * pay for the same quote twice. Coordinates are rounded into the key at five
+   * decimals (about a metre): a map drag emits a stream of positions that
+   * differ in the twelfth decimal, and keying on those raw values would make
+   * every one of them a distinct cache entry and a distinct request.
+   */
+  priceQuote: (
+    pickup: { lat: number; lng: number } | null,
+    dropoff: { lat: number; lng: number } | null,
+  ) =>
+    [
+      "pricing",
+      "quote",
+      pickup === null ? null : `${pickup.lat.toFixed(5)},${pickup.lng.toFixed(5)}`,
+      dropoff === null ? null : `${dropoff.lat.toFixed(5)},${dropoff.lng.toFixed(5)}`,
+    ] as const,
+
   /** Driver-side: published orders within a radius (`GET /orders/nearby`). */
   nearbyOrders: (params?: Readonly<Record<string, unknown>>) =>
     params === undefined

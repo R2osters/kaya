@@ -198,5 +198,14 @@
   "addressSearchPlaceholder": "Neighbourhood, street, landmark",
   "addressSearchPrompt": "Type at least two characters.",
   "addressSearchEmptyTitle": "No address found",
-  "addressSearchEmptyBody": "Try a nearby neighbourhood or landmark."
+  "addressSearchEmptyBody": "Try a nearby neighbourhood or landmark.",
+  "orderSizeSmall": "Small",
+  "orderSizeMedium": "Medium",
+  "orderSizeLarge": "Large",
+  "orderSubmit": "Publish order",
+  "orderQuoteTitle": "Minimum price",
+  "orderQuoteDistance": "{km} km estimated",
+  "orderQuotePending": "Pick both addresses to get a price.",
+  "orderAddressMissing": "Pick a pickup and a dropoff point.",
+  "orderDescriptionHint": "e.g. shoe box, about 2kg"
 }

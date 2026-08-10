@@ -89,6 +89,8 @@ const ROUTES: RouteRow[] = [
     pathname: "/create-order",
     testID: "create-order-screen",
     key: "screenCreateOrder",
+    // Phase 2A: real screen, covered by app/create-order.test.tsx.
+    implemented: true,
   },
   {
     file: "address-search.tsx",

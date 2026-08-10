@@ -198,5 +198,14 @@
   "addressSearchPlaceholder": "Quartier, rue, point de repère",
   "addressSearchPrompt": "Saisissez au moins deux caractères.",
   "addressSearchEmptyTitle": "Aucune adresse trouvée",
-  "addressSearchEmptyBody": "Essayez un quartier ou un point de repère proche."
+  "addressSearchEmptyBody": "Essayez un quartier ou un point de repère proche.",
+  "orderSizeSmall": "Petit",
+  "orderSizeMedium": "Moyen",
+  "orderSizeLarge": "Grand",
+  "orderSubmit": "Publier la commande",
+  "orderQuoteTitle": "Prix minimum",
+  "orderQuoteDistance": "{km} km estimés",
+  "orderQuotePending": "Choisissez les deux adresses pour obtenir un prix.",
+  "orderAddressMissing": "Choisissez un point de retrait et un point de livraison.",
+  "orderDescriptionHint": "Ex. carton à chaussures, environ 2 kg"
 }

@@ -67,4 +67,35 @@ describe("queryKeys", () => {
 
     expect(queryKeys.order("x")).toEqual(["orders", "x"]);
   });
+  describe("priceQuote", () => {
+    const OSU = { lat: 5.5606, lng: -0.1824 };
+    const TEMA = { lat: 5.6698, lng: -0.0166 };
+
+    it("keys on both points, so a different pair is a different quote", () => {
+      expect(queryKeys.priceQuote(OSU, TEMA)).not.toEqual(queryKeys.priceQuote(TEMA, OSU));
+    });
+
+    it("returns the same key for the same pair, so moving a pin back is cached", () => {
+      expect(queryKeys.priceQuote(OSU, TEMA)).toEqual(queryKeys.priceQuote(OSU, TEMA));
+    });
+
+    it("rounds to about a metre, so a map drag is one entry rather than hundreds", () => {
+      // A drag emits positions differing in the twelfth decimal. Keying on
+      // those raw values makes every frame its own cache entry and request.
+      const dragged = { lat: 5.56060000001, lng: -0.18240000002 };
+
+      expect(queryKeys.priceQuote(dragged, TEMA)).toEqual(queryKeys.priceQuote(OSU, TEMA));
+    });
+
+    it("still separates points a real distance apart", () => {
+      const elsewhere = { lat: 5.5616, lng: -0.1824 };
+
+      expect(queryKeys.priceQuote(elsewhere, TEMA)).not.toEqual(queryKeys.priceQuote(OSU, TEMA));
+    });
+
+    it("has a distinct key while either point is still unset", () => {
+      expect(queryKeys.priceQuote(null, TEMA)).not.toEqual(queryKeys.priceQuote(OSU, TEMA));
+      expect(queryKeys.priceQuote(null, null)).not.toEqual(queryKeys.priceQuote(OSU, null));
+    });
+  });
 });
