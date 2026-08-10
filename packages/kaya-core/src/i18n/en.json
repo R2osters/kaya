@@ -189,5 +189,10 @@
   "navGroupDriverWork": "Work",
   "navGroupDriverMoney": "Earnings",
   "navGroupDesignSystem": "Design system",
-  "navExplorerHint": "Navigation shell: each screen names itself. The real screens arrive in later phases."
+  "navExplorerHint": "Navigation shell: each screen names itself. The real screens arrive in later phases.",
+  "loginPhoneLabel": "Phone number",
+  "loginPhonePlaceholder": "+233 20 123 4567",
+  "loginSubmit": "Sign in",
+  "loginPhoneRequired": "Enter your phone number.",
+  "loginDevNotice": "Development sign-in. The backend must run with FIREBASE_VERIFIER=mock; the real screen ships with the sign-up flows."
 }

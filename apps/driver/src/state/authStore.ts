@@ -1,4 +1,4 @@
-import type { User } from "@kaya/core";
+import type { AuthResult, User } from "@kaya/core";
 import { SecureTokenStore } from "@kaya/ui";
 import { create } from "zustand";
 import { api, setOnSessionExpired } from "../api/client";
@@ -22,6 +22,21 @@ export interface AuthStoreState {
    * navigation on the splash screen for as long as it stays "unknown".
    */
   restoreSession: () => Promise<void>;
+  /**
+   * Adopts the result of a successful sign-in: writes the token pair to the
+   * keychain, then flips the status the route guard reads.
+   *
+   * The order matters. The status change re-renders the guard, which navigates
+   * to a protected route, whose screens fire their queries immediately -- and
+   * those requests need the token already readable, or the first screen after
+   * sign-in 401s and bounces the user straight back out.
+   *
+   * `user` may be absent from the response (the schema allows it), in which
+   * case restoreSession's `/auth/me` call fills it in.
+   */
+  signIn: (result: AuthResult) => Promise<void>;
+  /** Clears the keychain and the session. */
+  signOut: () => Promise<void>;
 }
 
 // A fresh instance is equivalent to reusing the one in src/api/client.ts:
@@ -96,6 +111,16 @@ export const useAuthStore = create<AuthStoreState>((set) => ({
       // splash screen with no way out (see the brief).
       set({ status: "anonymous", user: null });
     }
+  },
+
+  signIn: async (result) => {
+    await tokenStore.save(result.tokens);
+    set({ status: "authenticated", user: result.user });
+  },
+
+  signOut: async () => {
+    await tokenStore.clear();
+    set({ status: "anonymous", user: null });
   },
 }));
 

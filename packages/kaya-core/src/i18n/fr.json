@@ -189,5 +189,10 @@
   "navGroupDriverWork": "Travail",
   "navGroupDriverMoney": "Gains",
   "navGroupDesignSystem": "Design system",
-  "navExplorerHint": "Coquille de navigation : chaque écran affiche son nom. Les écrans réels arrivent aux phases suivantes."
+  "navExplorerHint": "Coquille de navigation : chaque écran affiche son nom. Les écrans réels arrivent aux phases suivantes.",
+  "loginPhoneLabel": "Numéro de téléphone",
+  "loginPhonePlaceholder": "+233 20 123 4567",
+  "loginSubmit": "Se connecter",
+  "loginPhoneRequired": "Saisissez votre numéro de téléphone.",
+  "loginDevNotice": "Connexion de développement. Le backend doit tourner avec FIREBASE_VERIFIER=mock ; l'écran définitif arrive avec les flux d'inscription."
 }

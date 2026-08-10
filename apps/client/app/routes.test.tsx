@@ -45,12 +45,28 @@ interface RouteRow {
   pathname: string;
   testID: string;
   key: keyof typeof resources.fr.translation;
+  /**
+   * Set once a route stops being a RoutePlaceholder and becomes a real screen.
+   * It still has to exist and still has to resolve to its expected pathname --
+   * those two checks are what stop a route quietly disappearing -- but it no
+   * longer renders the placeholder body, and it may need providers (a
+   * QueryClient, a router) that this suite deliberately does not mount. Its own
+   * suite covers it instead.
+   */
+  implemented?: true;
 }
 
 const ROUTES: RouteRow[] = [
   { file: "splash.tsx", pathname: "/splash", testID: "splash-screen", key: "screenSplash" },
   { file: "(auth)/welcome.tsx", pathname: "/welcome", testID: "welcome-screen", key: "screenWelcome" },
-  { file: "(auth)/login.tsx", pathname: "/login", testID: "login-screen", key: "screenLogin" },
+  {
+    file: "(auth)/login.tsx",
+    pathname: "/login",
+    testID: "login-screen",
+    key: "screenLogin",
+    // Phase 2A: real screen, covered by app/(auth)/login.test.tsx.
+    implemented: true,
+  },
   {
     file: "(auth)/login-verify.tsx",
     pathname: "/login-verify",
@@ -134,7 +150,9 @@ describe("client route tree (task 5)", () => {
     expect(pathnameFor(file)).toBe(pathname);
   });
 
-  it.each(ROUTES)("$file renders its own translated name under testID $testID", ({ file, testID, key }) => {
+  it.each(ROUTES.filter((r) => r.implemented !== true))(
+    "$file renders its own translated name under testID $testID",
+    ({ file, testID, key }) => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports -- a
     // dynamic require, one per table row (see .eslintrc.cjs's override for
     // app/**/*.test.tsx), so a single missing/broken route file fails only
@@ -153,11 +171,12 @@ describe("client route tree (task 5)", () => {
     expect(screen.getByTestId(testID)).toBeTruthy();
     // Scoped to the title node: the route index below repeats every screen
     // name as a link, so a bare getByText would match more than one.
-    expect(screen.getByTestId(`${testID}-title`)).toHaveTextContent(
-      resources.fr.translation[key],
-    );
-    screen.unmount();
-  });
+      expect(screen.getByTestId(`${testID}-title`)).toHaveTextContent(
+        resources.fr.translation[key],
+      );
+      screen.unmount();
+    },
+  );
 
   it("the three paths AuthGuard can redirect to all exist among these routes", () => {
     // app/_layout.tsx's AuthGuard (src/navigation/authGuard.ts) targets
