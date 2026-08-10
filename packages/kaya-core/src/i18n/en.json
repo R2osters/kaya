@@ -207,5 +207,9 @@
   "orderQuoteDistance": "{km} km estimated",
   "orderQuotePending": "Pick both addresses to get a price.",
   "orderAddressMissing": "Pick a pickup and a dropoff point.",
-  "orderDescriptionHint": "e.g. shoe box, about 2kg"
+  "orderDescriptionHint": "e.g. shoe box, about 2kg",
+  "offersEmptyTitle": "No offers yet",
+  "offersEmptyBody": "Nearby drivers are receiving your order. Offers appear here.",
+  "offersAccept": "Accept",
+  "offersDeliveries": "{count} deliveries"
 }

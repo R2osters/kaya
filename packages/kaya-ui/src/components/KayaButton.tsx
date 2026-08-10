@@ -17,6 +17,16 @@ export interface KayaButtonProps {
    */
   icon?: ReactNode | ((color: string) => ReactNode);
   loading?: boolean;
+  /**
+   * Refuses presses without showing a spinner.
+   *
+   * Distinct from `loading`, which says "this button's own work is running".
+   * A row of Accept buttons while one of them is being accepted needs the
+   * other rows dead but quiet: a spinner on each would claim they were all
+   * working. The greyed-out treatment below is shared with the
+   * no-handler case, which is the same state arrived at differently.
+   */
+  disabled?: boolean;
   /** Stretch to the available width. Defaults to true, as the Flutter widget did. */
   expand?: boolean;
   testID?: string;
@@ -35,10 +45,11 @@ export function KayaButton({
   variant = "primary",
   icon,
   loading = false,
+  disabled: disabledProp = false,
   expand = true,
   testID,
 }: KayaButtonProps) {
-  const disabled = onPress === undefined || loading;
+  const disabled = onPress === undefined || loading || disabledProp;
   const filled = variant !== "secondary";
   const foreground = filled ? colors.surface : colors.ink;
 

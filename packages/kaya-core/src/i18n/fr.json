@@ -207,5 +207,9 @@
   "orderQuoteDistance": "{km} km estimés",
   "orderQuotePending": "Choisissez les deux adresses pour obtenir un prix.",
   "orderAddressMissing": "Choisissez un point de retrait et un point de livraison.",
-  "orderDescriptionHint": "Ex. carton à chaussures, environ 2 kg"
+  "orderDescriptionHint": "Ex. carton à chaussures, environ 2 kg",
+  "offersEmptyTitle": "Aucune offre pour l'instant",
+  "offersEmptyBody": "Les livreurs proches reçoivent votre commande. Les offres arrivent ici.",
+  "offersAccept": "Accepter",
+  "offersDeliveries": "{count} livraisons"
 }

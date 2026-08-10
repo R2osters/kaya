@@ -98,4 +98,33 @@ describe("KayaButton", () => {
     );
     expect(screen.queryByText("ico")).toBeNull();
   });
+  it("ignores presses when disabled", () => {
+    const onPress = jest.fn();
+    render(<KayaButton label="Accepter" onPress={onPress} disabled testID="btn" />);
+
+    fireEvent.press(screen.getByTestId("btn"));
+
+    expect(onPress).not.toHaveBeenCalled();
+  });
+
+  it("shows no spinner when merely disabled", () => {
+    // A row of Accept buttons while one is being accepted needs the others
+    // dead but quiet; a spinner on each would claim they were all working.
+    render(<KayaButton label="Accepter" onPress={jest.fn()} disabled testID="btn" />);
+
+    expect(screen.getByText("Accepter")).toBeTruthy();
+    expect(screen.getByTestId("btn").props.accessibilityState).toMatchObject({
+      disabled: true,
+      busy: false,
+    });
+  });
+
+  it("stays disabled while loading, whatever the disabled prop says", () => {
+    const onPress = jest.fn();
+    render(<KayaButton label="Accepter" onPress={onPress} loading disabled={false} testID="btn" />);
+
+    fireEvent.press(screen.getByTestId("btn"));
+
+    expect(onPress).not.toHaveBeenCalled();
+  });
 });

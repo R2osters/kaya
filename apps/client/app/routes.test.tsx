@@ -106,7 +106,10 @@ const ROUTES: RouteRow[] = [
     testID: "notifications-screen",
     key: "screenNotifications",
   },
-  { file: "offers/[orderId].tsx", pathname: "/offers/[orderId]", testID: "offers-screen", key: "screenOffers" },
+  { file: "offers/[orderId].tsx", pathname: "/offers/[orderId]", testID: "offers-screen", key: "screenOffers",
+    // Phase 2A: real screen, covered by app/offers/offers.test.tsx.
+    implemented: true,
+  },
   { file: "payment/index.tsx", pathname: "/payment", testID: "payment-screen", key: "screenPayment" },
   {
     file: "payment/webview.tsx",
