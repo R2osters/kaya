@@ -211,5 +211,11 @@
   "offersEmptyTitle": "Aucune offre pour l'instant",
   "offersEmptyBody": "Les livreurs proches reçoivent votre commande. Les offres arrivent ici.",
   "offersAccept": "Accepter",
-  "offersDeliveries": "{count} livraisons"
+  "offersDeliveries": "{count} livraisons",
+  "payOpenGateway": "Ouvrir le paiement sécurisé",
+  "payGatewayNote": "Le paiement se fait sur la page de votre opérateur, hors de l'application.",
+  "payCancelled": "Paiement interrompu. Vous pouvez réessayer.",
+  "payPending": "Paiement en cours de confirmation. Cela peut prendre quelques minutes.",
+  "payPaid": "Paiement confirmé",
+  "payAmount": "Montant"
 }

@@ -211,5 +211,11 @@
   "offersEmptyTitle": "No offers yet",
   "offersEmptyBody": "Nearby drivers are receiving your order. Offers appear here.",
   "offersAccept": "Accept",
-  "offersDeliveries": "{count} deliveries"
+  "offersDeliveries": "{count} deliveries",
+  "payOpenGateway": "Open secure payment",
+  "payGatewayNote": "Payment happens on your provider's page, outside the app.",
+  "payCancelled": "Payment interrupted. You can try again.",
+  "payPending": "Payment is being confirmed. This can take a few minutes.",
+  "payPaid": "Payment confirmed",
+  "payAmount": "Amount"
 }

@@ -110,12 +110,9 @@ const ROUTES: RouteRow[] = [
     // Phase 2A: real screen, covered by app/offers/offers.test.tsx.
     implemented: true,
   },
-  { file: "payment/index.tsx", pathname: "/payment", testID: "payment-screen", key: "screenPayment" },
-  {
-    file: "payment/webview.tsx",
-    pathname: "/payment/webview",
-    testID: "payment-webview-screen",
-    key: "screenPaymentWebview",
+  { file: "payment/index.tsx", pathname: "/payment", testID: "payment-screen", key: "screenPayment",
+    // Phase 2 slice B: real screen, covered by app/payment/payment.test.tsx.
+    implemented: true,
   },
   {
     file: "payment/receipt.tsx",
@@ -198,8 +195,8 @@ describe("client route tree (task 5)", () => {
     expect(pathnames.has("/home")).toBe(true);
   });
 
-  it("covers every route named in task 5's brief plus splash, index.tsx and showcase.tsx aside", () => {
-    expect(ROUTES).toHaveLength(20);
+  it("covers every route named in task 5's brief plus splash, index.tsx and showcase.tsx aside, less the removed payment webview", () => {
+    expect(ROUTES).toHaveLength(19);
   });
 
   it("every href in the route explorer resolves to a real route", () => {
