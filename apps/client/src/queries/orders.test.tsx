@@ -24,7 +24,6 @@ const OSU = {
 };
 const TEMA = { ...OSU, label: "Tema Station, Tema, Ghana", name: "Tema Station", lat: 5.6698, lng: -0.0166 };
 
-const DRAFT = { id: "order-1", status: "draft" };
 const PUBLISHED = { id: "order-1", status: "published" };
 
 function input(overrides: Partial<NewOrderInput> = {}): NewOrderInput {
@@ -43,7 +42,7 @@ function setup() {
 }
 
 beforeEach(() => {
-  mockCreateOrder.mockReset().mockResolvedValue(DRAFT);
+  mockCreateOrder.mockReset().mockResolvedValue(PUBLISHED);
   mockPublishOrder.mockReset().mockResolvedValue(PUBLISHED);
 });
 
@@ -66,20 +65,21 @@ describe("useCreateOrder", () => {
     );
   });
 
-  it("publishes what it created, in that order", async () => {
-    // An order created and not published sits in `draft`: invisible to every
-    // driver, and to the client who created it, with nothing on screen to say so.
+  it("does not call publish -- the backend already did", async () => {
+    // OrdersService.create() ends with `if (!isScheduled) return
+    // this.publishInternal(order)`, so an immediate order comes back already
+    // published and POST /orders/:id/publish rejects it with "Only draft
+    // orders can be published". Every submit on a device failed on this; the
+    // Dart original makes both calls, and the port copied the sequence.
     const { result } = setup();
 
     result.current.mutate(input());
 
-    await waitFor(() => expect(mockPublishOrder).toHaveBeenCalledWith(DRAFT.id));
-    expect(mockCreateOrder.mock.invocationCallOrder[0]).toBeLessThan(
-      mockPublishOrder.mock.invocationCallOrder[0] as number,
-    );
+    await waitFor(() => expect(mockCreateOrder).toHaveBeenCalled());
+    expect(mockPublishOrder).not.toHaveBeenCalled();
   });
 
-  it("resolves with the published order, not the draft", async () => {
+  it("resolves with what create returned", async () => {
     const { result } = setup();
 
     result.current.mutate(input());
@@ -114,25 +114,13 @@ describe("useCreateOrder", () => {
     expect(mockCreateOrder.mock.calls[0]?.[0]).toMatchObject({ description: "shoe box" });
   });
 
-  it("reports a failed publish instead of resolving", async () => {
-    // The order exists by then. Swallowing this leaves a draft the user
-    // believes is live and no driver will ever see.
-    mockPublishOrder.mockRejectedValue(new Error("409"));
-    const { result } = setup();
-
-    result.current.mutate(input());
-
-    await waitFor(() => expect(result.current.isError).toBe(true));
-  });
-
-  it("does not publish when creation failed", async () => {
+  it("reports a failed creation instead of resolving", async () => {
     mockCreateOrder.mockRejectedValue(new Error("400"));
     const { result } = setup();
 
     result.current.mutate(input());
 
     await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(mockPublishOrder).not.toHaveBeenCalled();
   });
 
   it("seeds the order detail so the offers screen does not refetch it", async () => {

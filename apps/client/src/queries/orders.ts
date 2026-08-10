@@ -13,22 +13,24 @@ export interface NewOrderInput {
 }
 
 /**
- * Creates an order and publishes it, as one operation.
+ * Creates an order. That is the whole operation -- the backend publishes it.
  *
- * The two calls are deliberately not exposed separately. `POST /orders` leaves
- * an order in `draft`, and only `POST /orders/:id/publish` puts it in front of
- * drivers -- an order created and not published is invisible to everyone
- * including the client who created it, with nothing on screen to say so. The
- * Dart original made both calls back to back for the same reason; splitting
- * them here would just move the chance of forgetting the second one into every
- * future caller.
+ * This originally called `POST /orders` then `POST /orders/:id/publish`, the
+ * sequence the Dart original uses. On a device every submit failed with "Only
+ * draft orders can be published": `OrdersService.create()` ends with
+ * `if (!isScheduled) return this.publishInternal(order)`, so an immediate
+ * order is already `published` by the time the response arrives, and the
+ * second call is rejected by the status guard in `publish()`.
  *
- * When scheduling lands the publish step becomes conditional (a scheduled
- * order is published by the backend's cron, 30 minutes ahead), which is the
- * one thing this function will need to learn.
+ * The Dart client makes the same two calls, so the port reproduced a sequence
+ * the backend refuses -- the same class of defect the phase 1A review found 22
+ * of, and the reason the standing rule is that the backend is the contract
+ * authority rather than the Dart client.
  *
- * **A failed publish is reported, not swallowed.** The order exists at that
- * point, so silently resolving would leave a draft the user believes is live.
+ * When scheduling lands, nothing here changes: a scheduled order stays `draft`
+ * and the backend's cron publishes it 30 minutes ahead. The publish endpoint
+ * exists for a draft a user saved and later publishes by hand, which is not
+ * this flow.
  */
 export function useCreateOrder(): UseMutationResult<Order, unknown, NewOrderInput> {
   const queryClient = useQueryClient();
@@ -37,7 +39,7 @@ export function useCreateOrder(): UseMutationResult<Order, unknown, NewOrderInpu
     mutationFn: async (input: NewOrderInput): Promise<Order> => {
       const description = input.description.trim();
 
-      const order = await api.createOrder({
+      return api.createOrder({
         pickupAddress: input.pickup.label,
         pickupLat: input.pickup.lat,
         pickupLng: input.pickup.lng,
@@ -47,8 +49,6 @@ export function useCreateOrder(): UseMutationResult<Order, unknown, NewOrderInpu
         ...(description === "" ? {} : { description }),
         dimensions: input.size,
       });
-
-      return api.publishOrder(order.id);
     },
     onSuccess: (order) => {
       // The list is stale the moment an order joins it, and the detail entry is
