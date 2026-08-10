@@ -95,6 +95,8 @@ const ROUTES: RouteRow[] = [
     pathname: "/address-search",
     testID: "address-search-screen",
     key: "screenAddressSearch",
+    // Phase 2A: real screen, covered by app/address-search.test.tsx.
+    implemented: true,
   },
   {
     file: "notifications.tsx",

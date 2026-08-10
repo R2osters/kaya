@@ -111,4 +111,17 @@ describe("KayaTextField", () => {
       disabled: true,
     });
   });
+  it("does not auto-focus by default", () => {
+    // A multi-field form that grabs focus on mount scrolls itself somewhere
+    // the user did not ask to be.
+    render(<KayaTextField value="" onChangeText={jest.fn()} testID="field" />);
+
+    expect(screen.getByTestId("field-input").props.autoFocus).toBe(false);
+  });
+
+  it("auto-focuses when asked, for a screen that is one search box", () => {
+    render(<KayaTextField value="" onChangeText={jest.fn()} autoFocus testID="field" />);
+
+    expect(screen.getByTestId("field-input").props.autoFocus).toBe(true);
+  });
 });

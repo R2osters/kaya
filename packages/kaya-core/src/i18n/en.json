@@ -194,5 +194,9 @@
   "loginPhonePlaceholder": "+233 20 123 4567",
   "loginSubmit": "Sign in",
   "loginPhoneRequired": "Enter your phone number.",
-  "loginDevNotice": "Development sign-in. The backend must run with FIREBASE_VERIFIER=mock; the real screen ships with the sign-up flows."
+  "loginDevNotice": "Development sign-in. The backend must run with FIREBASE_VERIFIER=mock; the real screen ships with the sign-up flows.",
+  "addressSearchPlaceholder": "Neighbourhood, street, landmark",
+  "addressSearchPrompt": "Type at least two characters.",
+  "addressSearchEmptyTitle": "No address found",
+  "addressSearchEmptyBody": "Try a nearby neighbourhood or landmark."
 }

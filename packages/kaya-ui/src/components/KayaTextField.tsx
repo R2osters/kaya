@@ -28,6 +28,15 @@ export interface KayaTextFieldProps {
    */
   error?: string;
   editable?: boolean;
+  /**
+   * Focuses the field as soon as it mounts, raising the keyboard with it.
+   *
+   * For a screen whose only purpose is one input -- a search -- making the
+   * user tap the field they were just sent to is a wasted step. Off by
+   * default: a form with several fields that grabs focus on mount scrolls
+   * itself somewhere the user did not ask to be.
+   */
+  autoFocus?: boolean;
   testID?: string;
 }
 
@@ -44,6 +53,7 @@ export function KayaTextField({
   multiline = false,
   error,
   editable = true,
+  autoFocus = false,
   testID,
 }: KayaTextFieldProps) {
   const invalid = error !== undefined && error !== "";
@@ -77,6 +87,7 @@ export function KayaTextField({
           onChangeText={onChangeText}
           placeholder={hint}
           placeholderTextColor={colors.inkTertiary}
+          autoFocus={autoFocus}
           keyboardType={keyboardType}
           secureTextEntry={secureTextEntry}
           multiline={isMultiline}

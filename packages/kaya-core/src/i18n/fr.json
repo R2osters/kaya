@@ -194,5 +194,9 @@
   "loginPhonePlaceholder": "+233 20 123 4567",
   "loginSubmit": "Se connecter",
   "loginPhoneRequired": "Saisissez votre numéro de téléphone.",
-  "loginDevNotice": "Connexion de développement. Le backend doit tourner avec FIREBASE_VERIFIER=mock ; l'écran définitif arrive avec les flux d'inscription."
+  "loginDevNotice": "Connexion de développement. Le backend doit tourner avec FIREBASE_VERIFIER=mock ; l'écran définitif arrive avec les flux d'inscription.",
+  "addressSearchPlaceholder": "Quartier, rue, point de repère",
+  "addressSearchPrompt": "Saisissez au moins deux caractères.",
+  "addressSearchEmptyTitle": "Aucune adresse trouvée",
+  "addressSearchEmptyBody": "Essayez un quartier ou un point de repère proche."
 }

@@ -1943,6 +1943,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
                   "disabled": false,
                 }
               }
+              autoFocus={false}
               editable={true}
               multiline={false}
               onChangeText={[Function]}
