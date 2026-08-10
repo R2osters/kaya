@@ -219,5 +219,13 @@
   "payPaid": "Payment confirmed",
   "payAmount": "Amount",
   "payDeliveryPrice": "Delivery price",
-  "payPaidOn": "Paid on {date}"
+  "payPaidOn": "Paid on {date}",
+  "authResetFieldsRequired": "Enter the code and a new password.",
+  "authRegisterFieldsRequired": "Fill in every field.",
+  "authRegisterSuccess": "Account created. Sign in.",
+  "authStepContact": "Contact",
+  "authStepIdentity": "Identity",
+  "authStepSecurity": "Security",
+  "authNext": "Continue",
+  "authBack": "Back"
 }

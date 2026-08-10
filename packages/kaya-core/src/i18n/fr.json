@@ -219,5 +219,13 @@
   "payPaid": "Paiement confirmé",
   "payAmount": "Montant",
   "payDeliveryPrice": "Prix de la course",
-  "payPaidOn": "Payé le {date}"
+  "payPaidOn": "Payé le {date}",
+  "authResetFieldsRequired": "Saisissez le code et un nouveau mot de passe.",
+  "authRegisterFieldsRequired": "Remplissez tous les champs.",
+  "authRegisterSuccess": "Compte créé. Connectez-vous.",
+  "authStepContact": "Contact",
+  "authStepIdentity": "Identité",
+  "authStepSecurity": "Sécurité",
+  "authNext": "Continuer",
+  "authBack": "Retour"
 }

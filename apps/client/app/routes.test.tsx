@@ -58,7 +58,10 @@ interface RouteRow {
 
 const ROUTES: RouteRow[] = [
   { file: "splash.tsx", pathname: "/splash", testID: "splash-screen", key: "screenSplash" },
-  { file: "(auth)/welcome.tsx", pathname: "/welcome", testID: "welcome-screen", key: "screenWelcome" },
+  { file: "(auth)/welcome.tsx", pathname: "/welcome", testID: "welcome-screen", key: "screenWelcome",
+    // Phase 2 slice C: real screen, covered by app/(auth)/auth-screens.test.tsx.
+    implemented: true,
+  },
   {
     file: "(auth)/login.tsx",
     pathname: "/login",
@@ -73,12 +76,17 @@ const ROUTES: RouteRow[] = [
     testID: "login-verify-screen",
     key: "screenLoginVerify",
   },
-  { file: "(auth)/register.tsx", pathname: "/register", testID: "register-screen", key: "screenRegister" },
+  { file: "(auth)/register.tsx", pathname: "/register", testID: "register-screen", key: "screenRegister",
+    // Phase 2 slice C: real screen, covered by app/(auth)/auth-screens.test.tsx.
+    implemented: true,
+  },
   {
     file: "(auth)/password-reset.tsx",
     pathname: "/password-reset",
     testID: "password-reset-screen",
     key: "screenPasswordReset",
+    // Phase 2 slice C: real screen, covered by app/(auth)/auth-screens.test.tsx.
+    implemented: true,
   },
   { file: "(tabs)/home.tsx", pathname: "/home", testID: "home-screen", key: "screenHome" },
   { file: "(tabs)/history.tsx", pathname: "/history", testID: "history-screen", key: "screenHistory" },
