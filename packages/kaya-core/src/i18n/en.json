@@ -217,5 +217,7 @@
   "payCancelled": "Payment interrupted. You can try again.",
   "payPending": "Payment is being confirmed. This can take a few minutes.",
   "payPaid": "Payment confirmed",
-  "payAmount": "Amount"
+  "payAmount": "Amount",
+  "payDeliveryPrice": "Delivery price",
+  "payPaidOn": "Paid on {date}"
 }

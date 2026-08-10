@@ -217,5 +217,7 @@
   "payCancelled": "Paiement interrompu. Vous pouvez réessayer.",
   "payPending": "Paiement en cours de confirmation. Cela peut prendre quelques minutes.",
   "payPaid": "Paiement confirmé",
-  "payAmount": "Montant"
+  "payAmount": "Montant",
+  "payDeliveryPrice": "Prix de la course",
+  "payPaidOn": "Payé le {date}"
 }

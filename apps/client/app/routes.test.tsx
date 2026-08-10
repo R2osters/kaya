@@ -119,6 +119,8 @@ const ROUTES: RouteRow[] = [
     pathname: "/payment/receipt",
     testID: "payment-receipt-screen",
     key: "screenPaymentReceipt",
+    // Phase 2 slice B: real screen, covered by app/payment/receipt.test.tsx.
+    implemented: true,
   },
   {
     file: "tracking/[deliveryId].tsx",
