@@ -144,12 +144,17 @@ const ROUTES: RouteRow[] = [
     // Phase 2A: real screen, covered by app/tracking/tracking.test.tsx.
     implemented: true,
   },
-  { file: "chat/[deliveryId].tsx", pathname: "/chat/[deliveryId]", testID: "chat-screen", key: "screenChat" },
+  { file: "chat/[deliveryId].tsx", pathname: "/chat/[deliveryId]", testID: "chat-screen", key: "screenChat",
+    // Phase 2 slice D: real screen, covered by app/chat/chat-rating.test.tsx.
+    implemented: true,
+  },
   {
     file: "rating/[deliveryId].tsx",
     pathname: "/rating/[deliveryId]",
     testID: "rating-screen",
     key: "screenRating",
+    // Phase 2 slice D: real screen, covered by app/chat/chat-rating.test.tsx.
+    implemented: true,
   },
 ];
 
