@@ -45,16 +45,32 @@ async function sendToken(token: string): Promise<void> {
  * system settings -- at which point the backend already has somewhere to send.
  */
 export async function registerPush(push: PushProvider): Promise<() => void> {
-  const unsubscribe = push.onTokenRefresh((token) => {
-    void sendToken(token);
-  });
+  // The whole registration is guarded, not just the network call inside
+  // sendToken. Found on a device: with no google-services.json present,
+  // @react-native-firebase throws "No Firebase App '[DEFAULT]' has been
+  // created" out of the *adapter* -- before any token exists -- and it
+  // surfaced as an uncaught promise rejection over the first screen after
+  // sign-in. The unit tests could not see it: they substitute the whole
+  // PushProvider, so the case where the provider itself throws never arose.
+  //
+  // A device without Firebase configured must degrade to "no push", which is
+  // a real and common configuration: every developer checkout, and every
+  // build made before the google-services file is added.
+  try {
+    const unsubscribe = push.onTokenRefresh((token) => {
+      void sendToken(token);
+    });
 
-  await push.requestPermission();
+    await push.requestPermission();
 
-  const token = await push.getToken();
-  if (token !== null && token !== "") {
-    await sendToken(token);
+    const token = await push.getToken();
+    if (token !== null && token !== "") {
+      await sendToken(token);
+    }
+
+    return unsubscribe;
+  } catch (error) {
+    console.warn("[push] not registered; notifications are unavailable", error);
+    return () => undefined;
   }
-
-  return unsubscribe;
 }

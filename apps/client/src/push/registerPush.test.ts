@@ -158,4 +158,58 @@ describe("registerPush", () => {
 
     expect(fake.unsubscribe).toHaveBeenCalled();
   });
+  describe("when the push provider itself is unusable", () => {
+    // The device case: no google-services.json, so @react-native-firebase
+    // throws out of the adapter before any token exists. Every test above
+    // substitutes a working provider, which is exactly why this escaped into a
+    // run on hardware as an uncaught rejection over the first screen after
+    // sign-in.
+    it("does not reject when subscribing to rotation throws", async () => {
+      const { provider } = fakePush({
+        onTokenRefresh: () => {
+          throw new Error("No Firebase App '[DEFAULT]' has been created");
+        },
+      });
+
+      await expect(registerPush(provider)).resolves.toEqual(expect.any(Function));
+    });
+
+    it("does not reject when requesting permission throws", async () => {
+      const { provider } = fakePush({
+        requestPermission: jest.fn().mockRejectedValue(new Error("no Firebase app")),
+      });
+
+      await expect(registerPush(provider)).resolves.toEqual(expect.any(Function));
+    });
+
+    it("does not reject when reading the token throws", async () => {
+      const { provider } = fakePush({
+        getToken: jest.fn().mockRejectedValue(new Error("no Firebase app")),
+      });
+
+      await expect(registerPush(provider)).resolves.toEqual(expect.any(Function));
+    });
+
+    it("returns a teardown that is safe to call", async () => {
+      const { provider } = fakePush({
+        onTokenRefresh: () => {
+          throw new Error("no Firebase app");
+        },
+      });
+
+      const teardown = await registerPush(provider);
+
+      expect(() => teardown()).not.toThrow();
+    });
+
+    it("sends no token when the provider never produced one", async () => {
+      const { provider } = fakePush({
+        getToken: jest.fn().mockRejectedValue(new Error("no Firebase app")),
+      });
+
+      await registerPush(provider);
+
+      expect(mockUpdateProfile).not.toHaveBeenCalled();
+    });
+  });
 });
