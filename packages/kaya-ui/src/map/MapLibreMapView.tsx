@@ -95,6 +95,49 @@ function toLineString(points: GeoPoint[]): GeoJSON.Feature<GeoJSON.LineString> {
 }
 
 /**
+ * Padding around a fitted box, as a fraction of its own span, so pins do not
+ * sit against the edge of the view. 15% on each side.
+ */
+const BOUNDS_PADDING_RATIO = 0.15;
+
+/**
+ * Smallest span a fitted box may have, in degrees (~1.1 km of latitude).
+ *
+ * Without a floor, two points a few metres apart -- a driver who has just
+ * arrived at the pickup -- produce a near-zero box and the camera zooms to
+ * street furniture. This keeps a degenerate box readable.
+ */
+const MIN_BOUNDS_SPAN_DEG = 0.01;
+
+/**
+ * The box containing every supplied point, in MapLibre's [west, south, east,
+ * north] order.
+ *
+ * Returns null for fewer than two points: one point is a `center`, not a box,
+ * and the caller falls back to centre-and-zoom.
+ */
+function boundsOf(points: GeoPoint[]): [number, number, number, number] | null {
+  if (points.length < 2) return null;
+
+  let west = points[0]!.lng;
+  let east = points[0]!.lng;
+  let south = points[0]!.lat;
+  let north = points[0]!.lat;
+
+  for (const point of points) {
+    if (point.lng < west) west = point.lng;
+    if (point.lng > east) east = point.lng;
+    if (point.lat < south) south = point.lat;
+    if (point.lat > north) north = point.lat;
+  }
+
+  const lngPad = Math.max((east - west) * BOUNDS_PADDING_RATIO, MIN_BOUNDS_SPAN_DEG / 2);
+  const latPad = Math.max((north - south) * BOUNDS_PADDING_RATIO, MIN_BOUNDS_SPAN_DEG / 2);
+
+  return [west - lngPad, south - latPad, east + lngPad, north + latPad];
+}
+
+/**
  * Free, no-key map implementation on OpenStreetMap tiles via MapLibre. This is
  * the provider the host apps register by default via `registerMapProvider`
  * (see MapView.tsx). Ported from
@@ -109,11 +152,26 @@ export function MapLibreMapView({
   testID,
 }: MapLibreMapViewProps) {
   const { Map, Camera, Marker, GeoJSONSource, Layer, UserLocation } = maplibre();
+
+  // An explicit `center` is the caller being specific and always wins. With
+  // none, everything the map is being asked to show is fitted into view.
+  //
+  // Verified on a device, which is what prompted this: the showcase passes a
+  // pickup, a dropoff and a vehicle spread over ~6 km, and a fixed zoom 13
+  // centred on the first marker rendered exactly one pin -- the other two sat
+  // outside the viewport with nothing to suggest they existed. On a tracking
+  // screen that is the whole screen being wrong: the point of it is seeing the
+  // driver relative to the destination.
+  const fitted = center === undefined ? boundsOf([...markers.map((m) => m.point), ...(route ?? [])]) : null;
   const focus = center ?? markers[0]?.point ?? ACCRA_FALLBACK;
 
   return (
     <Map testID={testID} style={styles.map} mapStyle={styleUrl ?? OSM_RASTER_STYLE}>
-      <Camera center={[focus.lng, focus.lat]} zoom={13} />
+      {fitted === null ? (
+        <Camera center={[focus.lng, focus.lat]} zoom={13} />
+      ) : (
+        <Camera bounds={fitted} />
+      )}
 
       {showUserLocation === true && <UserLocation />}
 
@@ -149,6 +207,14 @@ export function MapLibreMapView({
     </Map>
   );
 }
+
+/**
+ * Exported for tests only. The component itself cannot be rendered under Jest
+ * -- it resolves a native module -- but `boundsOf` is pure arithmetic and is
+ * where the interesting mistakes live (an inverted axis, a degenerate box, an
+ * off-by-one on the two-point threshold).
+ */
+export const __testing = { boundsOf, MIN_BOUNDS_SPAN_DEG, BOUNDS_PADDING_RATIO };
 
 const styles = StyleSheet.create({
   map: { flex: 1 },

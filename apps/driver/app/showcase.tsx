@@ -168,7 +168,7 @@ export default function ShowcaseScreen() {
         <KayaSkeletonCard testID="showcase-skeleton-card" />
       </Section>
 
-      <Section title="MapView (stylized fallback -- no provider registered until task 6)">
+      <Section title="MapView (MapLibre + OpenStreetMap, registered at startup)">
         <View style={styles.map}>
           <MapView markers={markers} testID="showcase-map" />
         </View>

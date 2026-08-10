@@ -1,0 +1,95 @@
+appId: com.kaya.kaya_driver
+name: Kaya driver shell smoke (SKIP_AUTH build)
+---
+# The signed-in half of the phase 1C acceptance flow. It needs a build made
+# with SKIP_AUTH, which puts the auth store in its preview-user state so the
+# route guard stops bouncing protected routes:
+#
+#   SKIP_AUTH=true API_BASE_URL=http://10.0.2.2:3000 npm run android -w driver
+#   maestro test apps/driver/maestro/smoke-dev.yaml
+#
+# **SKIP_AUTH must be set on the build, not on `expo start`.** This cost an
+# hour on the first device run: `Constants.expoConfig.extra` is baked into the
+# APK at build time, so restarting Metro with a new value changes the manifest
+# the dev server serves and nothing in the app. The app reads the old value and
+# says nothing. The same is true of API_BASE_URL, where the failure is worse --
+# it falls back to `http://localhost:3000`, which on an Android emulator is the
+# emulator itself, so every request fails in a way that looks like the backend
+# being down.
+#
+# tools/devFlagGuard refuses to build with SKIP_AUTH against anything but a
+# local backend, so this cannot become a shipped configuration by accident.
+
+- launchApp:
+    clearState: true
+
+# Guard rule 3: an authenticated session sitting on an auth route goes home.
+# Launch resolves "/" -> "/splash" -> "/home", so seeing home is the whole
+# redirect chain working on a device.
+- assertVisible:
+    id: "home-screen"
+
+# The route explorer every placeholder renders. Tapping through it proves
+# expo-router resolved the file-based route: a route file that does not exist
+# is invisible until someone navigates to it, and a dead link in the explorer
+# does nothing at all rather than failing.
+- tapOn:
+    id: "link-/earnings"
+- assertVisible:
+    id: "earnings-screen"
+
+# A dynamic route, which resolves through different expo-router rules than a
+# static one.
+- tapOn:
+    id: "link-/delivery/demo-delivery"
+- assertVisible:
+    id: "delivery-screen"
+
+- back
+- assertVisible:
+    id: "earnings-screen"
+
+# The design-system showcase: the phase's visual acceptance surface, and the
+# reason it is a real route rather than an underscore-prefixed file.
+- tapOn:
+    id: "link-/showcase"
+- assertVisible:
+    id: "showcase-screen"
+- assertVisible:
+    id: "showcase-button-primary"
+- assertVisible:
+    id: "showcase-card"
+- assertVisible:
+    id: "showcase-pill-success"
+- assertVisible:
+    id: "showcase-rating-one"
+- assertVisible:
+    id: "showcase-avatar-initials"
+- assertVisible:
+    id: "showcase-textfield"
+- assertVisible:
+    id: "showcase-empty-state"
+
+# The map, which is the assertion this file exists for. @kaya/ui's registry
+# resolves to MapLibre on OpenStreetMap tiles; with no MAPS_API_KEY that is the
+# keyless style, with one it is the keyed tile source. Either way reaching this
+# means registerAppMapProvider ran and the native module linked -- the two
+# things no Jest suite can check, because MapView's own tests exercise the
+# registry and the stylized fallback, never the real component.
+- scrollUntilVisible:
+    element:
+      id: "showcase-map"
+    direction: DOWN
+- assertVisible:
+    id: "showcase-map"
+
+# The bottom sheet is the one component with real interaction in the showcase,
+# and its scrim/modal semantics were a phase 1B fix -- worth one tap.
+- scrollUntilVisible:
+    element:
+      id: "showcase-sheet-trigger"
+    direction: UP
+- tapOn:
+    id: "showcase-sheet-trigger"
+- assertVisible:
+    id: "showcase-sheet"

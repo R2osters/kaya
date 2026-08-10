@@ -63,7 +63,20 @@ npm ci
 API_BASE_URL=http://10.0.2.2:3000 npm run android -w client   # émulateur Android
 # iOS/simulateur : http://localhost:3000
 # Tuiles de carte réelles : MAPS_API_KEY=... (sinon style OSM sans clé)
+# Ouvrir sans backend : SKIP_AUTH=true (refusé par tools/devFlagGuard hors local)
 # Le showcase du design system : route /showcase dans les deux apps
+```
+
+> **Ces variables sont figées dans le binaire au build, pas lues du serveur Metro.**
+> Les changer et relancer `expo start` ne change rien : l'app lit ce avec quoi
+> l'APK a été construit. Il faut relancer `npm run android -w <app>`. L'échec est
+> silencieux, et le pire est `API_BASE_URL` — non définie, elle retombe sur
+> `http://localhost:3000`, qui **depuis un émulateur Android désigne l'émulateur
+> lui-même**, pas la machine hôte. Toutes les requêtes échouent alors comme si le
+> backend était éteint. Depuis un émulateur, l'hôte est `10.0.2.2` ; depuis un
+> téléphone physique, l'adresse LAN de la machine.
+
+```bash
 ```
 
 Paiement en dev : gateway **mock** (aucune clé requise) —
@@ -93,11 +106,21 @@ cd backend && npm test        # unitaires + e2e (e2e auto-skippés sans DB)
 npm test --workspaces         # @kaya/core, @kaya/ui, client, driver, tools
 ```
 
-Flux de fumée sur appareil (development build + backend dockerisé) :
+Flux de fumée sur appareil (development build). Deux flux, parce que le garde
+d'authentification bloque la quasi-totalité de l'arbre de routes tant qu'il n'y
+a pas de session — un seul flux ne peut pas à la fois vérifier ça et parcourir
+les écrans :
 
 ```bash
 maestro test apps/client/maestro/smoke.yaml
 ```
+
+```bash
+maestro test apps/client/maestro/smoke-dev.yaml
+```
+
+Le second exige un build `SKIP_AUTH=true` (voir l'encadré ci-dessus) ; c'est
+lui qui vérifie le rendu réel de la carte.
 
 CI GitHub Actions, un workflow par périmètre : `ci.yml` (backend : prisma
 validate + lint + build + test), `core.yml`, `ui.yml`, `client.yml`,

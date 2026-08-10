@@ -1,99 +1,56 @@
 appId: com.kaya.kaya_client
-name: Kaya client shell smoke
+name: Kaya client shell smoke (anonymous)
 ---
-# Phase 1C acceptance flow. Run against a development build (Expo Go cannot
-# load @react-native-firebase/messaging) with the dockerised backend up:
+# The anonymous half of the phase 1C acceptance flow. Run against a development
+# build (Expo Go cannot load @react-native-firebase/messaging):
 #
-#   docker compose up -d
 #   npm run android -w client
 #   maestro test apps/client/maestro/smoke.yaml
 #
-# What this proves: the app boots, session restoration settles, the route guard
-# sends an anonymous session to welcome rather than stranding it on the splash
-# screen, the route tree is walkable, and the shared design system renders.
-# Every one of those has failed on a device while passing under Jest.
-#
-# One step from the plan's flow is deliberately missing: signing in with a
-# seeded account. The login route is a placeholder with no form to type into --
-# the real screen is phase 2 -- so a sign-in step here would have to fake its
-# way through and would assert nothing. It lands with the screen it needs.
+# This file used to walk the whole route tree. It could not: verified on a
+# device, the route guard bounces an anonymous session off every route except
+# welcome/login/register, so `tapOn link-/home` returned straight to welcome
+# and the flow contradicted itself. Walking the tree needs a session, and there
+# is no login form until phase 2 -- so it lives in smoke-dev.yaml, which runs
+# against a SKIP_AUTH build. What is left here is what an anonymous session can
+# actually prove, and it is worth proving: the guard is the one piece of this
+# phase that decides what a signed-out user is allowed to see.
 
 - launchApp:
     clearState: true
 
-# Guard rule 1 holds every navigation on the splash route while `status` is
-# `unknown`; rule 2 then sends an anonymous session to welcome. Seeing welcome
-# is therefore proof that restoreSession() settled -- the failure this guards
-# against is the app sitting on splash forever, which is what an unhandled
-# rejection in restoration produces.
+# Guard rule 1 holds every navigation on splash while `status` is `unknown`;
+# rule 2 then sends an anonymous session to welcome. Seeing welcome is proof
+# that restoreSession() settled -- the failure this guards against is the app
+# sitting on splash forever, which an unhandled rejection in restoration
+# produces.
 - assertVisible:
     id: "welcome-screen"
 
 # The screen names itself through @kaya/core's i18n resources rather than a
-# hardcoded string, so a broken i18n wire-up surfaces here as a missing key
-# instead of as text that happens to look right.
+# hardcoded string, so a broken i18n wire-up surfaces as a missing key rather
+# than as text that happens to look right.
 - assertVisible:
     id: "welcome-screen-title"
 
-# The route explorer every placeholder renders. Tapping through it is what
-# proves expo-router resolved the file-based route: a route file that does not
-# exist is invisible until someone navigates to it, and a dead link in the
-# explorer does nothing at all rather than failing.
+# Rule 2 in the other direction, which is the security-relevant half: tapping
+# through to a protected route must come back to welcome, not open it. This is
+# a real device behaviour that no unit test covers -- authGuard.test.ts checks
+# the pure function, not that the layout actually applies its verdict to a
+# live navigation.
 - tapOn:
     id: "link-/home"
 - assertVisible:
-    id: "home-screen"
+    id: "welcome-screen"
 
 - tapOn:
     id: "link-/create-order"
 - assertVisible:
-    id: "create-order-screen"
+    id: "welcome-screen"
 
-# A dynamic route, which resolves through different expo-router rules than a
-# static one.
+# An auth route is allowed through, so the bounce above is the guard working
+# rather than navigation being broken outright.
 - tapOn:
-    id: "link-/tracking/demo-delivery"
+    id: "link-/login"
 - assertVisible:
-    id: "tracking-screen"
-
-- back
-- assertVisible:
-    id: "create-order-screen"
-
-# The design-system showcase: the phase's visual acceptance surface, and the
-# reason it is a real route rather than an underscore-prefixed file. Asserting
-# a component from each family here is what makes "the design system is
-# visible" a checked claim rather than a screenshot someone remembers taking.
-- tapOn:
-    id: "link-/showcase"
-- assertVisible:
-    id: "showcase-screen"
-- assertVisible:
-    id: "showcase-button-primary"
-- assertVisible:
-    id: "showcase-card"
-- assertVisible:
-    id: "showcase-pill-success"
-- assertVisible:
-    id: "showcase-rating-one"
-- assertVisible:
-    id: "showcase-avatar-initials"
-- assertVisible:
-    id: "showcase-textfield"
-- assertVisible:
-    id: "showcase-empty-state"
-- assertVisible:
-    id: "showcase-skeleton-card"
-
-# The map renders through @kaya/ui's registry. With no MAPS_API_KEY set this is
-# the keyless MapLibre style; with one it is the keyed tile source. Either way
-# the registry resolved, which is what src/map/register.tsx exists to do.
-- assertVisible:
-    id: "showcase-map"
-
-# The bottom sheet is the one component with real interaction in the showcase,
-# and its scrim/modal semantics were a phase 1B fix -- worth one tap.
-- tapOn:
-    id: "showcase-sheet-trigger"
-- assertVisible:
-    id: "showcase-sheet"
+    id: "login-screen"

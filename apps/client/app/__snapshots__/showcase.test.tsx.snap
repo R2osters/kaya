@@ -3341,7 +3341,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
           }
         }
       >
-        MapView (stylized fallback -- no provider registered until task 6)
+        MapView (MapLibre + OpenStreetMap, registered at startup)
       </Text>
       <View
         style={

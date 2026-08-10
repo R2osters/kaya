@@ -1,11 +1,23 @@
 import Constants from "expo-constants";
 
 /**
- * Runtime configuration surfaced through app.config.ts's `extra` block,
- * which app.config.ts fills in from process.env at build/start time -- see
- * that file for the SKIP_AUTH production guard. Nothing in this module may
- * hardcode a real backend host; the only literal here is a localhost
- * fallback for a developer running the backend alongside Metro.
+ * Runtime configuration surfaced through app.config.ts's `extra` block, which
+ * app.config.ts fills in from process.env. Nothing in this module may hardcode
+ * a real backend host; the only literal here is a localhost fallback.
+ *
+ * **`extra` is baked into the binary at build time, not read from the dev
+ * server.** Verified on a device: with `SKIP_AUTH=true` passed to `expo start`
+ * the dev server's manifest carried `skipAuth: true` and the app still saw
+ * `false`, because `Constants.expoConfig` resolves to what the APK was built
+ * with. Changing any value below means rebuilding:
+ *
+ *   SKIP_AUTH=true API_BASE_URL=http://10.0.2.2:3000 npm run android -w client
+ *
+ * The failure mode is silent, and worst for `apiBaseUrl`: an unset value falls
+ * back to the localhost literal below, which on an Android emulator is the
+ * emulator itself rather than the host machine, so every request fails in a
+ * way that reads as "the backend is down". `10.0.2.2` is the host from inside
+ * an Android emulator; a physical device needs the machine's LAN address.
  */
 export interface KayaEnv {
   /** REST/socket origin, e.g. http://localhost:3000. No trailing slash. */
