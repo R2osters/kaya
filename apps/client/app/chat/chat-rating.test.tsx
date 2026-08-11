@@ -26,6 +26,13 @@ jest.mock("../../src/queries/ratings", () => ({
   useRateDelivery: () => ({ mutate: mockRateMutate, ...mockRate }),
 }));
 
+// The rating screen reads the delivery to learn who it is rating (the
+// driver); the backend cross-checks toUserId against the participants.
+let mockDelivery: { data?: { livreurId?: string } } = { data: { livreurId: "u-2" } };
+jest.mock("../../src/queries/deliveries", () => ({
+  useDelivery: () => mockDelivery,
+}));
+
 jest.mock("../../src/state/authStore", () => ({
   useAuthStore: (selector: (state: { user: { id?: string } | null }) => unknown) =>
     selector({ user: mockUserId === undefined ? null : { id: mockUserId } }),
@@ -59,6 +66,7 @@ beforeEach(() => {
   mockMessages = { data: [], isPending: false };
   mockSend = { isPending: false, error: null };
   mockRate = { isPending: false, error: null };
+  mockDelivery = { data: { livreurId: "u-2" } };
   mockUserId = "u-1";
 });
 
@@ -138,9 +146,21 @@ describe("RatingScreen", () => {
     fireEvent.press(screen.getByTestId("rating-submit"));
 
     expect(mockRateMutate).toHaveBeenCalledWith(
-      { score: 4, comment: "" },
+      { score: 4, comment: "", toUserId: "u-2" },
       expect.anything(),
     );
+  });
+
+  it("submits nothing while the delivery (and so the ratee) is unknown", () => {
+    // Without the delivery there is no toUserId, and a request without one is
+    // the 400 the first live rating hit.
+    mockDelivery = { data: undefined };
+    renderScreen(RatingScreen);
+
+    fireEvent.press(screen.getByTestId("rating-stars-star-3"));
+    fireEvent.press(screen.getByTestId("rating-submit"));
+
+    expect(mockRateMutate).not.toHaveBeenCalled();
   });
 
   it("carries an optional comment", () => {

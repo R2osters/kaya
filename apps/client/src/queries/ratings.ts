@@ -7,6 +7,14 @@ export interface RatingInput {
   score: number;
   /** Optional free text; omitted when blank. */
   comment: string;
+  /**
+   * The user being rated -- the delivery's driver, from the client's side.
+   * The backend requires it and cross-checks it against the delivery's own
+   * participants; sending without it was the first live rating's 400
+   * ("toUserId must be a UUID"), found on the emulator after the first
+   * delivered course.
+   */
+  toUserId: string;
 }
 
 /**
@@ -23,10 +31,11 @@ export function useRateDelivery(
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ score, comment }: RatingInput) => {
+    mutationFn: ({ score, comment, toUserId }: RatingInput) => {
       const trimmed = comment.trim();
       return api.rateDelivery(deliveryId, {
         score,
+        toUserId,
         ...(trimmed === "" ? {} : { comment: trimmed }),
       });
     },
