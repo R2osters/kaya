@@ -6,10 +6,11 @@ import {
   colors,
   spacing,
   typography,
+  KayaPressable,
 } from "@kaya/ui";
 import { Bell } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import {FlatList, StyleSheet, Text, View} from "react-native";
 import { useMarkNotificationRead, useNotifications } from "../src/queries/inbox";
 
 /**
@@ -74,7 +75,7 @@ function NotificationRow({
   const unread = notification.readAt === null;
 
   return (
-    <Pressable
+    <KayaPressable
       onPress={onPress}
       testID={`notification-${index}${unread ? "-unread" : ""}`}
     >
@@ -91,7 +92,7 @@ function NotificationRow({
           </View>
         </View>
       </KayaCard>
-    </Pressable>
+    </KayaPressable>
   );
 }
 

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { KayaPressable } from "./KayaPressable";
 import { colors, minTouch, radii, spacing, typography } from "../theme";
 
 export type KayaButtonVariant = "primary" | "secondary" | "danger";
@@ -54,7 +55,9 @@ export function KayaButton({
   const foreground = filled ? colors.surface : colors.ink;
 
   return (
-    <Pressable
+    // KayaPressable answers on press-in with the shared sink-and-spring;
+    // the button gets the same touch feel as every other surface for free.
+    <KayaPressable
       testID={testID}
       accessibilityRole="button"
       accessibilityState={{ disabled, busy: loading }}
@@ -84,7 +87,7 @@ export function KayaButton({
           </Text>
         </View>
       )}
-    </Pressable>
+    </KayaPressable>
   );
 }
 

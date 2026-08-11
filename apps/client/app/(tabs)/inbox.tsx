@@ -8,11 +8,12 @@ import {
   colors,
   spacing,
   typography,
+  KayaPressable,
 } from "@kaya/ui";
 import { useRouter } from "expo-router";
 import { MessageCircle } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import {FlatList, StyleSheet, Text, View} from "react-native";
 import { useMyDeliveries } from "../../src/queries/inbox";
 
 /**
@@ -77,7 +78,7 @@ function ThreadRow({
   const STEP_LABELS = ["trackEnRoute", "trackPickedUp", "trackInTransit", "trackDelivered"] as const;
 
   return (
-    <Pressable onPress={onPress} testID={`inbox-thread-${index}`}>
+    <KayaPressable onPress={onPress} testID={`inbox-thread-${index}`}>
       <KayaCard>
         <View style={styles.row}>
           <KayaAvatar
@@ -98,7 +99,7 @@ function ThreadRow({
           />
         </View>
       </KayaCard>
-    </Pressable>
+    </KayaPressable>
   );
 }
 

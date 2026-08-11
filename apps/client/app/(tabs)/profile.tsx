@@ -10,9 +10,10 @@ import {
   spacing,
   typography,
   useLocale,
+  KayaPressable,
 } from "@kaya/ui";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {ScrollView, StyleSheet, Text, View} from "react-native";
 import { useAuthStore } from "../../src/state/authStore";
 import { useLocaleStore } from "../../src/state/localeStore";
 
@@ -97,7 +98,7 @@ export default function ProfileScreen() {
       <KayaCard testID="profile-language">
         <View style={styles.langRow}>
           {(["fr", "en"] as const).map((lang) => (
-            <Pressable
+            <KayaPressable
               key={lang}
               onPress={() => {
                 void setLocale(lang);
@@ -108,7 +109,7 @@ export default function ProfileScreen() {
               <Text style={[typography.body, locale === lang && styles.langSelectedLabel]}>
                 {lang === "fr" ? "Français" : "English"}
               </Text>
-            </Pressable>
+            </KayaPressable>
           ))}
         </View>
       </KayaCard>

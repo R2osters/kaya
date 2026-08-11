@@ -8,12 +8,13 @@ import {
   radii,
   spacing,
   typography,
+  KayaPressable,
 } from "@kaya/ui";
 import { useFocusEffect, useRouter } from "expo-router";
 import { MapPin } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {ScrollView, StyleSheet, Text, View} from "react-native";
 import { useCreateOrder } from "../src/queries/orders";
 import { usePriceQuote } from "../src/queries/pricing";
 import {
@@ -124,7 +125,7 @@ export default function CreateOrderScreen() {
         <Text style={typography.bodyStrong}>{t("orderSize")}</Text>
         <View style={styles.sizeRow}>
           {SIZES.map((option) => (
-            <Pressable
+            <KayaPressable
               key={option.value}
               onPress={() => setSize(option.value)}
               style={[styles.sizeChip, size === option.value && styles.sizeChipSelected]}
@@ -138,7 +139,7 @@ export default function CreateOrderScreen() {
               >
                 {t(option.key)}
               </Text>
-            </Pressable>
+            </KayaPressable>
           ))}
         </View>
       </View>
@@ -183,7 +184,7 @@ function AddressField({
   testID: string;
 }) {
   return (
-    <Pressable onPress={onPress} testID={testID}>
+    <KayaPressable onPress={onPress} testID={testID}>
       <KayaCard>
         <View style={styles.addressRow}>
           <MapPin size={18} color={colors.inkTertiary} />
@@ -198,7 +199,7 @@ function AddressField({
           </View>
         </View>
       </KayaCard>
-    </Pressable>
+    </KayaPressable>
   );
 }
 

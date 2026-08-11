@@ -8,12 +8,13 @@ import {
   radii,
   spacing,
   typography,
+  KayaPressable,
 } from "@kaya/ui";
 import { useRouter } from "expo-router";
 import { Package } from "lucide-react-native";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import {FlatList, StyleSheet, Text, View} from "react-native";
 import { splitHistory, useMyOrders } from "../../src/queries/orderList";
 
 type Tab = "past" | "upcoming";
@@ -47,7 +48,7 @@ export default function HistoryScreen() {
 
       <View style={styles.tabs} testID="history-tabs">
         {(["past", "upcoming"] as const).map((value) => (
-          <Pressable
+          <KayaPressable
             key={value}
             onPress={() => setTab(value)}
             style={[styles.tab, tab === value && styles.tabSelected]}
@@ -56,7 +57,7 @@ export default function HistoryScreen() {
             <Text style={[typography.body, tab === value && styles.tabSelectedLabel]}>
               {t(value === "past" ? "historyPast" : "historyScheduled")}
             </Text>
-          </Pressable>
+          </KayaPressable>
         ))}
       </View>
 
@@ -97,7 +98,7 @@ function OrderRow({
   onPress: () => void;
 }) {
   return (
-    <Pressable onPress={onPress} testID={`history-order-${index}`}>
+    <KayaPressable onPress={onPress} testID={`history-order-${index}`}>
       <KayaCard>
         <View style={styles.row}>
           <View style={styles.rowText}>
@@ -109,7 +110,7 @@ function OrderRow({
           <StatusPill label={order.status} testID={`history-order-${index}-status`} />
         </View>
       </KayaCard>
-    </Pressable>
+    </KayaPressable>
   );
 }
 

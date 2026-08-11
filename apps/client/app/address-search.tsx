@@ -7,12 +7,13 @@ import {
   colors,
   spacing,
   typography,
+  KayaPressable,
 } from "@kaya/ui";
 import { useRouter } from "expo-router";
 import { MapPin, Search } from "lucide-react-native";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import {FlatList, StyleSheet, Text, View} from "react-native";
 import { MIN_QUERY_LENGTH, useAddressSearch } from "../src/queries/geocoding";
 import { useAddressSelectionStore } from "../src/state/addressSelectionStore";
 
@@ -94,12 +95,12 @@ export default function AddressSearchScreen() {
           keyboardShouldPersistTaps="handled"
           testID="address-search-results"
           renderItem={({ item, index }) => (
-            <Pressable onPress={() => choose(item)} testID={`address-result-${index}`}>
+            <KayaPressable onPress={() => choose(item)} testID={`address-result-${index}`}>
               <KayaCard>
                 <Text style={typography.bodyStrong}>{item.name}</Text>
                 <Text style={typography.caption}>{item.label}</Text>
               </KayaCard>
-            </Pressable>
+            </KayaPressable>
           )}
         />
       )}

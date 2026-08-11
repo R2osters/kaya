@@ -2,88 +2,107 @@ import { type Order } from "@kaya/core";
 import {
   EmptyState,
   KayaCard,
+  KayaPressable,
   KayaSkeletonList,
   MapView,
   colors,
   dropoffMarker,
+  radii,
+  shadows,
   spacing,
   typography,
 } from "@kaya/ui";
 import { useRouter } from "expo-router";
-import { Bell, Package, Search } from "lucide-react-native";
+import { Bell, MapPin, Package, Search } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMyOrders, splitHistory } from "../../src/queries/orderList";
+import { useAuthStore } from "../../src/state/authStore";
 
 /** How many recent drop-offs the home screen offers as shortcuts. */
 const RECENT_LIMIT = 3;
 
 /**
- * Home, phase 2 slice D. Ported from
- * legacy/flutter/client/lib/features/home/home_screen.dart.
+ * Home, phase 2 slice D — map-first, the way a delivery app orients.
  *
- * The map at the top is not a tracking view -- it shows where this client has
- * had things delivered, which is what makes the recent drop-offs below it
- * useful rather than decorative. With no history it renders empty, and the
- * screen is still usable: the point of the screen is the "what needs moving?"
- * action, and a new user has no history by definition.
+ * The map is the hero: edge-to-edge under the status bar, with the greeting
+ * and the bell floating over it and the search pill overlapping its bottom
+ * edge. That overlap is deliberate spatial grammar (the pill belongs to both
+ * worlds: it is *on* the map and it *starts* the flow below it), and it is
+ * the pattern the user's own benchmarks — Uber, Bolt — trained everyone on.
  *
- * The scheduled-order shortcut is not here. Scheduling is not built (see the
- * slice A design doc), and a tile that opens create-order without a date would
- * be a lie about what the app can do.
+ * The pill is the single dominant action. Everything else on the screen is
+ * quieter than it on purpose: one obvious thing to do per screen.
  */
 export default function HomeScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const orders = useMyOrders();
+  const firstName = useAuthStore((s) => s.user?.fullName.split(" ")[0]);
 
   const past = orders.data === undefined ? [] : splitHistory(orders.data.data).past;
   const recent = past.slice(0, RECENT_LIMIT);
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content} testID="home-screen">
-      <View style={styles.header}>
-        <Text style={typography.screenTitle} testID="home-screen-title">
-          {t("homeWhatMoving")}
-        </Text>
-        <Pressable onPress={() => router.push("/notifications")} testID="home-notifications">
-          <Bell size={22} color={colors.ink} />
-        </Pressable>
-      </View>
-
-      <View style={styles.map}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      testID="home-screen"
+    >
+      <View style={styles.hero}>
         <MapView markers={recent.map((o) => dropoffMarker(o.dropoff))} testID="home-map" />
+
+        {/* Floating chrome over the map, pushed below the status bar. */}
+        <View style={[styles.heroBar, { top: insets.top + spacing.md }]}>
+          <Text style={[typography.screenTitle, styles.heroTitle]} testID="home-screen-title">
+            {firstName === undefined ? t("homeWhatMoving") : `${t("homeWhatMoving")}`}
+          </Text>
+          <KayaPressable
+            onPress={() => router.push("/notifications")}
+            style={styles.bell}
+            testID="home-notifications"
+          >
+            <Bell size={20} color={colors.ink} />
+          </KayaPressable>
+        </View>
       </View>
 
-      <Pressable onPress={() => router.push("/create-order")} testID="home-search">
-        <KayaCard>
-          <View style={styles.searchRow}>
-            <Search size={18} color={colors.inkTertiary} />
-            <Text style={typography.body}>{t("homeSearchHint")}</Text>
-          </View>
-        </KayaCard>
-      </Pressable>
+      {/* The search pill straddles the map's bottom edge. */}
+      <View style={styles.pillWrap}>
+        <KayaPressable
+          onPress={() => router.push("/create-order")}
+          style={styles.pill}
+          testID="home-search"
+        >
+          <Search size={20} color={colors.ink} />
+          <Text style={[typography.bodyStrong, styles.pillLabel]}>{t("homeSearchHint")}</Text>
+        </KayaPressable>
+      </View>
 
-      <Text style={typography.overline}>{t("homeRecentDropoffs")}</Text>
+      <View style={styles.body}>
+        <Text style={typography.overline}>{t("homeRecentDropoffs")}</Text>
 
-      {orders.isPending ? (
-        <KayaSkeletonList count={2} testID="home-recent-loading" />
-      ) : recent.length === 0 ? (
-        <EmptyState
-          icon={(color) => <Package size={28} color={color} />}
-          title={t("historyEmpty")}
-          testID="home-recent-empty"
-        />
-      ) : (
-        recent.map((order, index) => (
-          <RecentDropoff
-            key={order.id}
-            order={order}
-            index={index}
-            onPress={() => router.push("/create-order")}
+        {orders.isPending ? (
+          <KayaSkeletonList count={2} testID="home-recent-loading" />
+        ) : recent.length === 0 ? (
+          <EmptyState
+            icon={(color) => <Package size={28} color={color} />}
+            title={t("historyEmpty")}
+            testID="home-recent-empty"
           />
-        ))
-      )}
+        ) : (
+          recent.map((order, index) => (
+            <RecentDropoff
+              key={order.id}
+              order={order}
+              index={index}
+              onPress={() => router.push("/create-order")}
+            />
+          ))
+        )}
+      </View>
     </ScrollView>
   );
 }
@@ -98,19 +117,75 @@ function RecentDropoff({
   onPress: () => void;
 }) {
   return (
-    <Pressable onPress={onPress} testID={`home-recent-${index}`}>
+    <KayaPressable onPress={onPress} testID={`home-recent-${index}`}>
       <KayaCard>
-        <Text style={typography.bodyStrong}>{order.deliveryAddress}</Text>
-        <Text style={typography.caption}>{order.pickupAddress}</Text>
+        <View style={styles.recentRow}>
+          <View style={styles.recentIcon}>
+            <MapPin size={16} color={colors.primary} />
+          </View>
+          <View style={styles.recentText}>
+            <Text style={typography.bodyStrong} numberOfLines={1}>
+              {order.deliveryAddress}
+            </Text>
+            <Text style={typography.caption} numberOfLines={1}>
+              {order.pickupAddress}
+            </Text>
+          </View>
+        </View>
       </KayaCard>
-    </Pressable>
+    </KayaPressable>
   );
 }
 
+const PILL_HEIGHT = 56;
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.xxl, gap: spacing.md },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  map: { height: 180, borderRadius: 20, overflow: "hidden" },
-  searchRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  content: { paddingBottom: spacing.xxxl },
+  hero: { height: 320 },
+  heroBar: {
+    position: "absolute",
+    left: spacing.xxl,
+    right: spacing.xxl,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.md,
+  },
+  heroTitle: { flex: 1 },
+  bell: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    ...shadows.soft,
+  },
+  pillWrap: {
+    marginTop: -PILL_HEIGHT / 2,
+    paddingHorizontal: spacing.xxl,
+  },
+  pill: {
+    height: PILL_HEIGHT,
+    borderRadius: radii.pill,
+    backgroundColor: colors.surface,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    paddingHorizontal: spacing.xl,
+    ...shadows.card,
+  },
+  pillLabel: { flex: 1 },
+  body: { padding: spacing.xxl, gap: spacing.md },
+  recentRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  recentIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primaryTint,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  recentText: { flex: 1 },
 });

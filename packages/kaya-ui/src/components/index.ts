@@ -13,3 +13,4 @@ export * from "./KayaSkeleton";
 export * from "./KayaSkeletonListTile";
 export * from "./KayaSkeletonList";
 export * from "./KayaSkeletonCard";
+export * from "./KayaPressable";

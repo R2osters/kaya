@@ -18,6 +18,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
           "fontFamily": "Inter",
           "fontSize": 28,
           "fontWeight": "800",
+          "letterSpacing": -0.5,
           "lineHeight": 32,
         }
       }
@@ -38,6 +39,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
             "fontFamily": "Inter",
             "fontSize": 22,
             "fontWeight": "700",
+            "letterSpacing": -0.3,
             "lineHeight": 26,
           }
         }
@@ -73,6 +75,47 @@ exports[`design-system showcase matches the captured render tree, for a human to
           accessible={true}
           collapsable={false}
           focusable={true}
+          jestAnimatedProps={
+            {
+              "value": {},
+            }
+          }
+          jestAnimatedStyle={
+            {
+              "value": {
+                "transform": [
+                  {
+                    "scale": 1,
+                  },
+                ],
+              },
+            }
+          }
+          jestInlineStyle={
+            [
+              [
+                {
+                  "alignItems": "center",
+                  "borderRadius": 16,
+                  "justifyContent": "center",
+                  "minHeight": 44,
+                  "paddingHorizontal": 20,
+                  "paddingVertical": 12,
+                },
+                {
+                  "backgroundColor": "#1466FF",
+                },
+                false,
+                {
+                  "alignSelf": "stretch",
+                },
+                {
+                  "opacity": 1,
+                },
+              ],
+            ]
+          }
+          nativeID="100"
           onBlur={[Function]}
           onClick={[Function]}
           onFocus={[Function]}
@@ -84,6 +127,13 @@ exports[`design-system showcase matches the captured render tree, for a human to
           onStartShouldSetResponder={[Function]}
           style={
             [
+              {
+                "transform": [
+                  {
+                    "scale": 1,
+                  },
+                ],
+              },
               {
                 "alignItems": "center",
                 "borderRadius": 16,
@@ -157,6 +207,50 @@ exports[`design-system showcase matches the captured render tree, for a human to
           accessible={true}
           collapsable={false}
           focusable={true}
+          jestAnimatedProps={
+            {
+              "value": {},
+            }
+          }
+          jestAnimatedStyle={
+            {
+              "value": {
+                "transform": [
+                  {
+                    "scale": 1,
+                  },
+                ],
+              },
+            }
+          }
+          jestInlineStyle={
+            [
+              [
+                {
+                  "alignItems": "center",
+                  "borderRadius": 16,
+                  "justifyContent": "center",
+                  "minHeight": 44,
+                  "paddingHorizontal": 20,
+                  "paddingVertical": 12,
+                },
+                {
+                  "backgroundColor": "#FFFFFF",
+                },
+                {
+                  "borderColor": "#E7EAF0",
+                  "borderWidth": 1.4,
+                },
+                {
+                  "alignSelf": "stretch",
+                },
+                {
+                  "opacity": 1,
+                },
+              ],
+            ]
+          }
+          nativeID="101"
           onBlur={[Function]}
           onClick={[Function]}
           onFocus={[Function]}
@@ -168,6 +262,13 @@ exports[`design-system showcase matches the captured render tree, for a human to
           onStartShouldSetResponder={[Function]}
           style={
             [
+              {
+                "transform": [
+                  {
+                    "scale": 1,
+                  },
+                ],
+              },
               {
                 "alignItems": "center",
                 "borderRadius": 16,
@@ -244,6 +345,47 @@ exports[`design-system showcase matches the captured render tree, for a human to
           accessible={true}
           collapsable={false}
           focusable={true}
+          jestAnimatedProps={
+            {
+              "value": {},
+            }
+          }
+          jestAnimatedStyle={
+            {
+              "value": {
+                "transform": [
+                  {
+                    "scale": 1,
+                  },
+                ],
+              },
+            }
+          }
+          jestInlineStyle={
+            [
+              [
+                {
+                  "alignItems": "center",
+                  "borderRadius": 16,
+                  "justifyContent": "center",
+                  "minHeight": 44,
+                  "paddingHorizontal": 20,
+                  "paddingVertical": 12,
+                },
+                {
+                  "backgroundColor": "#E5484D",
+                },
+                false,
+                {
+                  "alignSelf": "stretch",
+                },
+                {
+                  "opacity": 1,
+                },
+              ],
+            ]
+          }
+          nativeID="102"
           onBlur={[Function]}
           onClick={[Function]}
           onFocus={[Function]}
@@ -255,6 +397,13 @@ exports[`design-system showcase matches the captured render tree, for a human to
           onStartShouldSetResponder={[Function]}
           style={
             [
+              {
+                "transform": [
+                  {
+                    "scale": 1,
+                  },
+                ],
+              },
               {
                 "alignItems": "center",
                 "borderRadius": 16,
@@ -328,6 +477,47 @@ exports[`design-system showcase matches the captured render tree, for a human to
           accessible={true}
           collapsable={false}
           focusable={true}
+          jestAnimatedProps={
+            {
+              "value": {},
+            }
+          }
+          jestAnimatedStyle={
+            {
+              "value": {
+                "transform": [
+                  {
+                    "scale": 1,
+                  },
+                ],
+              },
+            }
+          }
+          jestInlineStyle={
+            [
+              [
+                {
+                  "alignItems": "center",
+                  "borderRadius": 16,
+                  "justifyContent": "center",
+                  "minHeight": 44,
+                  "paddingHorizontal": 20,
+                  "paddingVertical": 12,
+                },
+                {
+                  "backgroundColor": "#1466FF",
+                },
+                false,
+                {
+                  "alignSelf": "stretch",
+                },
+                {
+                  "opacity": 1,
+                },
+              ],
+            ]
+          }
+          nativeID="103"
           onBlur={[Function]}
           onClick={[Function]}
           onFocus={[Function]}
@@ -339,6 +529,13 @@ exports[`design-system showcase matches the captured render tree, for a human to
           onStartShouldSetResponder={[Function]}
           style={
             [
+              {
+                "transform": [
+                  {
+                    "scale": 1,
+                  },
+                ],
+              },
               {
                 "alignItems": "center",
                 "borderRadius": 16,
@@ -382,6 +579,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
             "fontFamily": "Inter",
             "fontSize": 22,
             "fontWeight": "700",
+            "letterSpacing": -0.3,
             "lineHeight": 26,
           }
         }
@@ -462,6 +660,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
             "fontFamily": "Inter",
             "fontSize": 22,
             "fontWeight": "700",
+            "letterSpacing": -0.3,
             "lineHeight": 26,
           }
         }
@@ -706,6 +905,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
             "fontFamily": "Inter",
             "fontSize": 22,
             "fontWeight": "700",
+            "letterSpacing": -0.3,
             "lineHeight": 26,
           }
         }
@@ -1755,6 +1955,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
             "fontFamily": "Inter",
             "fontSize": 22,
             "fontWeight": "700",
+            "letterSpacing": -0.3,
             "lineHeight": 26,
           }
         }
@@ -1882,6 +2083,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
             "fontFamily": "Inter",
             "fontSize": 22,
             "fontWeight": "700",
+            "letterSpacing": -0.3,
             "lineHeight": 26,
           }
         }
@@ -1985,6 +2187,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
             "fontFamily": "Inter",
             "fontSize": 22,
             "fontWeight": "700",
+            "letterSpacing": -0.3,
             "lineHeight": 26,
           }
         }
@@ -2103,6 +2306,47 @@ exports[`design-system showcase matches the captured render tree, for a human to
               accessible={true}
               collapsable={false}
               focusable={true}
+              jestAnimatedProps={
+                {
+                  "value": {},
+                }
+              }
+              jestAnimatedStyle={
+                {
+                  "value": {
+                    "transform": [
+                      {
+                        "scale": 1,
+                      },
+                    ],
+                  },
+                }
+              }
+              jestInlineStyle={
+                [
+                  [
+                    {
+                      "alignItems": "center",
+                      "borderRadius": 16,
+                      "justifyContent": "center",
+                      "minHeight": 44,
+                      "paddingHorizontal": 20,
+                      "paddingVertical": 12,
+                    },
+                    {
+                      "backgroundColor": "#1466FF",
+                    },
+                    false,
+                    {
+                      "alignSelf": "flex-start",
+                    },
+                    {
+                      "opacity": 1,
+                    },
+                  ],
+                ]
+              }
+              nativeID="104"
               onBlur={[Function]}
               onClick={[Function]}
               onFocus={[Function]}
@@ -2114,6 +2358,13 @@ exports[`design-system showcase matches the captured render tree, for a human to
               onStartShouldSetResponder={[Function]}
               style={
                 [
+                  {
+                    "transform": [
+                      {
+                        "scale": 1,
+                      },
+                    ],
+                  },
                   {
                     "alignItems": "center",
                     "borderRadius": 16,
@@ -2182,6 +2433,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
             "fontFamily": "Inter",
             "fontSize": 22,
             "fontWeight": "700",
+            "letterSpacing": -0.3,
             "lineHeight": 26,
           }
         }
@@ -2217,6 +2469,47 @@ exports[`design-system showcase matches the captured render tree, for a human to
           accessible={true}
           collapsable={false}
           focusable={true}
+          jestAnimatedProps={
+            {
+              "value": {},
+            }
+          }
+          jestAnimatedStyle={
+            {
+              "value": {
+                "transform": [
+                  {
+                    "scale": 1,
+                  },
+                ],
+              },
+            }
+          }
+          jestInlineStyle={
+            [
+              [
+                {
+                  "alignItems": "center",
+                  "borderRadius": 16,
+                  "justifyContent": "center",
+                  "minHeight": 44,
+                  "paddingHorizontal": 20,
+                  "paddingVertical": 12,
+                },
+                {
+                  "backgroundColor": "#1466FF",
+                },
+                false,
+                {
+                  "alignSelf": "stretch",
+                },
+                {
+                  "opacity": 1,
+                },
+              ],
+            ]
+          }
+          nativeID="105"
           onBlur={[Function]}
           onClick={[Function]}
           onFocus={[Function]}
@@ -2228,6 +2521,13 @@ exports[`design-system showcase matches the captured render tree, for a human to
           onStartShouldSetResponder={[Function]}
           style={
             [
+              {
+                "transform": [
+                  {
+                    "scale": 1,
+                  },
+                ],
+              },
               {
                 "alignItems": "center",
                 "borderRadius": 16,
@@ -2295,6 +2595,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
             "fontFamily": "Inter",
             "fontSize": 22,
             "fontWeight": "700",
+            "letterSpacing": -0.3,
             "lineHeight": 26,
           }
         }
@@ -2335,7 +2636,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
               },
             ]
           }
-          nativeID="76"
+          nativeID="106"
           style={
             [
               {
@@ -2396,7 +2697,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
                   },
                 ]
               }
-              nativeID="77"
+              nativeID="107"
               style={
                 [
                   {
@@ -2450,7 +2751,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
                     },
                   ]
                 }
-                nativeID="78"
+                nativeID="108"
                 style={
                   [
                     {
@@ -2502,7 +2803,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
                       },
                     ]
                   }
-                  nativeID="79"
+                  nativeID="109"
                   style={
                     [
                       {
@@ -2549,7 +2850,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
                   },
                 ]
               }
-              nativeID="80"
+              nativeID="110"
               style={
                 [
                   {
@@ -2617,7 +2918,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
                   },
                 ]
               }
-              nativeID="81"
+              nativeID="111"
               style={
                 [
                   {
@@ -2671,7 +2972,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
                     },
                   ]
                 }
-                nativeID="82"
+                nativeID="112"
                 style={
                   [
                     {
@@ -2723,7 +3024,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
                       },
                     ]
                   }
-                  nativeID="83"
+                  nativeID="113"
                   style={
                     [
                       {
@@ -2770,7 +3071,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
                   },
                 ]
               }
-              nativeID="84"
+              nativeID="114"
               style={
                 [
                   {
@@ -2826,7 +3127,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
                   },
                 ]
               }
-              nativeID="85"
+              nativeID="115"
               style={
                 [
                   {
@@ -2880,7 +3181,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
                     },
                   ]
                 }
-                nativeID="86"
+                nativeID="116"
                 style={
                   [
                     {
@@ -2932,7 +3233,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
                       },
                     ]
                   }
-                  nativeID="87"
+                  nativeID="117"
                   style={
                     [
                       {
@@ -2979,7 +3280,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
                   },
                 ]
               }
-              nativeID="88"
+              nativeID="118"
               style={
                 [
                   {
@@ -3037,7 +3338,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
                 },
               ]
             }
-            nativeID="89"
+            nativeID="119"
             style={
               [
                 {
@@ -3089,7 +3390,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
                   },
                 ]
               }
-              nativeID="90"
+              nativeID="120"
               style={
                 [
                   {
@@ -3141,7 +3442,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
                     },
                   ]
                 }
-                nativeID="91"
+                nativeID="121"
                 style={
                   [
                     {
@@ -3194,7 +3495,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
                     },
                   ]
                 }
-                nativeID="92"
+                nativeID="122"
                 style={
                   [
                     {
@@ -3249,7 +3550,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
                   },
                 ]
               }
-              nativeID="93"
+              nativeID="123"
               style={
                 [
                   {
@@ -3301,7 +3602,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
                     },
                   ]
                 }
-                nativeID="94"
+                nativeID="124"
                 style={
                   [
                     {
@@ -3338,6 +3639,7 @@ exports[`design-system showcase matches the captured render tree, for a human to
             "fontFamily": "Inter",
             "fontSize": 22,
             "fontWeight": "700",
+            "letterSpacing": -0.3,
             "lineHeight": 26,
           }
         }
