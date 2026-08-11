@@ -3,6 +3,7 @@ import {
   ImageAdapter,
   KayaButton,
   KayaCard,
+  KayaScreenHeader,
   StatusPill,
   colors,
   spacing,
@@ -12,6 +13,7 @@ import { Check, Upload } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useGoBack } from "../src/navigation/useGoBack";
 import { useUploadDocument, type DocumentKind } from "../src/queries/documents";
 import { useAuthStore } from "../src/state/authStore";
 
@@ -39,6 +41,7 @@ import { useAuthStore } from "../src/state/authStore";
  */
 export default function VerifyDocumentsScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const user = useAuthStore((s) => s.user);
   const upload = useUploadDocument();
   const adapter = useRef(new ImageAdapter()).current;
@@ -69,9 +72,7 @@ export default function VerifyDocumentsScreen() {
       contentContainerStyle={styles.content}
       testID="verify-documents-screen"
     >
-      <Text style={typography.screenTitle} testID="verify-documents-screen-title">
-        {t("driverVerifyDocuments")}
-      </Text>
+      <KayaScreenHeader title={t("driverVerifyDocuments")} onBack={goBack} testID="verify-documents-screen" />
       <Text style={typography.caption}>{t("driverUploadDocsHint")}</Text>
 
       {user?.isVerified === true ? (

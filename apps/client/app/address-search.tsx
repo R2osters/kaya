@@ -3,6 +3,7 @@ import {
   EmptyState,
   KayaCard,
   KayaSkeletonList,
+  KayaScreenHeader,
   KayaTextField,
   colors,
   spacing,
@@ -15,6 +16,7 @@ import { Crosshair, MapPin, Search } from "lucide-react-native";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {FlatList, StyleSheet, Text, View} from "react-native";
+import { useGoBack } from "../src/navigation/useGoBack";
 import {
   MIN_QUERY_LENGTH,
   useAddressSearch,
@@ -38,6 +40,7 @@ import { useAddressSelectionStore } from "../src/state/addressSelectionStore";
  */
 export default function AddressSearchScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const router = useRouter();
   const [text, setText] = useState("");
   const select = useAddressSelectionStore((s) => s.select);
@@ -98,9 +101,7 @@ export default function AddressSearchScreen() {
 
   return (
     <View style={styles.screen} testID="address-search-screen">
-      <Text style={typography.screenTitle} testID="address-search-screen-title">
-        {t("screenAddressSearch")}
-      </Text>
+      <KayaScreenHeader title={t("screenAddressSearch")} onBack={goBack} testID="address-search-screen" />
 
       <KayaTextField
         value={text}

@@ -1,7 +1,8 @@
 import { formatMoney } from "@kaya/core";
-import { KayaCard, KayaSkeletonCard, colors, radii, spacing, typography } from "@kaya/ui";
+import { KayaScreenHeader, KayaCard, KayaSkeletonCard, colors, radii, spacing, typography } from "@kaya/ui";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useGoBack } from "../src/navigation/useGoBack";
 import { useDriverStats } from "../src/queries/driver";
 
 /** The delivery ordinals at which commission steps down, per the project rules. */
@@ -20,6 +21,7 @@ const TIER_BOUNDARIES = [1, 7, 11, 15] as const;
  */
 export default function StatsScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const stats = useDriverStats();
 
   if (stats.isPending) {
@@ -40,9 +42,7 @@ export default function StatsScreen() {
       contentContainerStyle={styles.content}
       testID="stats-screen"
     >
-      <Text style={typography.screenTitle} testID="stats-screen-title">
-        {t("driverStats")}
-      </Text>
+      <KayaScreenHeader title={t("driverStats")} onBack={goBack} testID="stats-screen" />
 
       <View style={styles.row}>
         <Tile

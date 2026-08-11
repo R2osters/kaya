@@ -3,6 +3,7 @@ import {
   EmptyState,
   KayaButton,
   KayaSkeletonList,
+  KayaScreenHeader,
   KayaTextField,
   colors,
   radii,
@@ -14,6 +15,7 @@ import { MessageCircle } from "lucide-react-native";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, StyleSheet, Text, View } from "react-native";
+import { useGoBack } from "../../src/navigation/useGoBack";
 import { useMessages, useSendMessage } from "../../src/queries/messages";
 import { useAuthStore } from "../../src/state/authStore";
 
@@ -32,6 +34,7 @@ import { useAuthStore } from "../../src/state/authStore";
  */
 export default function ChatScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const { deliveryId } = useLocalSearchParams<{ deliveryId: string }>();
 
   const messages = useMessages(deliveryId);
@@ -56,9 +59,7 @@ export default function ChatScreen() {
 
   return (
     <View style={styles.screen} testID="chat-screen">
-      <Text style={typography.screenTitle} testID="chat-screen-title">
-        {t("screenChat")}
-      </Text>
+      <KayaScreenHeader title={t("screenChat")} onBack={goBack} testID="chat-screen" />
 
       {messages.isPending ? (
         <KayaSkeletonList count={4} testID="chat-loading" />

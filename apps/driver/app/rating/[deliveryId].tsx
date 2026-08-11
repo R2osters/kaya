@@ -2,6 +2,7 @@ import { toApiFailure } from "@kaya/core";
 import {
   KayaButton,
   KayaCard,
+  KayaScreenHeader,
   KayaTextField,
   RatingStars,
   colors,
@@ -12,6 +13,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text } from "react-native";
+import { useGoBack } from "../../src/navigation/useGoBack";
 import { useDelivery } from "../../src/queries/deliveries";
 import { useRateDelivery } from "../../src/queries/ratings";
 
@@ -29,6 +31,7 @@ import { useRateDelivery } from "../../src/queries/ratings";
  */
 export default function RatingScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const router = useRouter();
   const { deliveryId } = useLocalSearchParams<{ deliveryId: string }>();
 
@@ -59,9 +62,7 @@ export default function RatingScreen() {
       testID="rating-screen"
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={typography.screenTitle} testID="rating-screen-title">
-        {t("rateTitle")}
-      </Text>
+      <KayaScreenHeader title={t("rateTitle")} onBack={goBack} testID="rating-screen" />
 
       <KayaCard testID="rating-card">
         <RatingStars value={score} onRate={setScore} size={36} testID="rating-stars" />

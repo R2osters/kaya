@@ -14,4 +14,5 @@ export * from "./KayaSkeletonListTile";
 export * from "./KayaSkeletonList";
 export * from "./KayaSkeletonCard";
 export * from "./KayaPressable";
+export * from "./KayaScreenHeader";
 export * from "./KayaScrim";

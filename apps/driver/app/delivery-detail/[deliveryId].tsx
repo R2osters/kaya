@@ -3,6 +3,7 @@ import {
   KayaAvatar,
   KayaCard,
   KayaSkeletonCard,
+  KayaScreenHeader,
   StatusPill,
   colors,
   spacing,
@@ -11,6 +12,7 @@ import {
 import { useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useGoBack } from "../../src/navigation/useGoBack";
 import { useDelivery } from "../../src/queries/deliveries";
 import { useDriverBalance } from "../../src/queries/driver";
 
@@ -26,6 +28,7 @@ import { useDriverBalance } from "../../src/queries/driver";
  */
 export default function DeliveryDetailScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const { deliveryId } = useLocalSearchParams<{ deliveryId: string }>();
 
   const delivery = useDelivery(deliveryId ?? "");
@@ -51,9 +54,7 @@ export default function DeliveryDetailScreen() {
       testID="delivery-detail-screen"
     >
       <View style={styles.header}>
-        <Text style={typography.screenTitle} testID="delivery-detail-screen-title">
-          {t("screenDeliveryDetail")}
-        </Text>
+        <KayaScreenHeader title={t("screenDeliveryDetail")} onBack={goBack} testID="delivery-detail-screen" />
         {data !== undefined && (
           <StatusPill label={data.status} testID="delivery-detail-status" />
         )}

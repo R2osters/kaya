@@ -3,6 +3,7 @@ import {
   KayaButton,
   KayaCard,
   KayaSkeletonCard,
+  KayaScreenHeader,
   MapView,
   colors,
   dropoffMarker,
@@ -16,6 +17,7 @@ import { Camera, CheckCircle2, Navigation, Truck } from "lucide-react-native";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useGoBack } from "../../src/navigation/useGoBack";
 import { runStepFor, type RunAction } from "../../src/delivery/runStep";
 import { useDeliveryPhoto } from "../../src/delivery/useDeliveryPhoto";
 import {
@@ -47,6 +49,7 @@ const STEP_LABELS = ["trackEnRoute", "driverTakePickupPhoto", "trackInTransit", 
  */
 export default function ActiveDeliveryScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const router = useRouter();
   const { deliveryId } = useLocalSearchParams<{ deliveryId: string }>();
   const id = deliveryId ?? "";
@@ -129,9 +132,7 @@ export default function ActiveDeliveryScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={typography.screenTitle} testID="delivery-screen-title">
-          {t("driverActiveDelivery")}
-        </Text>
+        <KayaScreenHeader title={t("driverActiveDelivery")} onBack={goBack} testID="delivery-screen" />
 
         <View style={styles.timeline} testID="delivery-timeline">
           {STEP_LABELS.map((label, index) => (

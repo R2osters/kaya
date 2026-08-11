@@ -2,6 +2,7 @@ import { formatMoney, toApiFailure, type AddressSuggestion, type GeoPoint } from
 import {
   KayaButton,
   KayaCard,
+  KayaScreenHeader,
   KayaSkeleton,
   KayaTextField,
   colors,
@@ -15,6 +16,7 @@ import { MapPin } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {ScrollView, StyleSheet, Text, View} from "react-native";
+import { useGoBack } from "../src/navigation/useGoBack";
 import { useCreateOrder } from "../src/queries/orders";
 import { usePriceQuote } from "../src/queries/pricing";
 import {
@@ -48,6 +50,7 @@ function pointOf(suggestion: AddressSuggestion | null): GeoPoint | null {
  */
 export default function CreateOrderScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const router = useRouter();
 
   const [pickup, setPickup] = useState<AddressSuggestion | null>(null);
@@ -104,9 +107,7 @@ export default function CreateOrderScreen() {
       testID="create-order-screen"
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={typography.screenTitle} testID="create-order-screen-title">
-        {t("screenCreateOrder")}
-      </Text>
+      <KayaScreenHeader title={t("screenCreateOrder")} onBack={goBack} testID="create-order-screen" />
 
       <AddressField
         label={t("orderPickup")}

@@ -11,20 +11,43 @@ exports[`design-system showcase matches the captured render tree, for a human to
   testID="showcase-screen"
 >
   <View>
-    <Text
+    <View
       style={
-        {
-          "color": "#0B1220",
-          "fontFamily": "Inter",
-          "fontSize": 28,
-          "fontWeight": "800",
-          "letterSpacing": -0.5,
-          "lineHeight": 32,
-        }
+        [
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "gap": 12,
+          },
+          {
+            "paddingTop": 0,
+          },
+        ]
       }
+      testID="showcase-screen-header"
     >
-      Vitrine du design system
-    </Text>
+      <Text
+        numberOfLines={1}
+        style={
+          [
+            {
+              "color": "#0B1220",
+              "fontFamily": "Inter",
+              "fontSize": 28,
+              "fontWeight": "800",
+              "letterSpacing": -0.5,
+              "lineHeight": 32,
+            },
+            {
+              "flex": 1,
+            },
+          ]
+        }
+        testID="showcase-screen-title"
+      >
+        Vitrine du design system
+      </Text>
+    </View>
     <View
       style={
         {

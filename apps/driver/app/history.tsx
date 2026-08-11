@@ -4,6 +4,7 @@ import {
   KayaCard,
   KayaPressable,
   KayaSkeletonList,
+  KayaScreenHeader,
   StatusPill,
   colors,
   spacing,
@@ -13,6 +14,7 @@ import { useRouter } from "expo-router";
 import { Package } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { FlatList, StyleSheet, Text, View } from "react-native";
+import { useGoBack } from "../src/navigation/useGoBack";
 import { useMyDeliveries } from "../src/queries/deliveries";
 import { useDriverBalance } from "../src/queries/driver";
 
@@ -28,6 +30,7 @@ import { useDriverBalance } from "../src/queries/driver";
  */
 export default function HistoryScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const router = useRouter();
 
   const deliveries = useMyDeliveries();
@@ -38,9 +41,7 @@ export default function HistoryScreen() {
 
   return (
     <View style={styles.screen} testID="history-screen">
-      <Text style={typography.screenTitle} testID="history-screen-title">
-        {t("screenHistory")}
-      </Text>
+      <KayaScreenHeader title={t("screenHistory")} onBack={goBack} testID="history-screen" />
 
       {deliveries.isPending ? (
         <KayaSkeletonList count={4} testID="history-loading" />

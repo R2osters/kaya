@@ -9,6 +9,7 @@ import {
   KayaButton,
   KayaCard,
   KayaSkeletonCard,
+  KayaScreenHeader,
   colors,
   spacing,
   typography,
@@ -16,6 +17,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useGoBack } from "../../src/navigation/useGoBack";
 import { useDelivery } from "../../src/queries/deliveries";
 import { useAuthStore } from "../../src/state/authStore";
 
@@ -36,6 +38,7 @@ import { useAuthStore } from "../../src/state/authStore";
  */
 export default function ReceiptScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const router = useRouter();
   const { deliveryId } = useLocalSearchParams<{ deliveryId: string }>();
 
@@ -54,9 +57,7 @@ export default function ReceiptScreen() {
       contentContainerStyle={styles.content}
       testID="payment-receipt-screen"
     >
-      <Text style={typography.screenTitle} testID="payment-receipt-screen-title">
-        {t("payReceipt")}
-      </Text>
+      <KayaScreenHeader title={t("payReceipt")} onBack={goBack} testID="payment-receipt-screen" />
 
       {error !== null && (
         <Text style={styles.error} testID="receipt-error">

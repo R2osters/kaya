@@ -2,6 +2,7 @@ import { COUNTRIES, COUNTRY_CODES, toApiFailure } from "@kaya/core";
 import {
   KayaButton,
   KayaCard,
+  KayaScreenHeader,
   KayaTextField,
   colors,
   radii,
@@ -12,6 +13,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useGoBack } from "../../src/navigation/useGoBack";
 import { useRegister } from "../../src/queries/authFlows";
 
 const STEPS = ["authStepContact", "authStepIdentity", "authStepSecurity"] as const;
@@ -38,6 +40,7 @@ const STEPS = ["authStepContact", "authStepIdentity", "authStepSecurity"] as con
  */
 export default function RegisterScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const router = useRouter();
 
   const [step, setStep] = useState(0);
@@ -86,9 +89,7 @@ export default function RegisterScreen() {
       testID="register-screen"
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={typography.screenTitle} testID="register-screen-title">
-        {t("authRegister")}
-      </Text>
+      <KayaScreenHeader title={t("authRegister")} onBack={goBack} testID="register-screen" />
 
       <View style={styles.steps} testID="register-steps">
         {STEPS.map((label, index) => (

@@ -3,6 +3,7 @@ import {
   KayaButton,
   KayaCard,
   KayaPressable,
+  KayaScreenHeader,
   KayaTextField,
   colors,
   radii,
@@ -14,6 +15,7 @@ import { Info } from "lucide-react-native";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useGoBack } from "../src/navigation/useGoBack";
 import { useCountryConfig } from "../src/queries/countryConfig";
 import { useDriverBalance } from "../src/queries/driver";
 import { useRequestWithdrawal } from "../src/queries/withdrawals";
@@ -41,6 +43,7 @@ type Method = "momo" | "bank_transfer";
  */
 export default function WithdrawScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const router = useRouter();
 
   const balance = useDriverBalance();
@@ -99,9 +102,7 @@ export default function WithdrawScreen() {
       testID="withdraw-screen"
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={typography.screenTitle} testID="withdraw-screen-title">
-        {t("driverWithdraw")}
-      </Text>
+      <KayaScreenHeader title={t("driverWithdraw")} onBack={goBack} testID="withdraw-screen" />
 
       <KayaCard color={colors.amberTint} border={false} shadow={false} testID="withdraw-notice">
         <View style={styles.noticeRow}>

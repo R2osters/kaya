@@ -2,6 +2,7 @@ import { liveTimelineStep, timelineStep, toApiFailure, type Delivery } from "@ka
 import {
   KayaButton,
   KayaCard,
+  KayaScreenHeader,
   KayaSkeleton,
   MapView,
   colors,
@@ -14,6 +15,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useGoBack } from "../../src/navigation/useGoBack";
 import {
   useDelivery,
   useDeliveryLiveStatus,
@@ -42,6 +44,7 @@ const STEP_LABELS = ["trackEnRoute", "trackPickedUp", "trackInTransit", "trackDe
  */
 export default function TrackingScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const router = useRouter();
   const { deliveryId } = useLocalSearchParams<{ deliveryId: string }>();
 
@@ -62,9 +65,7 @@ export default function TrackingScreen() {
       contentContainerStyle={styles.content}
       testID="tracking-screen"
     >
-      <Text style={typography.screenTitle} testID="tracking-screen-title">
-        {t("trackTitle")}
-      </Text>
+      <KayaScreenHeader title={t("trackTitle")} onBack={goBack} testID="tracking-screen" />
 
       {error !== null && (
         <Text style={styles.error} testID="tracking-error">

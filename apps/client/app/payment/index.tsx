@@ -2,6 +2,7 @@ import { formatMoney, toApiFailure } from "@kaya/core";
 import {
   KayaButton,
   KayaCard,
+  KayaScreenHeader,
   KayaSkeleton,
   colors,
   spacing,
@@ -11,6 +12,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text } from "react-native";
+import { useGoBack } from "../../src/navigation/useGoBack";
 import { openPaymentGateway } from "../../src/payments/openGateway";
 import {
   paymentOutcome,
@@ -45,6 +47,7 @@ import {
  */
 export default function PaymentScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const router = useRouter();
   const { deliveryId, amount, currency } = useLocalSearchParams<{
     deliveryId: string;
@@ -102,9 +105,7 @@ export default function PaymentScreen() {
       contentContainerStyle={styles.content}
       testID="payment-screen"
     >
-      <Text style={typography.screenTitle} testID="payment-screen-title">
-        {t("payTitle")}
-      </Text>
+      <KayaScreenHeader title={t("payTitle")} onBack={goBack} testID="payment-screen" />
 
       <KayaCard testID="payment-summary">
         <Text style={typography.caption}>{t("payAmount")}</Text>

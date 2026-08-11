@@ -5,6 +5,7 @@ import {
   KayaButton,
   KayaCard,
   KayaSkeletonList,
+  KayaScreenHeader,
   RatingStars,
   colors,
   spacing,
@@ -14,6 +15,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Clock } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { FlatList, StyleSheet, Text, View } from "react-native";
+import { useGoBack } from "../../src/navigation/useGoBack";
 import { useAcceptOffer, useOffers } from "../../src/queries/offers";
 import { useAuthStore } from "../../src/state/authStore";
 
@@ -32,6 +34,7 @@ import { useAuthStore } from "../../src/state/authStore";
  */
 export default function OffersScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const router = useRouter();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
 
@@ -54,9 +57,7 @@ export default function OffersScreen() {
 
   return (
     <View style={styles.screen} testID="offers-screen">
-      <Text style={typography.screenTitle} testID="offers-screen-title">
-        {t("offersTitle")}
-      </Text>
+      <KayaScreenHeader title={t("offersTitle")} onBack={goBack} testID="offers-screen" />
 
       {offers.data?.minPrice != null && (
         <Text style={typography.caption} testID="offers-min-price">

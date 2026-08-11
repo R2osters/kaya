@@ -10,6 +10,7 @@ import {
   KayaCard,
   KayaPressable,
   KayaSkeletonCard,
+  KayaScreenHeader,
   colors,
   spacing,
   typography,
@@ -19,6 +20,7 @@ import { Minus, Plus } from "lucide-react-native";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useGoBack } from "../../src/navigation/useGoBack";
 import { useCountryConfig } from "../../src/queries/countryConfig";
 import { useDriverStats } from "../../src/queries/driver";
 import { useCreateOffer, useOrder } from "../../src/queries/offers";
@@ -45,6 +47,7 @@ import { useAuthStore } from "../../src/state/authStore";
  */
 export default function ProposePriceScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const router = useRouter();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
 
@@ -110,9 +113,7 @@ export default function ProposePriceScreen() {
   return (
     <View style={styles.screen} testID="propose-screen">
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={typography.screenTitle} testID="propose-screen-title">
-          {t("driverProposePrice")}
-        </Text>
+        <KayaScreenHeader title={t("driverProposePrice")} onBack={goBack} testID="propose-screen" />
 
         <View style={styles.route}>
           <RouteLeg label={t("orderPickup")} value={order.data.pickupAddress} tint={colors.success} />
