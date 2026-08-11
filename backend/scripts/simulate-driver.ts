@@ -197,6 +197,15 @@ async function main(): Promise<void> {
   const driverToken = await ensureAccount(DRIVER);
   void clientToken;
 
+  // Nothing bids while offline: OffersService refuses, and the flag defaults
+  // to false. Running this script on a clean seed is what surfaced that no
+  // endpoint anywhere set it -- POST /driver/status exists because of that.
+  await call('/driver/status', {
+    method: 'POST',
+    token: driverToken,
+    body: JSON.stringify({ online: true }),
+  });
+  console.log('  driver online');
   console.log(`\nSign into the app as ${CLIENT.phone}, then create an order.`);
   process.stdout.write('Waiting for a published order');
 

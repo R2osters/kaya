@@ -2,6 +2,7 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/commo
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { DriverService } from './driver.service';
+import { SetStatusDto } from './dto/set-status.dto';
 import { WithdrawDto } from './dto/withdraw.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -12,6 +13,13 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 @Controller('driver')
 export class DriverController {
   constructor(private readonly driver: DriverService) {}
+
+  @Post('status')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Go online (accepting work) or offline.' })
+  setStatus(@CurrentUser('id') driverId: string, @Body() dto: SetStatusDto) {
+    return this.driver.setOnline(driverId, dto.online);
+  }
 
   @Get('balance')
   @ApiOperation({ summary: 'Current balance and recent transactions.' })

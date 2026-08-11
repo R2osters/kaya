@@ -24,6 +24,25 @@ export class DriverService {
     private readonly commission: CommissionService,
   ) {}
 
+  /**
+   * Flips whether the driver is accepting work.
+   *
+   * This endpoint exists because nothing else sets `is_online` -- the column
+   * defaults to false, `OffersService.create()` refuses a bid from an offline
+   * driver, and no endpoint or socket handler anywhere flipped the flag. On a
+   * fresh database no driver could ever bid; the simulated driver found it the
+   * first time it ran against a clean seed. The driver app's home toggle
+   * (phase 3) calls this.
+   */
+  async setOnline(driverId: string, online: boolean): Promise<{ isOnline: boolean }> {
+    const driver = await this.prisma.user.update({
+      where: { id: driverId },
+      data: { isOnline: online },
+      select: { isOnline: true },
+    });
+    return { isOnline: driver.isOnline };
+  }
+
   async getBalance(driverId: string) {
     const driver = await this.prisma.user.findUniqueOrThrow({
       where: { id: driverId },
