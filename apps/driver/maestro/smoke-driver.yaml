@@ -1,0 +1,98 @@
+appId: com.kaya.kaya_driver
+name: Kaya driver working loop (real backend)
+---
+# The driver's day, on a device, against the real backend. Companion to the
+# client's smoke-order.yaml: run that one first (or leave a published order
+# standing) so there is work to bid on.
+#
+#   docker compose up -d
+#   cd backend && npm run build && node dist/main.js   # FIREBASE_VERIFIER=mock
+#   maestro test apps/driver/maestro/smoke-driver.yaml
+#
+# Sign in, go online, and land on a nearby request with a bid screen that
+# knows what the run is worth. The steps after the bid need a client to
+# accept it, so they are not asserted here -- delivery/delivery.test.tsx
+# covers the state machine, and the two apps side by side cover the rest.
+#
+# The demo driver is the one backend/scripts/simulate-driver.ts creates:
+# +233202222222, with the PCSRC licence number Ghana requires.
+
+- launchApp:
+    clearState: true
+
+# A dev build fetches its bundle from Metro on first launch (~10s), so the
+# first assertion of every flow has to be an extendedWaitUntil.
+- extendedWaitUntil:
+    visible:
+      id: "welcome-screen"
+    timeout: 40000
+
+- tapOn:
+    id: "welcome-login"
+- extendedWaitUntil:
+    visible:
+      id: "login-screen"
+    timeout: 20000
+
+- tapOn:
+    id: "login-phone-input"
+- inputText: "+233202222222"
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+
+# Home is the proof the whole sign-in round trip worked.
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 30000
+
+# Offline, OffersService refuses every bid: this toggle is the difference
+# between an app that works and one that silently does nothing.
+- assertVisible:
+    id: "home-status-card"
+- tapOn:
+    id: "home-online-toggle"
+
+# The OS location prompt fires on the way online, not at launch. Optional:
+# a rerun on the same emulator has already granted it.
+- runFlow:
+    when:
+      visible: "Allow"
+    commands:
+      - tapOn: "While using the app"
+
+# Nearby work needs a position and an online driver; the list refreshes on a
+# 15s poll, so this is the one wait that can legitimately be long.
+- extendedWaitUntil:
+    visible:
+      id: "home-request-0"
+    timeout: 45000
+
+- tapOn:
+    id: "home-request-0"
+
+- extendedWaitUntil:
+    visible:
+      id: "propose-screen"
+    timeout: 20000
+
+# The breakdown is the screen's reason to exist: both its inputs come from
+# the country's tariff card, which until this phase nothing could read.
+- assertVisible:
+    id: "propose-breakdown"
+- assertVisible:
+    id: "propose-tier"
+
+# Bid one step above the floor and send it.
+- tapOn:
+    id: "propose-increase"
+- tapOn:
+    id: "propose-submit"
+
+# Back home: the order just bid on is no longer something to act on, and a
+# second bid can only 409 (one per driver per order).
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 30000

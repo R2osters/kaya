@@ -59,21 +59,20 @@ interface RouteRow {
 
 const ROUTES: RouteRow[] = [
   { file: "splash.tsx", pathname: "/splash", testID: "splash-screen", key: "screenSplash" },
-  { file: "(auth)/welcome.tsx", pathname: "/welcome", testID: "welcome-screen", key: "screenWelcome" },
-  { file: "(auth)/login.tsx", pathname: "/login", testID: "login-screen", key: "screenLogin" },
+  { file: "(auth)/welcome.tsx", pathname: "/welcome", testID: "welcome-screen", key: "screenWelcome", implemented: true },
+  { file: "(auth)/login.tsx", pathname: "/login", testID: "login-screen", key: "screenLogin", implemented: true },
   {
     file: "(auth)/login-verify.tsx",
     pathname: "/login-verify",
     testID: "login-verify-screen",
     key: "screenLoginVerify",
   },
-  { file: "(auth)/register.tsx", pathname: "/register", testID: "register-screen", key: "screenRegister" },
+  { file: "(auth)/register.tsx", pathname: "/register", testID: "register-screen", key: "screenRegister", implemented: true },
   {
     file: "(auth)/password-reset.tsx",
     pathname: "/password-reset",
     testID: "password-reset-screen",
-    key: "screenPasswordReset",
-  },
+    key: "screenPasswordReset", implemented: true },
   {
     file: "verify-documents.tsx",
     pathname: "/verify-documents",

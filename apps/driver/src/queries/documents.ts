@@ -1,5 +1,5 @@
-import { queryKeys, type User } from "@kaya/core";
-import { useMutation, useQueryClient, type UseMutationResult } from "@tanstack/react-query";
+import type { User } from "@kaya/core";
+import { useMutation, type UseMutationResult } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { useAuthStore } from "../state/authStore";
 
@@ -24,16 +24,16 @@ export interface DocumentUpload {
  * connection to reach exactly the state the first one already reached.
  */
 export function useUploadDocument(): UseMutationResult<User, unknown, DocumentUpload> {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: ({ kind, uri }: DocumentUpload) => {
       const file = { uri, name: `${kind}.jpg`, type: "image/jpeg" };
       return kind === "id" ? api.uploadIdCard(file) : api.uploadLicense(file);
     },
     onSuccess: (user) => {
+      // Into the store, which is the only copy the screens read; writing a
+      // `["auth","me"]` query entry too would look tidy and change nothing,
+      // since nothing subscribes to it.
       useAuthStore.setState({ user });
-      queryClient.setQueryData(queryKeys.me(), user);
     },
   });
 }

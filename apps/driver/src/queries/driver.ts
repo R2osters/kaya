@@ -7,6 +7,7 @@ import {
   type UseQueryResult,
 } from "@tanstack/react-query";
 import { api } from "../api/client";
+import { useAuthStore } from "../state/authStore";
 
 /**
  * Today's numbers: deliveries done, the commission tier they put the driver
@@ -46,12 +47,20 @@ export function useDriverBalance(): UseQueryResult<DriverBalance> {
  */
 export function useSetOnline(): UseMutationResult<{ isOnline: boolean }, unknown, boolean> {
   const queryClient = useQueryClient();
+  const setUser = useAuthStore.setState;
 
   return useMutation({
     mutationFn: (online: boolean) => api.setDriverStatus(online),
-    onSuccess: () => {
+    onSuccess: ({ isOnline }) => {
+      // Written into the auth store, not invalidated as a query. Nothing in
+      // this app subscribes to `["auth","me"]` -- the store's `user` is the
+      // only copy the screens read -- so invalidating that key is a no-op,
+      // and the home screen would have gone on rendering the old flag: the
+      // switch snapping back, the position never publishing, and the nearby
+      // search staying disabled. The endpoint answers with the flag as it now
+      // stands, which is the authoritative value.
+      setUser((state) => (state.user === null ? state : { user: { ...state.user, isOnline } }));
       void queryClient.invalidateQueries({ queryKey: queryKeys.driver() });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.me() });
     },
   });
 }

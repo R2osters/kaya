@@ -163,6 +163,17 @@ describe("DriverHomeScreen", () => {
     expect(mockPush).toHaveBeenCalledWith("/delivery/d-1");
   });
 
+  it("says location is missing rather than loading work that cannot arrive", () => {
+    // Online with no position leaves the nearby query disabled, which reads
+    // as `isPending`: without its own branch the sheet shows skeletons
+    // forever. Seen on the emulator.
+    mockLocation = { position: null, permission: "denied", request: mockRequestLocation };
+    renderScreen();
+
+    expect(screen.getByTestId("home-nearby-no-location")).toBeTruthy();
+    expect(screen.queryByTestId("home-nearby-loading", { includeHiddenElements: true })).toBeNull();
+  });
+
   it("offers a way back when location was refused", () => {
     // A refusal is a state to recover from, not a failure to go online: a
     // driver without GPS can still legitimately want to be marked available.

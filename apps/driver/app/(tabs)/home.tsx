@@ -165,6 +165,15 @@ export default function DriverHomeScreen() {
               title={t("driverOfflineHint")}
               testID="home-nearby-offline"
             />
+          ) : location.permission === "denied" ? (
+            // Online but with no position, the nearby query is disabled --
+            // which reads as `isPending`, so without this branch the list
+            // shows loading skeletons for work that can never arrive.
+            <EmptyState
+              icon={(color) => <Package size={28} color={color} />}
+              title={t("driverLocationNeeded")}
+              testID="home-nearby-no-location"
+            />
           ) : nearby.isPending ? (
             <KayaSkeletonList count={3} testID="home-nearby-loading" />
           ) : (nearby.data ?? []).length === 0 ? (

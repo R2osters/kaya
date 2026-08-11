@@ -37,6 +37,19 @@ export interface AuthStoreState {
   signIn: (result: AuthResult) => Promise<void>;
   /** Clears the keychain and the session. */
   signOut: () => Promise<void>;
+  /**
+   * Re-reads the signed-in user from `/auth/me`.
+   *
+   * The store's `user` is the only copy the screens read -- nothing
+   * subscribes to a `["auth","me"]` query -- so anything that changes the
+   * user server-side has to come back through here or the change is invisible
+   * in the app. A withdrawal moves `balance`; the profile screen renders it.
+   *
+   * Failure is swallowed on purpose: this refreshes a screen, it does not
+   * establish a session, and turning a flaky refetch into a sign-out would be
+   * a far worse outcome than a balance that lags by one screen.
+   */
+  refreshUser: () => Promise<void>;
 }
 
 // A fresh instance is equivalent to reusing the one in src/api/client.ts:
@@ -121,6 +134,15 @@ export const useAuthStore = create<AuthStoreState>((set) => ({
   signOut: async () => {
     await tokenStore.clear();
     set({ status: "anonymous", user: null });
+  },
+
+  refreshUser: async () => {
+    try {
+      set({ user: await api.me() });
+    } catch {
+      // See the interface note: a failed refresh leaves the last known user
+      // in place rather than signing anyone out.
+    }
   },
 }));
 

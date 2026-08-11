@@ -7,6 +7,7 @@ import {
   type UseQueryResult,
 } from "@tanstack/react-query";
 import { api } from "../api/client";
+import { useAuthStore } from "../state/authStore";
 
 /** Per-delivery payout rows (`GET /driver/earnings`). */
 export function useDriverEarnings(): UseQueryResult<DriverEarning[]> {
@@ -56,9 +57,12 @@ export function useRequestWithdrawal(): UseMutationResult<
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.withdrawals() });
       // The balance moved the moment this succeeded, and the driver is about
-      // to look straight at it.
+      // to look straight at it -- on the earnings screen, which reads the
+      // query, and on the profile, which reads the auth store. The store is
+      // refreshed explicitly because nothing subscribes to `["auth","me"]`,
+      // so invalidating that key would change nothing on screen.
       void queryClient.invalidateQueries({ queryKey: queryKeys.driver() });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.me() });
+      void useAuthStore.getState().refreshUser();
     },
   });
 }

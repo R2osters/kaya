@@ -72,6 +72,18 @@ export function useDriverLocation(publishing: boolean): DriverLocation {
     return status;
   }, [adapter]);
 
+  // A driver who was already online when the app started never taps the
+  // toggle, so nothing would ever ask for permission: the position stays
+  // null, the nearby search stays disabled, and the home screen shows loading
+  // skeletons for a list that will never arrive. Seen on the emulator the
+  // first time the app opened against an account the simulated driver had
+  // left online.
+  useEffect(() => {
+    if (publishing && permission === "unknown") {
+      void request();
+    }
+  }, [publishing, permission, request]);
+
   useEffect(() => {
     if (!publishing || permission !== "granted") return;
 
