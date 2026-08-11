@@ -230,5 +230,7 @@
   "authBack": "Back",
   "trackChat": "Message the driver",
   "trackRate": "Rate this delivery",
-  "authDevCodeNotice": "Development: no SMS is sent. Enter any code, for example 123456."
+  "authDevCodeNotice": "Development: no SMS is sent. Enter any code, for example 123456.",
+  "payReturnVerifying": "Confirming your payment…",
+  "payReturnBack": "Back to payment"
 }

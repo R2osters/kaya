@@ -230,5 +230,7 @@
   "authBack": "Retour",
   "trackChat": "Contacter le livreur",
   "trackRate": "Noter la livraison",
-  "authDevCodeNotice": "Développement : aucun SMS n'est envoyé. Saisissez n'importe quel code, par exemple 123456."
+  "authDevCodeNotice": "Développement : aucun SMS n'est envoyé. Saisissez n'importe quel code, par exemple 123456.",
+  "payReturnVerifying": "Confirmation du paiement…",
+  "payReturnBack": "Retour au paiement"
 }
