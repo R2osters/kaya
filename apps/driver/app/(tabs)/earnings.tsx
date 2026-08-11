@@ -3,6 +3,7 @@ import {
   EmptyState,
   KayaButton,
   KayaCard,
+  KayaScreenHeader,
   KayaSkeletonList,
   colors,
   spacing,
@@ -44,9 +45,7 @@ export default function EarningsScreen() {
       contentContainerStyle={styles.content}
       testID="earnings-screen"
     >
-      <Text style={typography.screenTitle} testID="earnings-screen-title">
-        {t("navEarnings")}
-      </Text>
+      <KayaScreenHeader title={t("navEarnings")} testID="earnings-screen" />
 
       <KayaCard color={colors.primary} border={false} testID="earnings-balance">
         <Text style={[typography.caption, styles.onPrimary]}>{t("driverAvailableBalance")}</Text>

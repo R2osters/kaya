@@ -4,6 +4,7 @@ import {
   KayaButton,
   KayaCard,
   RatingStars,
+  KayaScreenHeader,
   StatusPill,
   colors,
   radii,
@@ -50,9 +51,7 @@ export default function ProfileScreen() {
       contentContainerStyle={styles.content}
       testID="profile-screen"
     >
-      <Text style={typography.screenTitle} testID="profile-screen-title">
-        {t("profileTitle")}
-      </Text>
+      <KayaScreenHeader title={t("profileTitle")} testID="profile-screen" />
 
       <KayaCard testID="profile-identity">
         <View style={styles.identity}>

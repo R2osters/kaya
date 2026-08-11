@@ -4,6 +4,7 @@ import {
   KayaAvatar,
   KayaCard,
   KayaPressable,
+  KayaScreenHeader,
   KayaSkeletonList,
   StatusPill,
   colors,
@@ -36,9 +37,7 @@ export default function InboxScreen() {
 
   return (
     <View style={styles.screen} testID="inbox-screen">
-      <Text style={typography.screenTitle} testID="inbox-screen-title">
-        {t("inboxTitle")}
-      </Text>
+      <KayaScreenHeader title={t("inboxTitle")} testID="inbox-screen" />
 
       {deliveries.isPending ? (
         <KayaSkeletonList count={4} testID="inbox-loading" />

@@ -2,6 +2,7 @@ import { type Order } from "@kaya/core";
 import {
   EmptyState,
   KayaCard,
+  KayaScreenHeader,
   KayaSkeletonList,
   StatusPill,
   colors,
@@ -50,9 +51,7 @@ export default function HistoryScreen() {
 
   return (
     <View style={styles.screen} testID="history-screen">
-      <Text style={typography.screenTitle} testID="history-screen-title">
-        {t("navHistory")}
-      </Text>
+      <KayaScreenHeader title={t("navHistory")} testID="history-screen" />
 
       <View style={styles.tabs} testID="history-tabs">
         {(["past", "upcoming"] as const).map((value) => (
