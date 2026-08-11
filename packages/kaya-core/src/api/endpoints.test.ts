@@ -697,6 +697,72 @@ describe("KayaApi", () => {
     expect(rating.score).toBe(5);
   });
 
+  // --- Country configuration --------------------------------------------
+
+  it("reads a country's tariff card via GET /country-configs/:code, tiers collapsed to an array", async () => {
+    const { api, mock } = build();
+    mock.onGet("/country-configs/GHA").reply(200, {
+      countryCode: "GHA",
+      countryName: "Ghana",
+      currencyCode: "GHS",
+      currencySymbol: "₵",
+      pricePerKm: 2.5,
+      basePickupFee: 5,
+      commissionTier1: 0.2,
+      commissionTier2: 0.15,
+      commissionTier3: 0.12,
+      commissionTier4: 0.09,
+      litigationFee: 1,
+      searchRadiusKm: 5,
+      withdrawalMethods: ["momo", "bank_transfer"],
+      momoProviders: ["mtn", "vodafone"],
+    });
+
+    const config = await api.countryConfig("GHA");
+    expect(config.currency).toBe("GHS");
+    expect(config.commissionTiers).toEqual([0.2, 0.15, 0.12, 0.09]);
+    expect(config.litigationFee).toBe(1);
+    expect(config.withdrawalMethods).toEqual(["momo", "bank_transfer"]);
+  });
+
+  it("lists every country configuration", async () => {
+    const { api, mock } = build();
+    mock.onGet("/country-configs").reply(200, [
+      { countryCode: "GHA", currencyCode: "GHS" },
+      { countryCode: "TGO", currencyCode: "XOF" },
+    ]);
+
+    const configs = await api.countryConfigs();
+    expect(configs.map((c) => c.currency)).toEqual(["GHS", "XOF"]);
+  });
+
+  // --- Driver status ----------------------------------------------------
+
+  it("goes online via POST /driver/status and reports the flag as it now stands", async () => {
+    const { api, mock } = build();
+    mock.onPost("/driver/status").reply(200, { isOnline: true });
+
+    await expect(api.setDriverStatus(true)).resolves.toEqual({ isOnline: true });
+    expect(JSON.parse(mock.history.post[0]?.data as string)).toEqual({ online: true });
+  });
+
+  it("goes offline through the same endpoint", async () => {
+    const { api, mock } = build();
+    mock.onPost("/driver/status").reply(200, { isOnline: false });
+
+    await expect(api.setDriverStatus(false)).resolves.toEqual({ isOnline: false });
+    expect(JSON.parse(mock.history.post[0]?.data as string)).toEqual({ online: false });
+  });
+
+  it("reads a missing flag as offline rather than throwing", async () => {
+    // Being wrongly told you are online is the worse failure: the driver
+    // waits for work that will never be offered to them.
+    const { api, mock } = build();
+    mock.onPost("/driver/status").reply(200, {});
+
+    await expect(api.setDriverStatus(true)).resolves.toEqual({ isOnline: false });
+  });
+
   // --- Driver money -----------------------------------------------------
 
   // CORRECTED: `driver.service.ts` `getBalance()` also returns

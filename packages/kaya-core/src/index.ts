@@ -13,6 +13,7 @@ export * from "./models/address";
 export * from "./models/user";
 export * from "./models/countryConfig";
 export * from "./models/priceQuote";
+export * from "./models/participant";
 export * from "./models/order";
 export * from "./models/offer";
 export * from "./models/delivery";

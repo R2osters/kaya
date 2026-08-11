@@ -103,8 +103,22 @@ export const queryKeys = {
   /** Notification inbox. */
   notifications: () => ["notifications"] as const,
 
-  /** Driver earnings and stats. */
+  /**
+   * A country's tariff card. Changed by an admin, from another app, at most a
+   * few times a year -- so screens read it with a long staleTime rather than
+   * refetching it alongside the data it annotates.
+   */
+  countryConfig: (countryCode: string) => ["countryConfigs", countryCode] as const,
+
+  /**
+   * Driver money. All prefixed by `["driver"]` so settling a delivery can
+   * invalidate the balance, the earnings list and the stats header in one
+   * call -- they all move together the moment escrow is released.
+   */
+  driver: () => ["driver"] as const,
   driverStats: () => ["driver", "stats"] as const,
+  driverBalance: () => ["driver", "balance"] as const,
+  driverEarnings: () => ["driver", "earnings"] as const,
   transactions: () => ["transactions"] as const,
   withdrawals: () => ["withdrawals"] as const,
 } as const;

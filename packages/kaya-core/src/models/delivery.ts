@@ -10,7 +10,7 @@ import {
 } from "../wire/coerce";
 import { clientPaymentStatus, deliveryStatus } from "../wire/enums";
 import { orderSchema } from "./order";
-import { userSchema } from "./user";
+import { participantSchema } from "./participant";
 
 /**
  * An accepted order in execution. Mirrors backend `deliveries`, with optional
@@ -59,7 +59,14 @@ export const deliverySchema = z
     netEarnings: d.netEarnings,
     createdAt: d.createdAt,
     order: isPlainObject(d.order) ? orderSchema.parse(d.order) : null,
-    driver: isPlainObject(d.livreur) ? userSchema.parse(d.livreur) : null,
+    /**
+     * The driver, as the *other* participant is allowed to see them -- a
+     * Participant, not a User. The backend sends seven fields
+     * (PARTICIPANT_SELECT); parsing them as a User succeeded and invented the
+     * rest, which is how a screen ends up rendering an empty email and a
+     * zero balance for someone whose email and balance were never sent.
+     */
+    driver: isPlainObject(d.livreur) ? participantSchema.parse(d.livreur) : null,
   }));
 
 export type Delivery = z.infer<typeof deliverySchema>;
