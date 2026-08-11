@@ -26,8 +26,11 @@ name: Kaya client shell smoke (SKIP_AUTH build)
 # Guard rule 3: an authenticated session sitting on an auth route goes home.
 # Launch resolves "/" -> "/splash" -> "/home", so seeing home is the whole
 # redirect chain working on a device.
-- assertVisible:
-    id: "home-screen"
+# See smoke.yaml: the first frame of a development build is not immediate.
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 40000
 
 # The route explorer every placeholder renders. Tapping through it proves
 # expo-router resolved the file-based route: a route file that does not exist

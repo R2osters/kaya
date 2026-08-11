@@ -112,6 +112,9 @@ export default function PasswordResetScreen() {
         />
       ) : (
         <>
+          <Text style={typography.caption} testID="password-reset-dev-notice">
+            {t("authDevCodeNotice")}
+          </Text>
           <KayaTextField
             label={t("authCode")}
             value={code}

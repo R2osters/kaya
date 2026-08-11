@@ -24,8 +24,14 @@ name: Kaya client shell smoke (anonymous)
 # that restoreSession() settled -- the failure this guards against is the app
 # sitting on splash forever, which an unhandled rejection in restoration
 # produces.
-- assertVisible:
-    id: "welcome-screen"
+# extendedWaitUntil, not assertVisible: a development build fetches its JS
+# bundle from Metro on launch, which takes about ten seconds, and a bare
+# assertion checks before the first frame exists. The flow failed here on its
+# first ever run for exactly that reason -- the app was fine.
+- extendedWaitUntil:
+    visible:
+      id: "welcome-screen"
+    timeout: 40000
 
 # The screen names itself through @kaya/core's i18n resources rather than a
 # hardcoded string, so a broken i18n wire-up surfaces as a missing key rather
@@ -33,24 +39,60 @@ name: Kaya client shell smoke (anonymous)
 - assertVisible:
     id: "welcome-screen-title"
 
-# Rule 2 in the other direction, which is the security-relevant half: tapping
-# through to a protected route must come back to welcome, not open it. This is
-# a real device behaviour that no unit test covers -- authGuard.test.ts checks
-# the pure function, not that the layout actually applies its verdict to a
-# live navigation.
-- tapOn:
-    id: "link-/home"
-- assertVisible:
-    id: "welcome-screen"
+# Welcome is a real screen since slice C, so it no longer renders the route
+# explorer every placeholder carried -- this flow used to tap `link-/home` and
+# stopped working the day welcome stopped being a placeholder. It offers two
+# doors, and both are worth walking.
+#
+# The guard's other direction (a protected route bouncing an anonymous session
+# back) is asserted in src/navigation/authGuard.test.ts and by the layout's own
+# suite. It cannot be exercised from here any more: there is no longer a
+# control on welcome that points at a protected route.
 
 - tapOn:
-    id: "link-/create-order"
-- assertVisible:
-    id: "welcome-screen"
+    id: "welcome-register"
+- extendedWaitUntil:
+    visible:
+      id: "register-screen"
+    timeout: 20000
 
-# An auth route is allowed through, so the bounce above is the guard working
-# rather than navigation being broken outright.
+# Walk the wizard to its last step. Contact, then identity, then security --
+# which is also the only way to reach the code field, and the reason the notice
+# below matters: the screen used to ask for "the code sent to your phone" while
+# nothing sent one and no button asked for one, which is what blocked the first
+# person who tried to create an account.
 - tapOn:
-    id: "link-/login"
+    id: "register-phone-input"
+- inputText: "+233209998887"
+- hideKeyboard
+- tapOn:
+    id: "register-next"
+
+- tapOn:
+    id: "register-full-name-input"
+- inputText: "Test Client"
+- hideKeyboard
+- tapOn:
+    id: "register-email-input"
+- inputText: "test.client@kaya.local"
+- hideKeyboard
+- tapOn:
+    id: "register-next"
+
 - assertVisible:
-    id: "login-screen"
+    id: "register-dev-notice"
+
+- back
+- extendedWaitUntil:
+    visible:
+      id: "welcome-screen"
+    timeout: 20000
+
+- tapOn:
+    id: "welcome-login"
+- extendedWaitUntil:
+    visible:
+      id: "login-screen"
+    timeout: 20000
+- assertVisible:
+    id: "login-dev-notice"

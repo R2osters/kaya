@@ -229,5 +229,6 @@
   "authNext": "Continuer",
   "authBack": "Retour",
   "trackChat": "Contacter le livreur",
-  "trackRate": "Noter la livraison"
+  "trackRate": "Noter la livraison",
+  "authDevCodeNotice": "Développement : aucun SMS n'est envoyé. Saisissez n'importe quel code, par exemple 123456."
 }

@@ -165,7 +165,14 @@ export default function RegisterScreen() {
             testID="register-password"
           />
           <KayaCard testID="register-code-card">
-            <Text style={typography.caption}>{t("authOtpSubtitle")}</Text>
+            {/* The screen used to say "enter the code sent to your phone"
+                while nothing sent one and no button asked for one. Under the
+                development verifier no SMS exists at all, so the screen says
+                that instead of asking for something the app cannot provide.
+                Slice C's Firebase work replaces this notice with a real send. */}
+            <Text style={typography.caption} testID="register-dev-notice">
+              {t("authDevCodeNotice")}
+            </Text>
             <KayaTextField
               label={t("authCode")}
               value={code}

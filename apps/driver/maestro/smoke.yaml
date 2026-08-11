@@ -24,8 +24,14 @@ name: Kaya driver shell smoke (anonymous)
 # that restoreSession() settled -- the failure this guards against is the app
 # sitting on splash forever, which an unhandled rejection in restoration
 # produces.
-- assertVisible:
-    id: "welcome-screen"
+# extendedWaitUntil, not assertVisible: a development build fetches its JS
+# bundle from Metro on launch, which takes about ten seconds, and a bare
+# assertion checks before the first frame exists. The flow failed here on its
+# first ever run for exactly that reason -- the app was fine.
+- extendedWaitUntil:
+    visible:
+      id: "welcome-screen"
+    timeout: 40000
 
 # The screen names itself through @kaya/core's i18n resources rather than a
 # hardcoded string, so a broken i18n wire-up surfaces as a missing key rather
