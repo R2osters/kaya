@@ -45,6 +45,16 @@ interface RouteRow {
   pathname: string;
   testID: string;
   key: keyof typeof resources.fr.translation;
+  /**
+   * Set once phase 3 replaced the placeholder with the real screen.
+   *
+   * It still has to exist and still has to resolve to its expected pathname --
+   * those two checks are what stop a route quietly disappearing -- but it no
+   * longer renders the placeholder body, and it may need providers (a
+   * QueryClient, a router) that this suite deliberately does not mount. Its
+   * own suite covers it instead.
+   */
+  implemented?: true;
 }
 
 const ROUTES: RouteRow[] = [
@@ -68,41 +78,36 @@ const ROUTES: RouteRow[] = [
     file: "verify-documents.tsx",
     pathname: "/verify-documents",
     testID: "verify-documents-screen",
-    key: "screenVerifyDocuments",
-  },
-  { file: "(tabs)/home.tsx", pathname: "/home", testID: "home-screen", key: "screenHome" },
-  { file: "(tabs)/earnings.tsx", pathname: "/earnings", testID: "earnings-screen", key: "screenEarnings" },
-  { file: "(tabs)/inbox.tsx", pathname: "/inbox", testID: "inbox-screen", key: "screenInbox" },
-  { file: "(tabs)/profile.tsx", pathname: "/profile", testID: "profile-screen", key: "screenProfile" },
-  { file: "propose/[orderId].tsx", pathname: "/propose/[orderId]", testID: "propose-screen", key: "screenPropose" },
+    key: "screenVerifyDocuments", implemented: true },
+  { file: "(tabs)/home.tsx", pathname: "/home", testID: "home-screen", key: "screenHome", implemented: true },
+  { file: "(tabs)/earnings.tsx", pathname: "/earnings", testID: "earnings-screen", key: "screenEarnings", implemented: true },
+  { file: "(tabs)/inbox.tsx", pathname: "/inbox", testID: "inbox-screen", key: "screenInbox", implemented: true },
+  { file: "(tabs)/profile.tsx", pathname: "/profile", testID: "profile-screen", key: "screenProfile", implemented: true },
+  { file: "propose/[orderId].tsx", pathname: "/propose/[orderId]", testID: "propose-screen", key: "screenPropose", implemented: true },
   {
     file: "delivery/[deliveryId].tsx",
     pathname: "/delivery/[deliveryId]",
     testID: "delivery-screen",
-    key: "screenDelivery",
-  },
+    key: "screenDelivery", implemented: true },
   {
     file: "delivery-detail/[deliveryId].tsx",
     pathname: "/delivery-detail/[deliveryId]",
     testID: "delivery-detail-screen",
-    key: "screenDeliveryDetail",
-  },
-  { file: "stats.tsx", pathname: "/stats", testID: "stats-screen", key: "screenStats" },
-  { file: "history.tsx", pathname: "/history", testID: "history-screen", key: "screenHistory" },
-  { file: "withdraw.tsx", pathname: "/withdraw", testID: "withdraw-screen", key: "screenWithdraw" },
-  { file: "chat/[deliveryId].tsx", pathname: "/chat/[deliveryId]", testID: "chat-screen", key: "screenChat" },
+    key: "screenDeliveryDetail", implemented: true },
+  { file: "stats.tsx", pathname: "/stats", testID: "stats-screen", key: "screenStats", implemented: true },
+  { file: "history.tsx", pathname: "/history", testID: "history-screen", key: "screenHistory", implemented: true },
+  { file: "withdraw.tsx", pathname: "/withdraw", testID: "withdraw-screen", key: "screenWithdraw", implemented: true },
+  { file: "chat/[deliveryId].tsx", pathname: "/chat/[deliveryId]", testID: "chat-screen", key: "screenChat", implemented: true },
   {
     file: "rating/[deliveryId].tsx",
     pathname: "/rating/[deliveryId]",
     testID: "rating-screen",
-    key: "screenRating",
-  },
+    key: "screenRating", implemented: true },
   {
     file: "notifications.tsx",
     pathname: "/notifications",
     testID: "notifications-screen",
-    key: "screenNotifications",
-  },
+    key: "screenNotifications", implemented: true },
 ];
 
 /** expo-router's own file-path -> pathname conversion (see the import above). */
@@ -124,7 +129,8 @@ describe("driver route tree (task 5)", () => {
     expect(pathnameFor(file)).toBe(pathname);
   });
 
-  it.each(ROUTES)("$file renders its own translated name under testID $testID", ({ file, testID, key }) => {
+  it.each(ROUTES.filter((r) => r.implemented !== true))(
+    "$file renders its own translated name under testID $testID", ({ file, testID, key }) => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports -- a
     // dynamic require, one per table row (see .eslintrc.cjs's override for
     // app/**/*.test.tsx), so a single missing/broken route file fails only
