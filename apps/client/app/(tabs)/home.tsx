@@ -3,6 +3,7 @@ import {
   EmptyState,
   KayaCard,
   KayaPressable,
+  KayaScrim,
   KayaSkeletonList,
   MapView,
   colors,
@@ -53,6 +54,9 @@ export default function HomeScreen() {
     >
       <View style={styles.hero}>
         <MapView markers={recent.map((o) => dropoffMarker(o.dropoff))} testID="home-map" />
+
+        {/* Floating text never trusts its backdrop -- see KayaScrim. */}
+        <KayaScrim edge="top" height={150} />
 
         {/* Floating chrome over the map, pushed below the status bar. */}
         <View style={[styles.heroBar, { top: insets.top + spacing.md }]}>

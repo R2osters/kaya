@@ -1,0 +1,103 @@
+appId: com.kaya.kaya_client
+name: Kaya order journey (real backend)
+---
+# The whole order journey, on a device, against the real backend. Run with the
+# dockerised backend up (FIREBASE_VERIFIER=mock) and the demo client created
+# (npx tsx backend/scripts/simulate-driver.ts does it, or one register call):
+#
+#   maestro test apps/client/maestro/smoke-order.yaml
+#
+# Sign in with a real account, create an order through the real geocoder and
+# the real price quote, publish it, and land on the offers screen. With no
+# driver bidding the list is empty -- run the simulate-driver script alongside
+# to watch a bid arrive live.
+
+- launchApp:
+    clearState: true
+
+- extendedWaitUntil:
+    visible:
+      id: "welcome-screen"
+    timeout: 40000
+
+- tapOn:
+    id: "welcome-login"
+- extendedWaitUntil:
+    visible:
+      id: "login-screen"
+    timeout: 20000
+
+- tapOn:
+    id: "login-phone-input"
+- inputText: "+233209998887"
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+
+# Guard rule 3 fires on the authenticated flip; home is the proof the whole
+# sign-in round trip worked.
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 30000
+
+# The search pill is the screen's one dominant action.
+- tapOn:
+    id: "home-search"
+- extendedWaitUntil:
+    visible:
+      id: "create-order-screen"
+    timeout: 20000
+
+# Pickup through the real geocoding endpoint.
+- tapOn:
+    id: "create-order-pickup"
+- extendedWaitUntil:
+    visible:
+      id: "address-search-screen"
+    timeout: 20000
+- tapOn:
+    id: "address-search-field-input"
+- inputText: "Osu"
+- extendedWaitUntil:
+    visible:
+      id: "address-result-0"
+    timeout: 20000
+- tapOn:
+    id: "address-result-0"
+
+# Dropoff the same way.
+- extendedWaitUntil:
+    visible:
+      id: "create-order-screen"
+    timeout: 20000
+- tapOn:
+    id: "create-order-dropoff"
+- extendedWaitUntil:
+    visible:
+      id: "address-search-screen"
+    timeout: 20000
+- tapOn:
+    id: "address-search-field-input"
+- inputText: "Tema"
+- extendedWaitUntil:
+    visible:
+      id: "address-result-0"
+    timeout: 20000
+- tapOn:
+    id: "address-result-0"
+
+# Both points set -> the live quote arrives from /calculate-price.
+- extendedWaitUntil:
+    visible:
+      id: "create-order-quote"
+    timeout: 30000
+
+- tapOn:
+    id: "create-order-submit"
+
+# Created and published in one call; the offers screen is where bids arrive.
+- extendedWaitUntil:
+    visible:
+      id: "offers-screen"
+    timeout: 30000

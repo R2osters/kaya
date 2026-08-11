@@ -2,6 +2,7 @@ import { colors, shadows, spacing } from "@kaya/ui";
 import { Tabs } from "expo-router";
 import { Clock, Home, MessageCircle, User } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /**
  * The client's bottom tab bar. Until now the four "tab" screens were plain
@@ -15,6 +16,7 @@ import { useTranslation } from "react-i18next";
  */
 export default function TabsLayout() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
@@ -26,9 +28,11 @@ export default function TabsLayout() {
           backgroundColor: colors.surface,
           borderTopColor: colors.borderSoft,
           borderTopWidth: 1,
-          height: 64,
+          // The gesture bar owns the bottom edge; a fixed height puts labels
+          // under it. Verified on the emulator before this inset existed.
+          height: 60 + insets.bottom,
           paddingTop: spacing.sm,
-          paddingBottom: spacing.sm,
+          paddingBottom: Math.max(insets.bottom, spacing.sm),
           ...shadows.sheet,
         },
         tabBarLabelStyle: {

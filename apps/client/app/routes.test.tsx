@@ -57,7 +57,15 @@ interface RouteRow {
 }
 
 const ROUTES: RouteRow[] = [
-  { file: "splash.tsx", pathname: "/splash", testID: "splash-screen", key: "screenSplash" },
+  {
+    file: "splash.tsx",
+    pathname: "/splash",
+    testID: "splash-screen",
+    key: "screenSplash",
+    // Real branded screen (no i18n title on purpose -- the locale is being
+    // read from storage at exactly the moment this renders).
+    implemented: true,
+  },
   { file: "(auth)/welcome.tsx", pathname: "/welcome", testID: "welcome-screen", key: "screenWelcome",
     // Phase 2 slice C: real screen, covered by app/(auth)/auth-screens.test.tsx.
     implemented: true,
