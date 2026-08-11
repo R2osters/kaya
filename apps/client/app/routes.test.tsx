@@ -96,8 +96,14 @@ const ROUTES: RouteRow[] = [
     // Phase 2 slice D: real screen, covered by app/(tabs)/tabs.test.tsx.
     implemented: true,
   },
-  { file: "(tabs)/inbox.tsx", pathname: "/inbox", testID: "inbox-screen", key: "screenInbox" },
-  { file: "(tabs)/profile.tsx", pathname: "/profile", testID: "profile-screen", key: "screenProfile" },
+  { file: "(tabs)/inbox.tsx", pathname: "/inbox", testID: "inbox-screen", key: "screenInbox",
+    // Phase 2 slice D: real screen, covered by app/slice-d.test.tsx.
+    implemented: true,
+  },
+  { file: "(tabs)/profile.tsx", pathname: "/profile", testID: "profile-screen", key: "screenProfile",
+    // Phase 2 slice D: real screen, covered by app/slice-d.test.tsx.
+    implemented: true,
+  },
   {
     file: "create-order.tsx",
     pathname: "/create-order",
@@ -119,6 +125,8 @@ const ROUTES: RouteRow[] = [
     pathname: "/notifications",
     testID: "notifications-screen",
     key: "screenNotifications",
+    // Phase 2 slice D: real screen, covered by app/slice-d.test.tsx.
+    implemented: true,
   },
   { file: "offers/[orderId].tsx", pathname: "/offers/[orderId]", testID: "offers-screen", key: "screenOffers",
     // Phase 2A: real screen, covered by app/offers/offers.test.tsx.
