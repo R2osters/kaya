@@ -42,6 +42,12 @@ jest.mock("../../src/queries/deliveries", () => ({
   useActiveDelivery: () => mockActive,
 }));
 
+// The bell wears the unread count.
+let mockNotifications: { data?: { unread: number } } = { data: { unread: 0 } };
+jest.mock("../../src/queries/inbox", () => ({
+  useNotifications: () => mockNotifications,
+}));
+
 jest.mock("../../src/state/authStore", () => ({
   useAuthStore: (selector: (s: { user: unknown }) => unknown) => selector({ user: mockUser }),
 }));
@@ -85,6 +91,7 @@ beforeEach(() => {
   mockStats = { data: { todayEarnings: 84.5, currency: "GHS", dailyDeliveries: 3 } };
   mockActive = undefined;
   mockSetOnlineState = { isPending: false };
+  mockNotifications = { data: { unread: 0 } };
   lastPublishing = undefined;
 });
 
@@ -172,6 +179,17 @@ describe("DriverHomeScreen", () => {
 
     expect(screen.getByTestId("home-nearby-no-location")).toBeTruthy();
     expect(screen.queryByTestId("home-nearby-loading", { includeHiddenElements: true })).toBeNull();
+  });
+
+  it("wears the unread count, and only when there is one", () => {
+    renderScreen();
+    expect(screen.queryByTestId("home-notifications-badge")).toBeNull();
+
+    screen.unmount();
+    mockNotifications = { data: { unread: 2 } };
+    renderScreen();
+
+    expect(screen.getByTestId("home-notifications-badge")).toHaveTextContent("2");
   });
 
   it("offers a way back when location was refused", () => {

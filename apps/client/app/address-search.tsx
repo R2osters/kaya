@@ -8,13 +8,18 @@ import {
   spacing,
   typography,
   KayaPressable,
+  useDeviceLocation,
 } from "@kaya/ui";
 import { useRouter } from "expo-router";
-import { MapPin, Search } from "lucide-react-native";
+import { Crosshair, MapPin, Search } from "lucide-react-native";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {FlatList, StyleSheet, Text, View} from "react-native";
-import { MIN_QUERY_LENGTH, useAddressSearch } from "../src/queries/geocoding";
+import {
+  MIN_QUERY_LENGTH,
+  useAddressSearch,
+  useReverseGeocode,
+} from "../src/queries/geocoding";
 import { useAddressSelectionStore } from "../src/state/addressSelectionStore";
 
 /**
@@ -40,6 +45,44 @@ export default function AddressSearchScreen() {
   const search = useAddressSearch(text);
   const tooShort = text.trim().length < MIN_QUERY_LENGTH;
   const results = search.data ?? [];
+
+  // Not requested on mount: this screen works perfectly by typing, and a
+  // permission prompt the moment it opens interrupts someone who is already
+  // reaching for the keyboard. The button below is the ask.
+  const location = useDeviceLocation();
+  const reverse = useReverseGeocode();
+  const locating = reverse.isPending;
+
+  /**
+   * "Use my position": permission, a fix, then a name for it.
+   *
+   * The address is a label; the coordinate is what the delivery is priced and
+   * routed from. So a reverse-geocode that finds nothing -- or fails -- still
+   * selects the position, under a generic label. Refusing to proceed would
+   * throw away a perfectly good pickup point because nobody has mapped the
+   * street yet, which in peri-urban Accra is most of them.
+   */
+  const useMyPosition = async () => {
+    const granted =
+      location.permission === "granted" ? "granted" : await location.request();
+    if (granted !== "granted") return;
+
+    const point = location.position ?? null;
+    if (point === null) return;
+
+    const named = await reverse.mutateAsync(point).catch(() => null);
+    select(
+      named ?? {
+        label: t("addressMyPosition"),
+        name: t("addressMyPosition"),
+        city: null,
+        countryCode: null,
+        lat: point.lat,
+        lng: point.lng,
+      },
+    );
+    router.back();
+  };
 
   const choose = (suggestion: AddressSuggestion) => {
     select(suggestion);
@@ -67,6 +110,23 @@ export default function AddressSearchScreen() {
         autoFocus
         testID="address-search-field"
       />
+
+      <KayaPressable
+        onPress={() => void useMyPosition()}
+        style={styles.myPosition}
+        testID="address-use-my-position"
+      >
+        <Crosshair size={18} color={colors.primary} />
+        <Text style={[typography.bodyStrong, styles.myPositionLabel]}>
+          {locating ? t("addressLocatingYou") : t("addressUseMyPosition")}
+        </Text>
+      </KayaPressable>
+
+      {location.permission === "denied" && (
+        <Text style={styles.prompt} testID="address-location-denied">
+          {t("addressLocationRefused")}
+        </Text>
+      )}
 
       {error !== null && (
         <Text style={styles.error} testID="address-search-error">
@@ -112,5 +172,12 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background, padding: spacing.xxl, gap: spacing.md },
   list: { gap: spacing.sm, paddingBottom: spacing.xxl },
   prompt: { ...typography.caption, marginTop: spacing.sm },
+  myPosition: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  myPositionLabel: { color: colors.primary },
   error: { ...typography.caption, color: colors.danger },
 });

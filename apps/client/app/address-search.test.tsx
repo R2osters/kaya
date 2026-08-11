@@ -1,6 +1,6 @@
 import { resources } from "@kaya/core";
 import { KayaI18nProvider } from "@kaya/ui";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import AddressSearchScreen from "./address-search";
 import { useAddressSelectionStore } from "../src/state/addressSelectionStore";
 
@@ -15,9 +15,22 @@ jest.mock("expo-router", () => ({
   useRouter: () => ({ back: mockBack }),
 }));
 
+const mockReverseMutateAsync = jest.fn();
 jest.mock("../src/queries/geocoding", () => ({
   ...jest.requireActual("../src/queries/geocoding"),
   useAddressSearch: () => mockSearch,
+  useReverseGeocode: () => ({ mutateAsync: mockReverseMutateAsync, isPending: false }),
+}));
+
+// "Use my position" needs a device; this suite is about the screen.
+let mockLocation = {
+  position: null as { lat: number; lng: number } | null,
+  permission: "unknown" as "unknown" | "granted" | "denied",
+  request: jest.fn(),
+};
+jest.mock("@kaya/ui", () => ({
+  ...jest.requireActual("@kaya/ui"),
+  useDeviceLocation: () => mockLocation,
 }));
 
 const OSU = {
@@ -44,6 +57,8 @@ function type(text: string) {
 beforeEach(() => {
   mockBack.mockReset();
   mockSearch = { data: undefined, isPending: false, error: null };
+  mockReverseMutateAsync.mockReset();
+  mockLocation = { position: null, permission: "unknown", request: jest.fn() };
   useAddressSelectionStore.setState({ target: null, selection: null });
 });
 
@@ -147,5 +162,54 @@ describe("addressSelectionStore", () => {
     useAddressSelectionStore.getState().consume();
 
     expect(useAddressSelectionStore.getState()).toMatchObject({ target: null, selection: null });
+  });
+
+  describe("use my position", () => {
+    it("asks for permission, names the position, and selects it", async () => {
+      const request = jest.fn().mockResolvedValue("granted");
+      mockLocation = { position: { lat: 5.5606, lng: -0.1824 }, permission: "unknown", request };
+      mockReverseMutateAsync.mockResolvedValue(OSU);
+      render(<AddressSearchScreen />);
+
+      fireEvent.press(screen.getByTestId("address-use-my-position"));
+
+      await waitFor(() =>
+        expect(useAddressSelectionStore.getState().selection?.label).toBe(OSU.label),
+      );
+      expect(request).toHaveBeenCalled();
+      expect(mockBack).toHaveBeenCalled();
+    });
+
+    it("still selects the position when no address is known for it", async () => {
+      // The coordinate is what the delivery is priced and routed from; the
+      // label is context. Refusing to proceed would throw away a perfectly
+      // good pickup point because nobody has mapped the street yet -- which in
+      // peri-urban Accra is most of them.
+      mockLocation = {
+        position: { lat: 5.4, lng: -0.3 },
+        permission: "granted",
+        request: jest.fn(),
+      };
+      mockReverseMutateAsync.mockResolvedValue(null);
+      render(<AddressSearchScreen />);
+
+      fireEvent.press(screen.getByTestId("address-use-my-position"));
+
+      await waitFor(() =>
+        expect(useAddressSelectionStore.getState().selection?.lat).toBe(5.4),
+      );
+    });
+
+    it("selects nothing when permission is refused, and says so", async () => {
+      const request = jest.fn().mockResolvedValue("denied");
+      mockLocation = { position: null, permission: "denied", request };
+      render(<AddressSearchScreen />);
+
+      fireEvent.press(screen.getByTestId("address-use-my-position"));
+
+      await waitFor(() => expect(request).toHaveBeenCalled());
+      expect(useAddressSelectionStore.getState().selection).toBeNull();
+      expect(screen.getByTestId("address-location-denied")).toBeTruthy();
+    });
   });
 });

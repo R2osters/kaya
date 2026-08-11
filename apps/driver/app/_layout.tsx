@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { registerAppMapProvider } from "../src/map/register";
 import { resolveAuthRedirect } from "../src/navigation/authGuard";
+import { usePushMessages } from "../src/push/usePushMessages";
 import { usePushRegistration } from "../src/push/usePushRegistration";
 import { useSocketBridge } from "../src/realtime/useSocketBridge";
 import { useAuthStore } from "../src/state/authStore";
@@ -87,6 +88,10 @@ function AuthGuard(): React.ReactElement | null {
 function SessionServices(): null {
   useSocketBridge();
   usePushRegistration();
+  // Registration only tells the backend where to send them; this is what
+  // listens. Without it a push arriving while the app is open does nothing,
+  // and a tap opens the app on whatever screen it was left on.
+  usePushMessages();
   return null;
 }
 

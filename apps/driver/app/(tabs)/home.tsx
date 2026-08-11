@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDriverLocation } from "../../src/location/useDriverLocation";
 import { useActiveDelivery } from "../../src/queries/deliveries";
 import { useDriverStats, useSetOnline } from "../../src/queries/driver";
+import { useNotifications } from "../../src/queries/inbox";
 import { useNearbyOrders } from "../../src/queries/nearby";
 import { useAuthStore } from "../../src/state/authStore";
 
@@ -54,6 +55,9 @@ export default function DriverHomeScreen() {
   const stats = useDriverStats();
   const nearby = useNearbyOrders(location.position, online);
   const active = useActiveDelivery();
+  // The count the bell wears. Pushes invalidate this key as they arrive
+  // (see usePushMessages), so the badge moves without a refresh.
+  const unread = useNotifications().data?.unread ?? 0;
 
   const toggle = (next: boolean) => {
     // Ask for location on the way in, not at launch: a permission prompt on
@@ -72,6 +76,9 @@ export default function DriverHomeScreen() {
           center={location.position ?? undefined}
           markers={(nearby.data ?? []).map((order) => pickupMarker(order.pickup))}
           showUserLocation
+          // Opens on the driver own country city rather than Accra for
+          // everyone -- see MapViewProps.countryCode.
+          countryCode={user?.countryCode}
           testID="home-map"
         />
       </View>
@@ -105,6 +112,11 @@ export default function DriverHomeScreen() {
               testID="home-notifications"
             >
               <Bell size={20} color={colors.ink} />
+              {unread > 0 && (
+                <View style={styles.badge} testID="home-notifications-badge">
+                  <Text style={styles.badgeLabel}>{unread > 9 ? "9+" : String(unread)}</Text>
+                </View>
+              )}
             </KayaPressable>
           </View>
         </KayaCard>
@@ -251,6 +263,26 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     alignItems: "center",
     justifyContent: "center",
+  },
+  // Overlapping the bell's top-right corner, the way every inbox badge does.
+  badge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    backgroundColor: colors.danger,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badgeLabel: {
+    ...typography.caption,
+    color: colors.surface,
+    fontSize: 10,
+    lineHeight: 14,
+    fontWeight: "700",
   },
   earningsRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   onPrimary: { color: colors.surface },

@@ -7,17 +7,20 @@ import {
   KayaSkeletonList,
   MapView,
   colors,
-  dropoffMarker,
   radii,
   shadows,
   spacing,
   typography,
+  useDeviceLocation,
+  vehicleMarker,
 } from "@kaya/ui";
 import { useRouter } from "expo-router";
 import { Bell, MapPin, Package, Search } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useNotifications } from "../../src/queries/inbox";
+import { useNearbyDrivers } from "../../src/queries/nearbyDrivers";
 import { useMyOrders, splitHistory } from "../../src/queries/orderList";
 import { useAuthStore } from "../../src/state/authStore";
 
@@ -42,6 +45,18 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const orders = useMyOrders();
   const firstName = useAuthStore((s) => s.user?.fullName.split(" ")[0]);
+  const countryCode = useAuthStore((s) => s.user?.countryCode);
+
+  // Asked for on mount here, unlike on the driver's side: this screen's whole
+  // job is to show the user where they are and who is around them, so the
+  // prompt arrives with its reason already on screen behind it. A refusal
+  // costs the pins and the centring, nothing else -- the search pill below
+  // still works, and addresses are still typed by hand.
+  const location = useDeviceLocation({ requestOnMount: true });
+  const drivers = useNearbyDrivers(location.position);
+  // The count the bell wears. Pushes invalidate this key as they arrive
+  // (see usePushMessages), so the badge moves without a refresh.
+  const unread = useNotifications().data?.unread ?? 0;
 
   const past = orders.data === undefined ? [] : splitHistory(orders.data.data).past;
   const recent = past.slice(0, RECENT_LIMIT);
@@ -53,7 +68,16 @@ export default function HomeScreen() {
       testID="home-screen"
     >
       <View style={styles.hero}>
-        <MapView markers={recent.map((o) => dropoffMarker(o.dropoff))} testID="home-map" />
+        {/* The map is centred on the user, shows the drivers actually working
+            around them, and falls back to their own country's city rather
+            than to Accra for everyone -- see MapViewProps.countryCode. */}
+        <MapView
+          center={location.position ?? undefined}
+          markers={(drivers.data ?? []).map((point) => vehicleMarker(point))}
+          showUserLocation={location.permission === "granted"}
+          countryCode={countryCode}
+          testID="home-map"
+        />
 
         {/* Floating text never trusts its backdrop -- see KayaScrim. */}
         <KayaScrim edge="top" height={150} />
@@ -69,6 +93,11 @@ export default function HomeScreen() {
             testID="home-notifications"
           >
             <Bell size={20} color={colors.ink} />
+            {unread > 0 && (
+              <View style={styles.badge} testID="home-notifications-badge">
+                <Text style={styles.badgeLabel}>{unread > 9 ? "9+" : String(unread)}</Text>
+              </View>
+            )}
           </KayaPressable>
         </View>
       </View>
@@ -165,6 +194,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     ...shadows.soft,
+  },
+  // Overlapping the bell's top-right corner, the way every inbox badge does:
+  // it has to read as attached to the bell, not as a second control.
+  badge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    backgroundColor: colors.danger,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badgeLabel: {
+    ...typography.caption,
+    color: colors.surface,
+    fontSize: 10,
+    lineHeight: 14,
+    fontWeight: "700",
   },
   pillWrap: {
     marginTop: -PILL_HEIGHT / 2,

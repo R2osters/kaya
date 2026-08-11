@@ -23,6 +23,7 @@ jest.mock("expo-router", () => ({
   Stack: () => null,
   useRouter: () => ({ replace: jest.fn() }),
   usePathname: () => "/splash",
+  useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
   useGlobalSearchParams: () => ({}),
 }));
 

@@ -1,6 +1,12 @@
-import { queryKeys, type AddressSuggestion } from "@kaya/core";
-import { useQuery, type UseQueryResult } from "@tanstack/react-query";
+import { queryKeys, type AddressSuggestion, type GeoPoint } from "@kaya/core";
+import {
+  useMutation,
+  useQuery,
+  type UseMutationResult,
+  type UseQueryResult,
+} from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api } from "../api/client";
 
 /**
@@ -57,5 +63,30 @@ export function useAddressSearch(text: string): UseQueryResult<AddressSuggestion
     // Addresses do not move. Re-asking for the same string within a session is
     // spending someone's geocoding quota to get the same answer.
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * The address at a position, for "use my position".
+ *
+ * A mutation rather than a query: it is a one-shot answer to a button press,
+ * not state a screen subscribes to, and caching it by coordinate would mean
+ * every metre of GPS jitter minting a new entry for a value nobody re-reads.
+ *
+ * Never retried, and that is a deliberate limit rather than a safety rule:
+ * this call is free of side effects, but the user is standing in a shop
+ * waiting to type an address, and a silent retry chain is a button that looks
+ * stuck. A failure resolves to the raw coordinate at the call site.
+ */
+export function useReverseGeocode(): UseMutationResult<
+  AddressSuggestion | null,
+  unknown,
+  GeoPoint
+> {
+  const { i18n } = useTranslation();
+
+  return useMutation({
+    mutationFn: (point: GeoPoint) =>
+      api.reverseGeocode({ lat: point.lat, lng: point.lng, language: i18n.language }),
   });
 }

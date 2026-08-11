@@ -17,10 +17,36 @@ jest.mock("../../src/queries/orderList", () => ({
   useMyOrders: () => mockOrders,
 }));
 
+// Home now draws the drivers actually working around the user, on a map
+// centred on them. Both are mocked: this suite is about the screens' own
+// logic, not about GPS or the network.
+let mockNearbyDrivers: { data?: unknown } = { data: [] };
+jest.mock("../../src/queries/nearbyDrivers", () => ({
+  useNearbyDrivers: () => mockNearbyDrivers,
+}));
+
+let mockLocation = {
+  position: null as { lat: number; lng: number } | null,
+  permission: "unknown" as "unknown" | "granted" | "denied",
+  request: jest.fn(),
+};
+jest.mock("@kaya/ui", () => {
+  const actual = jest.requireActual("@kaya/ui");
+  const { View } = jest.requireActual("react-native");
+  return {
+    ...actual,
+    useDeviceLocation: () => mockLocation,
+    MapView: (props: { testID?: string }) => <View testID={props.testID} />,
+  };
+});
+
 // History routes a row by whether its order already has a delivery.
 let mockDeliveries: { data?: Array<{ id: string; orderId: string }> } = { data: [] };
+// Home's bell reads the same module for its unread badge.
+let mockNotifications: { data?: { unread: number } } = { data: { unread: 0 } };
 jest.mock("../../src/queries/inbox", () => ({
   useMyDeliveries: () => mockDeliveries,
+  useNotifications: () => mockNotifications,
 }));
 
 function order(overrides: Record<string, unknown> = {}) {
@@ -56,6 +82,9 @@ beforeEach(() => {
   mockPush.mockReset();
   mockOrders = { data: page([order()]), isPending: false };
   mockDeliveries = { data: [] };
+  mockNearbyDrivers = { data: [] };
+  mockNotifications = { data: { unread: 0 } };
+  mockLocation = { position: null, permission: "unknown", request: jest.fn() };
 });
 
 describe("splitHistory", () => {
@@ -141,6 +170,24 @@ describe("HomeScreen", () => {
     renderScreen(HomeScreen);
 
     expect(screen.queryByTestId("home-scheduled")).toBeNull();
+  });
+
+  it("wears the unread count, and only when there is one", () => {
+    renderScreen(HomeScreen);
+    expect(screen.queryByTestId("home-notifications-badge")).toBeNull();
+
+    screen.unmount();
+    mockNotifications = { data: { unread: 3 } };
+    renderScreen(HomeScreen);
+
+    expect(screen.getByTestId("home-notifications-badge")).toHaveTextContent("3");
+  });
+
+  it("caps the badge rather than letting it stretch the bell", () => {
+    mockNotifications = { data: { unread: 42 } };
+    renderScreen(HomeScreen);
+
+    expect(screen.getByTestId("home-notifications-badge")).toHaveTextContent("9+");
   });
 
   it("opens notifications", () => {
