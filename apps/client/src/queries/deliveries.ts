@@ -47,17 +47,26 @@ export function useDelivery(deliveryId: string): UseQueryResult<Delivery> {
  */
 export function useDriverLocation(livreurId: string | null): DriverLocationEvent | undefined {
   const queryClient = useQueryClient();
-  const { data } = useQuery<DriverLocationEvent>({
+  const { data } = useQuery<DriverLocationEvent | null>({
     queryKey: queryKeys.driverLocation(livreurId ?? ""),
     enabled: false,
-    // Reads whatever the bridge has written, and nothing else.
+    // Never fetched -- but TanStack v5 logs "No queryFn was passed" the
+    // moment anything touches a queryFn-less entry (an invalidation sweep is
+    // enough), and the tracking screen mounts this with livreurId "" while
+    // the delivery loads. The queryFn is the cache read itself, so a stray
+    // refetch is a no-op instead of a red console toast on device.
+    queryFn: () =>
+      livreurId === null
+        ? null
+        : (queryClient.getQueryData<DriverLocationEvent>(queryKeys.driverLocation(livreurId)) ??
+          null),
     initialData: () =>
       livreurId === null
         ? undefined
         : queryClient.getQueryData<DriverLocationEvent>(queryKeys.driverLocation(livreurId)),
   });
 
-  return livreurId === null ? undefined : data;
+  return livreurId === null ? undefined : (data ?? undefined);
 }
 
 /**
@@ -71,12 +80,16 @@ export function useDriverLocation(livreurId: string | null): DriverLocationEvent
  */
 export function useDeliveryLiveStatus(deliveryId: string): DeliveryStatusEvent | undefined {
   const queryClient = useQueryClient();
-  const { data } = useQuery<DeliveryStatusEvent>({
+  const { data } = useQuery<DeliveryStatusEvent | null>({
     queryKey: queryKeys.deliveryLiveStatus(deliveryId),
     enabled: false,
+    // Same cache-read queryFn as useDriverLocation, for the same v5 warning.
+    queryFn: () =>
+      queryClient.getQueryData<DeliveryStatusEvent>(queryKeys.deliveryLiveStatus(deliveryId)) ??
+      null,
     initialData: () =>
       queryClient.getQueryData<DeliveryStatusEvent>(queryKeys.deliveryLiveStatus(deliveryId)),
   });
 
-  return data;
+  return data ?? undefined;
 }
