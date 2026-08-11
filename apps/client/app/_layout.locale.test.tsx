@@ -23,6 +23,7 @@ jest.mock("expo-router", () => ({
   Stack: () => null,
   useRouter: () => ({ replace: jest.fn() }),
   usePathname: () => "/splash",
+  useGlobalSearchParams: () => ({}),
 }));
 
 // authStore stays mocked exactly as in _layout.test.tsx: unrelated to this

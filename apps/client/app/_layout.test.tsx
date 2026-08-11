@@ -24,6 +24,7 @@ jest.mock("../src/push/usePushRegistration", () => ({ usePushRegistration: jest.
 jest.mock("expo-router", () => ({
   Stack: () => null,
   usePathname: () => mockPathname,
+  useGlobalSearchParams: () => ({}),
   // The guard redirects declaratively rather than calling router.replace in
   // an effect: nothing rendered from the root layout may navigate before the
   // navigator has mounted. Recording the href here is how a test sees where

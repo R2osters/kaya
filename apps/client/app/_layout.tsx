@@ -1,6 +1,6 @@
 import { KayaI18nProvider } from "@kaya/ui";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Redirect, Stack, usePathname } from "expo-router";
+import { Redirect, Stack, useGlobalSearchParams, usePathname } from "expo-router";
 import { useEffect, useState } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { registerAppMapProvider } from "../src/map/register";
@@ -54,6 +54,19 @@ function useLocaleRestoration(): void {
 function AuthGuard(): React.ReactElement | null {
   const status = useAuthStore((s) => s.status);
   const pathname = usePathname();
+  // usePathname strips the query string, but a displaced deep link must be
+  // stashed *with* it -- /payment/return without its ?reference= verifies
+  // nothing. Rebuilt here rather than read from Linking so it works for any
+  // navigation source expo-router understands.
+  const params = useGlobalSearchParams<Record<string, string | string[]>>();
+  const query = Object.entries(params)
+    .flatMap(([key, value]) =>
+      (Array.isArray(value) ? value : [value]).map(
+        (v) => `${encodeURIComponent(key)}=${encodeURIComponent(String(v))}`,
+      ),
+    )
+    .join("&");
+  const href = query === "" ? pathname : `${pathname}?${query}`;
   // Nothing rendered from the root layout may navigate on the first pass:
   // the <Stack> sibling below is what creates the navigator, and expo-router
   // throws "Attempted to navigate before mounting the Root Layout component"
@@ -69,7 +82,7 @@ function AuthGuard(): React.ReactElement | null {
 
   if (!navigatorMounted) return null;
 
-  const target = resolveAuthRedirect(status, pathname);
+  const target = resolveAuthRedirect(status, pathname, href);
   if (target === null) return null;
 
   return <Redirect href={target} />;

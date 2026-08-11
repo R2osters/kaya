@@ -17,6 +17,12 @@ jest.mock("../../src/queries/orderList", () => ({
   useMyOrders: () => mockOrders,
 }));
 
+// History routes a row by whether its order already has a delivery.
+let mockDeliveries: { data?: Array<{ id: string; orderId: string }> } = { data: [] };
+jest.mock("../../src/queries/inbox", () => ({
+  useMyDeliveries: () => mockDeliveries,
+}));
+
 function order(overrides: Record<string, unknown> = {}) {
   return orderSchema.parse({
     id: "order-1",
@@ -49,6 +55,7 @@ beforeEach(() => {
   resetMapProvider();
   mockPush.mockReset();
   mockOrders = { data: page([order()]), isPending: false };
+  mockDeliveries = { data: [] };
 });
 
 describe("splitHistory", () => {
@@ -186,11 +193,22 @@ describe("HistoryScreen", () => {
     );
   });
 
-  it("opens an order's offers", () => {
+  it("opens an order's offers while no delivery exists", () => {
     renderScreen(HistoryScreen);
 
     fireEvent.press(screen.getByTestId("history-order-0"));
 
     expect(mockPush).toHaveBeenCalledWith("/offers/order-1");
+  });
+
+  it("opens the tracking once the order has a delivery", () => {
+    // The offers screen for an accepted order is a dead end whose Accept
+    // button can only 409 -- the first live course led straight back to it.
+    mockDeliveries = { data: [{ id: "delivery-1", orderId: "order-1" }] };
+    renderScreen(HistoryScreen);
+
+    fireEvent.press(screen.getByTestId("history-order-0"));
+
+    expect(mockPush).toHaveBeenCalledWith("/tracking/delivery-1");
   });
 });
