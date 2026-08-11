@@ -253,5 +253,9 @@
   "driverBestTier": "Best tier reached.",
   "actionUpload": "Upload",
   "docUploaded": "Sent",
-  "docPending": "Awaiting verification."
+  "docPending": "Awaiting verification.",
+  "addressUseMyPosition": "Use my position",
+  "addressLocatingYou": "Locating…",
+  "addressMyPosition": "My position",
+  "addressLocationRefused": "Location refused. Type the address instead."
 }

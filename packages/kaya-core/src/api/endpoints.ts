@@ -12,6 +12,7 @@ import {
 } from "../models/auth";
 import { type AddressSuggestion, addressSuggestionSchema } from "../models/address";
 import { type CountryConfig, countryConfigSchema } from "../models/countryConfig";
+import type { GeoPoint } from "../models/geo";
 import { type Delivery, deliverySchema } from "../models/delivery";
 import { type Message, messageSchema } from "../models/message";
 import { type AppNotification, appNotificationSchema } from "../models/notification";
@@ -101,6 +102,23 @@ const driverStatusSchema = z.object({ isOnline: boolLike(false) });
 
 /** `POST /uploads/:prefix` answers with the private object key. */
 const uploadResultSchema = z.object({ key: stringLike() });
+
+/**
+ * `GET /drivers/nearby` answers `{ drivers: [{ lat, lng }] }`.
+ *
+ * A row missing either coordinate is dropped rather than defaulted: a pin at
+ * (0, 0) is in the Gulf of Guinea, which on a map of Accra reads as a driver
+ * several hundred kilometres out to sea.
+ */
+const nearbyDriversSchema = z.object({
+  drivers: z.unknown().transform((raw): GeoPoint[] =>
+    (Array.isArray(raw) ? raw : [])
+      .map((row) => (isPlainObject(row) ? row : {}))
+      .filter((row) => row.lat != null && row.lng != null)
+      .map((row) => ({ lat: Number(row.lat), lng: Number(row.lng) }))
+      .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng)),
+  ),
+});
 
 /**
  * A multipart body carrying one local file.
@@ -405,6 +423,28 @@ export class KayaApi {
     return listOf(addressSuggestionSchema)(res.data);
   }
 
+  /**
+   * The address at a position (`GET /geocoding/reverse`), for "use my
+   * position".
+   *
+   * Resolves null when the position has no known address -- offshore, deep
+   * bush, a gap in coverage. The caller falls back to showing the raw
+   * coordinate, which is worse than a street name but still routes a driver,
+   * and both beat a screen that fails.
+   *
+   * The returned `lat`/`lng` are the ones that were asked about, not the
+   * matched place's centroid: the order is priced and routed from where the
+   * user actually is, and the address is a label for it.
+   */
+  async reverseGeocode(params: {
+    lat: number;
+    lng: number;
+    language?: string;
+  }): Promise<AddressSuggestion | null> {
+    const res = await this.http.get("/geocoding/reverse", { params });
+    return isPlainObject(res.data) ? addressSuggestionSchema.parse(res.data) : null;
+  }
+
   // --- Orders ---------------------------------------------------------------
 
   /**
@@ -619,6 +659,26 @@ export class KayaApi {
   async listRatings(userId: string): Promise<RatingsPage> {
     const res = await this.http.get(`/users/${userId}/ratings`);
     return ratingsPageSchema.parse(res.data);
+  }
+
+  // --- Live supply ----------------------------------------------------------
+
+  /**
+   * Positions of online drivers around a point (`GET /drivers/nearby`).
+   *
+   * Positions and nothing else -- no id, no name. A map with nothing on it
+   * says the platform is empty; the same map with four moving pins says there
+   * is work being done nearby, which is the most useful thing a client can
+   * know before deciding to order. Identity stays out of it: see the
+   * endpoint's own note for why an id here would be a tracking device.
+   */
+  async nearbyDrivers(params: {
+    lat: number;
+    lng: number;
+    radiusKm?: number;
+  }): Promise<GeoPoint[]> {
+    const res = await this.http.get("/drivers/nearby", { params });
+    return nearbyDriversSchema.parse(res.data).drivers;
   }
 
   // --- Identity documents ---------------------------------------------------

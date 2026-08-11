@@ -35,6 +35,17 @@ export interface MapViewProps {
   markers?: MapMarker[];
   route?: GeoPoint[];
   showUserLocation?: boolean;
+  /**
+   * Which country's city the map opens on when it has nothing else to go by --
+   * no explicit centre, no markers, no route.
+   *
+   * Kaya operates in three countries and every map used to fall back to one
+   * hardcoded Accra coordinate, so a driver in Lomé or Cotonou opened their
+   * home screen on a city 500 km away and had to drag before it said anything.
+   * The tiles were never the problem (the style is global); the camera was.
+   * Callers pass the signed-in user's `countryCode`.
+   */
+  countryCode?: string;
   testID?: string;
 }
 

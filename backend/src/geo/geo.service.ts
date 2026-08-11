@@ -91,4 +91,48 @@ export class GeoService {
     `);
     return rows.map((r) => r.id);
   }
+
+  /**
+   * Positions of online, active drivers within `radiusKm` of a point.
+   *
+   * Positions only -- no id, no name, no vehicle. This feeds the client's map,
+   * where the pins say "there is work being done around you" and nothing more;
+   * a client has no business knowing *which* driver is parked outside their
+   * building, and an id here would let anyone poll the endpoint and follow a
+   * named person around the city. The driver's identity becomes visible at
+   * exactly one moment: when they win the delivery.
+   *
+   * `locationUpdatedAt` bounds staleness. `is_online` is a flag a driver can
+   * leave set by closing the app on a dying battery, and a pin that has not
+   * moved in three hours is a ghost that makes the city look busier than it
+   * is -- which is the one lie a marketplace map must not tell.
+   */
+  async findOnlineDriverPositionsNearby(
+    lat: number,
+    lng: number,
+    radiusKm: number,
+    country: CountryCode,
+    freshWithinMinutes: number,
+  ): Promise<Array<{ lat: number; lng: number }>> {
+    const radiusMeters = radiusKm * 1000;
+    const rows = await this.prisma.$queryRaw<Array<{ lat: number; lng: number }>>(Prisma.sql`
+      SELECT u.location_lat::float8 AS lat, u.location_lng::float8 AS lng
+      FROM users u
+      WHERE u.role::text IN ('livreur', 'both')
+        AND u.is_online = true
+        AND u.is_active = true
+        AND u.country_code::text = ${country}
+        AND u.location_lat IS NOT NULL
+        AND u.location_lng IS NOT NULL
+        AND u.location_updated_at IS NOT NULL
+        AND u.location_updated_at > NOW() - (${freshWithinMinutes}::int * INTERVAL '1 minute')
+        AND ST_DWithin(
+              geography(ST_MakePoint(u.location_lng::float8, u.location_lat::float8)),
+              geography(ST_MakePoint(${lng}::float8, ${lat}::float8)),
+              ${radiusMeters}::float8
+            )
+      LIMIT 100
+    `);
+    return rows.map((r) => ({ lat: Number(r.lat), lng: Number(r.lng) }));
+  }
 }

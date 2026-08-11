@@ -253,5 +253,9 @@
   "driverBestTier": "Meilleur palier atteint.",
   "actionUpload": "Téléverser",
   "docUploaded": "Envoyé",
-  "docPending": "En attente de vérification."
+  "docPending": "En attente de vérification.",
+  "addressUseMyPosition": "Utiliser ma position",
+  "addressLocatingYou": "Localisation…",
+  "addressMyPosition": "Ma position",
+  "addressLocationRefused": "Localisation refusée. Saisissez l'adresse."
 }

@@ -4,4 +4,5 @@
 export * from "./theme";
 export * from "./components";
 export * from "./adapters";
+export * from "./hooks";
 export * from "./map";

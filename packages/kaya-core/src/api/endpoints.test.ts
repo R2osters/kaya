@@ -697,6 +697,66 @@ describe("KayaApi", () => {
     expect(rating.score).toBe(5);
   });
 
+  it("names a position via GET /geocoding/reverse, keeping the asked-about coordinate", async () => {
+    const { api, mock } = build();
+    mock.onGet("/geocoding/reverse").reply(200, {
+      label: "Osu, Accra, Ghana",
+      name: "Osu",
+      city: "Accra",
+      countryCode: "GH",
+      lat: 5.5606,
+      lng: -0.1824,
+    });
+
+    const found = await api.reverseGeocode({ lat: 5.5606, lng: -0.1824 });
+    expect(found?.label).toBe("Osu, Accra, Ghana");
+    expect(found?.lat).toBe(5.5606);
+  });
+
+  it("reads 'no address here' as null rather than as a failure", async () => {
+    const { api, mock } = build();
+    mock.onGet("/geocoding/reverse").reply(200, null);
+
+    await expect(api.reverseGeocode({ lat: 0, lng: 0 })).resolves.toBeNull();
+  });
+
+  // --- Live supply -------------------------------------------------------
+
+  it("reads nearby driver positions via GET /drivers/nearby", async () => {
+    const { api, mock } = build();
+    mock.onGet("/drivers/nearby").reply(200, {
+      drivers: [
+        { lat: 5.5606, lng: -0.1824 },
+        { lat: "5.6037", lng: "-0.187" },
+      ],
+    });
+
+    await expect(api.nearbyDrivers({ lat: 5.56, lng: -0.18 })).resolves.toEqual([
+      { lat: 5.5606, lng: -0.1824 },
+      { lat: 5.6037, lng: -0.187 },
+    ]);
+  });
+
+  it("drops a driver row missing a coordinate rather than pinning it at (0,0)", async () => {
+    // (0, 0) is in the Gulf of Guinea: on a map of Accra that reads as a
+    // driver a few hundred kilometres out to sea.
+    const { api, mock } = build();
+    mock.onGet("/drivers/nearby").reply(200, {
+      drivers: [{ lat: 5.56 }, { lng: -0.18 }, {}, { lat: 5.5606, lng: -0.1824 }],
+    });
+
+    await expect(api.nearbyDrivers({ lat: 5.56, lng: -0.18 })).resolves.toEqual([
+      { lat: 5.5606, lng: -0.1824 },
+    ]);
+  });
+
+  it("reads an empty or malformed answer as no drivers, not as a failure", async () => {
+    const { api, mock } = build();
+    mock.onGet("/drivers/nearby").reply(200, {});
+
+    await expect(api.nearbyDrivers({ lat: 5.56, lng: -0.18 })).resolves.toEqual([]);
+  });
+
   // --- Country configuration --------------------------------------------
 
   it("reads a country's tariff card via GET /country-configs/:code, tiers collapsed to an array", async () => {

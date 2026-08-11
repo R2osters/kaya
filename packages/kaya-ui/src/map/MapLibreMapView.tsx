@@ -1,4 +1,4 @@
-import type { GeoPoint } from "@kaya/core";
+import { mapDefaultsFor, type GeoPoint } from "@kaya/core";
 import { StyleSheet, View } from "react-native";
 import { colors } from "../theme";
 import type { MapViewProps } from "./MapView";
@@ -71,9 +71,12 @@ const OSM_RASTER_STYLE = JSON.stringify({
   layers: [{ id: "osm", type: "raster", source: "osm" }],
 });
 
-// Matches OsmMapView.dart's Accra fallback centre, used when the caller
-// supplies neither a center nor any markers to derive one from.
-const ACCRA_FALLBACK: GeoPoint = { lat: 5.6037, lng: -0.187 };
+/**
+ * Zoom used when the map is showing one point rather than fitting a box.
+ * Street level: close enough to recognise where you are, wide enough to see
+ * the next junction.
+ */
+const SINGLE_POINT_ZOOM = 13;
 
 const ROUTE_SOURCE_ID = "kaya-route";
 
@@ -148,6 +151,7 @@ export function MapLibreMapView({
   markers = [],
   route,
   showUserLocation,
+  countryCode,
   styleUrl,
   testID,
 }: MapLibreMapViewProps) {
@@ -163,12 +167,17 @@ export function MapLibreMapView({
   // screen that is the whole screen being wrong: the point of it is seeing the
   // driver relative to the destination.
   const fitted = center === undefined ? boundsOf([...markers.map((m) => m.point), ...(route ?? [])]) : null;
-  const focus = center ?? markers[0]?.point ?? ACCRA_FALLBACK;
+  // Last resort: the city of the user's own country. Falls back to Ghana for
+  // an unknown code rather than throwing -- see mapDefaultsFor.
+  const fallback = mapDefaultsFor(countryCode);
+  const focus = center ?? markers[0]?.point ?? fallback.center;
+  // A country fallback is a whole-city view; a real point is a street view.
+  const zoom = center === undefined && markers.length === 0 ? fallback.zoom : SINGLE_POINT_ZOOM;
 
   return (
     <Map testID={testID} style={styles.map} mapStyle={styleUrl ?? OSM_RASTER_STYLE}>
       {fitted === null ? (
-        <Camera center={[focus.lng, focus.lat]} zoom={13} />
+        <Camera center={[focus.lng, focus.lat]} zoom={zoom} />
       ) : (
         <Camera bounds={fitted} />
       )}

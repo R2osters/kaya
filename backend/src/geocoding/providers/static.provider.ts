@@ -3,6 +3,7 @@ import {
   GeocodeQuery,
   GeocodeSuggestion,
   GeocodingProvider,
+  ReverseGeocodeQuery,
 } from '../geocoding-provider.interface';
 
 /**
@@ -177,4 +178,54 @@ export class StaticGeocodingProvider implements GeocodingProvider {
 
     return Promise.resolve(matches.slice(0, query.limit ?? 5));
   }
+
+  /**
+   * The nearest seeded landmark, with the caller's own coordinate kept.
+   *
+   * Deliberately not "the landmark's position": this backs "use my position",
+   * and the position is the whole point -- the label is context a driver reads
+   * ("near Osu"). Returning the landmark's coordinate instead would move a
+   * pickup pin kilometres from where the user is standing and price the
+   * delivery from there.
+   *
+   * Resolves null past MAX_LANDMARK_KM. A label saying "Osu, Accra" for
+   * someone in Kumasi is worse than no label: the driver reads it, and it is
+   * a lie.
+   */
+  reverse(query: ReverseGeocodeQuery): Promise<GeocodeSuggestion | null> {
+    let best: GeocodeSuggestion | null = null;
+    let bestKm = Number.POSITIVE_INFINITY;
+
+    for (const entry of LANDMARKS) {
+      const km = haversineKm(query.lat, query.lng, entry.lat, entry.lng);
+      if (km < bestKm) {
+        bestKm = km;
+        best = entry;
+      }
+    }
+
+    if (best === null || bestKm > MAX_LANDMARK_KM) return Promise.resolve(null);
+    return Promise.resolve({ ...best, lat: query.lat, lng: query.lng });
+  }
+}
+
+/**
+ * How far a seeded landmark may be and still describe where someone is.
+ *
+ * 25 km covers a city and its suburbs -- Accra to Tema is about 25 km, which
+ * is the longest run the launch cities produce. Past that the nearest landmark
+ * is in a different place entirely.
+ */
+const MAX_LANDMARK_KM = 25;
+
+/** Great-circle distance in kilometres. */
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
 }
