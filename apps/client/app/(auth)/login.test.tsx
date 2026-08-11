@@ -6,6 +6,12 @@ import LoginScreen from "./login";
 const mockMutate = jest.fn();
 let mockState: { isPending: boolean; error: unknown } = { isPending: false, error: null };
 
+const mockPush = jest.fn();
+
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ push: mockPush }),
+}));
+
 jest.mock("../../src/queries/auth", () => ({
   useSignIn: () => ({ mutate: mockMutate, ...mockState }),
 }));
@@ -19,6 +25,7 @@ function renderLogin() {
 }
 
 beforeEach(() => {
+  mockPush.mockReset();
   mockMutate.mockReset();
   mockState = { isPending: false, error: null };
 });
@@ -104,10 +111,23 @@ describe("LoginScreen", () => {
     expect(screen.getByTestId("login-submit")).toBeTruthy();
   });
 
-  it("does not navigate on its own -- the route guard moves the app", () => {
+  it("still does not navigate itself on success -- the route guard moves the app", () => {
     // Screens routing around the guard is how a signed-out user ends up on a
     // protected screen. Asserted by the absence of any expo-router import:
     // this suite renders the screen with no router mocked and it must not throw.
     expect(() => renderLogin()).not.toThrow();
+  });
+  it("offers a way out for a phone with no account", () => {
+    // The backend answers an unknown number with a uniform "Invalid
+    // credentials" -- deliberately, so it does not leak which numbers exist --
+    // and this screen had nothing to act on it with. Someone testing on a
+    // device got stuck here.
+    renderLogin();
+
+    fireEvent.press(screen.getByTestId("login-to-register"));
+    expect(mockPush).toHaveBeenCalledWith("/register");
+
+    fireEvent.press(screen.getByTestId("login-to-reset"));
+    expect(mockPush).toHaveBeenCalledWith("/password-reset");
   });
 });

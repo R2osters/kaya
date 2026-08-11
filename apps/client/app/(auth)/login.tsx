@@ -1,5 +1,6 @@
 import { toApiFailure } from "@kaya/core";
 import { KayaButton, KayaTextField, colors, radii, spacing, typography } from "@kaya/ui";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
@@ -23,6 +24,7 @@ import { useSignIn } from "../../src/queries/auth";
  */
 export default function LoginScreen() {
   const { t } = useTranslation();
+  const router = useRouter();
   const [phone, setPhone] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
   const signIn = useSignIn();
@@ -83,6 +85,26 @@ export default function LoginScreen() {
         loading={signIn.isPending}
         expand
         testID="login-submit"
+      />
+
+      {/* Without these the screen is a dead end. A phone with no account gets
+          "Invalid credentials" -- deliberately uniform, so the backend does not
+          leak which numbers exist -- and there was nothing here to act on it
+          with: no way to create the account, no way to recover a password.
+          Reported from a device by someone stuck on exactly that. */}
+      <KayaButton
+        label={t("authRegister")}
+        variant="secondary"
+        onPress={() => router.push("/register")}
+        expand
+        testID="login-to-register"
+      />
+      <KayaButton
+        label={t("authForgotPassword")}
+        variant="secondary"
+        onPress={() => router.push("/password-reset")}
+        expand
+        testID="login-to-reset"
       />
     </ScrollView>
   );
