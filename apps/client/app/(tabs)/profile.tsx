@@ -4,6 +4,7 @@ import {
   KayaButton,
   KayaCard,
   RatingStars,
+  KayaScreenHeader,
   StatusPill,
   colors,
   radii,
@@ -50,9 +51,7 @@ export default function ProfileScreen() {
       contentContainerStyle={styles.content}
       testID="profile-screen"
     >
-      <Text style={typography.screenTitle} testID="profile-screen-title">
-        {t("profileTitle")}
-      </Text>
+      <KayaScreenHeader title={t("profileTitle")} testID="profile-screen" />
 
       <KayaCard testID="profile-identity">
         <View style={styles.identity}>
@@ -129,7 +128,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.xxl, gap: spacing.md, paddingBottom: spacing.xxxl },
+  content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxxl },
   identity: { flexDirection: "row", alignItems: "center", gap: spacing.lg },
   identityText: { flex: 1, gap: spacing.xs, alignItems: "flex-start" },
   stats: { flexDirection: "row", marginTop: spacing.lg, gap: spacing.xxl },

@@ -1,19 +1,28 @@
 import { liveTimelineStep, timelineStep, toApiFailure, type Delivery } from "@kaya/core";
 import {
+  KayaAnimatedListItem,
   KayaButton,
-  KayaCard,
+  KayaDraggableSheet,
+  KayaGlassBar,
+  KayaScreenHeader,
+  KayaScrim,
   KayaSkeleton,
+  KayaTimeline,
   MapView,
   colors,
   dropoffMarker,
   pickupMarker,
+  radii,
   spacing,
   typography,
+  useSmoothedPoint,
   vehicleMarker,
 } from "@kaya/ui";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useGoBack } from "../../src/navigation/useGoBack";
 import {
   useDelivery,
   useDeliveryLiveStatus,
@@ -42,12 +51,19 @@ const STEP_LABELS = ["trackEnRoute", "trackPickedUp", "trackInTransit", "trackDe
  */
 export default function TrackingScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const router = useRouter();
   const { deliveryId } = useLocalSearchParams<{ deliveryId: string }>();
+  const insets = useSafeAreaInsets();
 
   const delivery = useDelivery(deliveryId);
   const liveStatus = useDeliveryLiveStatus(deliveryId);
   const driverLocation = useDriverLocation(delivery.data?.livreurId ?? null);
+  // The position arrives over the socket roughly every five seconds, and the
+  // marker was rendered straight from it: still, teleport a block, still. On
+  // the one screen whose job is "where are they now", a teleport reads as the
+  // app having lost the driver and found them somewhere else.
+  const driverPoint = useSmoothedPoint(driverLocation);
 
   const step = currentStep(delivery.data, liveStatus?.status);
 
@@ -57,67 +73,81 @@ export default function TrackingScreen() {
       : toApiFailure(delivery.error).message;
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={styles.content}
-      testID="tracking-screen"
-    >
-      <Text style={typography.screenTitle} testID="tracking-screen-title">
-        {t("trackTitle")}
-      </Text>
-
-      {error !== null && (
-        <Text style={styles.error} testID="tracking-error">
-          {error}
-        </Text>
-      )}
-
-      <View style={styles.map}>
+    <View style={styles.screen} testID="tracking-screen">
+      {/* Map first and full-bleed: on this screen the map *is* the answer to
+          the question the user opened it with. Everything else floats. */}
+      <View style={StyleSheet.absoluteFill}>
         {delivery.isPending ? (
           <KayaSkeleton height={220} testID="tracking-map-loading" />
         ) : (
-          <MapView
-            markers={markersFor(delivery.data, driverLocation)}
-            testID="tracking-map"
-          />
+          <MapView markers={markersFor(delivery.data, driverPoint)} testID="tracking-map" />
         )}
       </View>
 
-      <KayaCard testID="tracking-timeline">
-        <Text style={typography.bodyStrong} testID="tracking-step-label">
-          {t(STEP_LABELS[step])}
-        </Text>
-        <View style={styles.steps}>
-          {STEP_LABELS.map((label, index) => (
-            <View
-              key={label}
-              style={[styles.step, index <= step && styles.stepDone]}
-              testID={`tracking-step-${index}${index <= step ? "-done" : ""}`}
+      <KayaScrim edge="top" height={140} />
+
+      <View style={[styles.header, { top: insets.top + spacing.sm }]}>
+        <KayaScreenHeader title={t("trackTitle")} onBack={goBack} testID="tracking-screen" />
+      </View>
+
+      {/* Glass, second of the design's three placements: the step reads over a
+          moving map and has to stay legible against whatever is under it. */}
+      <KayaGlassBar
+        radius={radii.pill}
+        style={[styles.etaPill, { top: insets.top + spacing.xxxl + spacing.lg }]}
+        testID="tracking-eta"
+      >
+        <KayaAnimatedListItem key={step} style={styles.etaInner}>
+          <Text style={styles.etaLabel} testID="tracking-step-label">
+            {t(STEP_LABELS[step])}
+          </Text>
+        </KayaAnimatedListItem>
+      </KayaGlassBar>
+
+      <KayaDraggableSheet
+        collapsedRatio={0.42}
+        expandedRatio={0.8}
+        handleAccessibilityLabel={t("trackTitle")}
+        testID="tracking-sheet"
+      >
+        <ScrollView contentContainerStyle={styles.sheetContent} showsVerticalScrollIndicator={false}>
+          {error !== null && (
+            <Text style={styles.error} testID="tracking-error">
+              {error}
+            </Text>
+          )}
+
+          <View testID="tracking-timeline">
+            <KayaTimeline
+              count={STEP_LABELS.length}
+              step={step}
+              accessibilityLabel={t("trackTitle")}
+              testID="tracking"
             />
-          ))}
-        </View>
-      </KayaCard>
+          </View>
 
-      {/* The two things a client does from here. Neither was reachable from
-          any screen before -- chat and rating existed only behind the dev
-          route explorer, which meant the journey dead-ended at tracking. */}
-      <KayaButton
-        label={t("trackChat")}
-        variant="secondary"
-        onPress={() => router.push(`/chat/${deliveryId}`)}
-        expand
-        testID="tracking-chat"
-      />
+          {/* The two things a client does from here. Neither was reachable
+              from any screen before -- chat and rating existed only behind the
+              dev route explorer, which meant the journey dead-ended here. */}
+          <KayaButton
+            label={t("trackChat")}
+            variant="secondary"
+            onPress={() => router.push(`/chat/${deliveryId}`)}
+            expand
+            testID="tracking-chat"
+          />
 
-      {step === 3 && (
-        <KayaButton
-          label={t("trackRate")}
-          onPress={() => router.push(`/rating/${deliveryId}`)}
-          expand
-          testID="tracking-rate"
-        />
-      )}
-    </ScrollView>
+          {step === 3 && (
+            <KayaButton
+              label={t("trackRate")}
+              onPress={() => router.push(`/rating/${deliveryId}`)}
+              expand
+              testID="tracking-rate"
+            />
+          )}
+        </ScrollView>
+      </KayaDraggableSheet>
+    </View>
   );
 }
 
@@ -159,10 +189,12 @@ function markersFor(
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.xxl, gap: spacing.lg },
-  map: { height: 240, borderRadius: 20, overflow: "hidden" },
-  steps: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md },
-  step: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.borderSoft },
-  stepDone: { backgroundColor: colors.primary },
+  header: { position: "absolute", left: spacing.lg, right: spacing.lg },
+  etaPill: { position: "absolute", left: spacing.lg, alignSelf: "flex-start" },
+  etaInner: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
+  // The current step is the one live fact on this screen, so it takes the
+  // primary tone rather than sitting in the same ink as everything around it.
+  etaLabel: { ...typography.bodyStrong, color: colors.primary },
+  sheetContent: { gap: spacing.lg, paddingBottom: spacing.lg },
   error: { ...typography.caption, color: colors.danger },
 });

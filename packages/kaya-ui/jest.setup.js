@@ -10,3 +10,8 @@ require("react-native-reanimated/mock");
 jest.mock("react-native-safe-area-context", () =>
   require("react-native-safe-area-context/jest/mock").default,
 );
+
+// react-native-gesture-handler needs its own jest setup: without it any
+// component built on `Gesture`/`GestureDetector` (KayaDraggableSheet) throws
+// under Jest, where no native gesture module exists.
+require("react-native-gesture-handler/jestSetup");

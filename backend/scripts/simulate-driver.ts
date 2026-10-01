@@ -106,34 +106,76 @@ async function call<T>(path: string, init: RequestInit & { token?: string } = {}
   return body as T;
 }
 
-/** Registers the account if it does not exist, then signs in. Returns the access token. */
-async function ensureAccount(account: typeof CLIENT): Promise<string> {
-  try {
-    await call('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({
-        ...account,
-        password: PASSWORD,
-        countryCode: COUNTRY_CODE,
-        firebaseIdToken: `${MOCK_TOKEN_PREFIX}${account.phone}`,
-      }),
-    });
-    console.log(`  created ${account.role} ${account.phone}`);
-  } catch (err) {
-    // A 409 means it already exists, which is the normal case on every run
-    // after the first. Anything else is a real failure and should surface.
-    if (!/409/.test((err as Error).message)) throw err;
-    console.log(`  reusing ${account.role} ${account.phone}`);
+/**
+ * An account whose token renews itself. Access tokens live 15 minutes and the
+ * "waiting for the client to accept" poll can easily outlive that -- the first
+ * long demo died on a 401 exactly there. Instead of tracking expiry, `call`
+ * retries once through a fresh sign-in whenever the server says 401.
+ */
+class Session {
+  private token = '';
+
+  constructor(private readonly account: typeof CLIENT) {}
+
+  /** Registers the account if it does not exist, then signs in. */
+  async ensure(): Promise<void> {
+    try {
+      await call('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...this.account,
+          password: PASSWORD,
+          countryCode: COUNTRY_CODE,
+          firebaseIdToken: `${MOCK_TOKEN_PREFIX}${this.account.phone}`,
+        }),
+      });
+      console.log(`  created ${this.account.role} ${this.account.phone}`);
+    } catch (err) {
+      // A 409 means it already exists, which is the normal case on every run
+      // after the first. Anything else is a real failure and should surface.
+      if (!/409/.test((err as Error).message)) throw err;
+      console.log(`  reusing ${this.account.role} ${this.account.phone}`);
+    }
+    await this.signIn();
   }
 
-  const session = await call<{ accessToken: string }>('/auth/login/otp', {
-    method: 'POST',
-    body: JSON.stringify({
-      phone: account.phone,
-      firebaseIdToken: `${MOCK_TOKEN_PREFIX}${account.phone}`,
-    }),
-  });
-  return session.accessToken;
+  private async signIn(): Promise<void> {
+    const session = await call<{ accessToken: string }>('/auth/login/otp', {
+      method: 'POST',
+      body: JSON.stringify({
+        phone: this.account.phone,
+        firebaseIdToken: `${MOCK_TOKEN_PREFIX}${this.account.phone}`,
+      }),
+    });
+    this.token = session.accessToken;
+  }
+
+  async call<T>(path: string, init: RequestInit = {}): Promise<T> {
+    // The backend gets rebuilt and restarted under this script all the time in
+    // dev; a poll that lands in the restart window should ride it out, not
+    // kill a demo twenty minutes in. Five 3-second retries cover a NestJS
+    // boot; anything longer is a real outage worth crashing over.
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        return await call<T>(path, { ...init, token: this.token });
+      } catch (err) {
+        const message = (err as Error).message;
+        if (/-> 401/.test(message)) {
+          await this.signIn();
+          return call<T>(path, { ...init, token: this.token });
+        }
+        const network = /fetch failed|ECONNREFUSED|ECONNRESET|socket hang up/i.test(message);
+        if (!network || attempt >= 5) throw err;
+        process.stdout.write('!');
+        await sleep(3_000);
+      }
+    }
+  }
+
+  /** The current raw token, for the socket handshake. */
+  get accessToken(): string {
+    return this.token;
+  }
 }
 
 interface NearbyOrder {
@@ -143,12 +185,12 @@ interface NearbyOrder {
 }
 
 /** Polls until a published order is within reach, then returns it. */
-async function waitForOrder(token: string): Promise<NearbyOrder> {
+async function waitForOrder(driver: Session): Promise<NearbyOrder> {
   const [lat, lng] = ROUTE[0]!;
   for (;;) {
-    const orders = await call<NearbyOrder[]>(`/orders/nearby?lat=${lat}&lng=${lng}&radiusKm=50`, {
-      token,
-    });
+    const orders = await driver.call<NearbyOrder[]>(
+      `/orders/nearby?lat=${lat}&lng=${lng}&radiusKm=50`,
+    );
     if (orders.length > 0) return orders[0]!;
     process.stdout.write('.');
     await sleep(POLL_INTERVAL_MS);
@@ -156,9 +198,9 @@ async function waitForOrder(token: string): Promise<NearbyOrder> {
 }
 
 /** Polls the driver's deliveries until this order's offer has been accepted. */
-async function waitForAcceptance(token: string, orderId: string): Promise<{ id: string }> {
+async function waitForAcceptance(driver: Session, orderId: string): Promise<{ id: string }> {
   for (;;) {
-    const deliveries = await call<Array<{ id: string; orderId: string }>>('/deliveries', { token });
+    const deliveries = await driver.call<Array<{ id: string; orderId: string }>>('/deliveries');
     const mine = deliveries.find((d) => d.orderId === orderId);
     if (mine !== undefined) return mine;
     process.stdout.write('.');
@@ -193,31 +235,88 @@ async function main(): Promise<void> {
   console.log(`Kaya simulated driver -> ${API}\n`);
 
   console.log('Accounts:');
-  const clientToken = await ensureAccount(CLIENT);
-  const driverToken = await ensureAccount(DRIVER);
-  void clientToken;
+  const client = new Session(CLIENT);
+  await client.ensure();
+  const driver = new Session(DRIVER);
+  await driver.ensure();
+
+  // Nothing bids while offline: OffersService refuses, and the flag defaults
+  // to false. Running this script on a clean seed is what surfaced that no
+  // endpoint anywhere set it -- POST /driver/status exists because of that.
+  await driver.call('/driver/status', {
+    method: 'POST',
+    body: JSON.stringify({ online: true }),
+  });
+  console.log('  driver online');
+
+  // An accepted order leaves /orders/nearby, so a restarted script would poll
+  // there forever while its delivery sat accepted-but-never-started. Resuming
+  // is the difference between "restart the demo" and "re-seed the database"
+  // after any mid-demo crash or restart.
+  const standing = await driver.call<
+    Array<{ id: string; status: string; startTime: string | null; deliveryTime: string | null }>
+  >('/deliveries');
+  const resumable = standing.find(
+    (d) => d.startTime === null && d.deliveryTime === null && d.status !== 'cancelled',
+  );
+  if (resumable !== undefined) {
+    console.log(`  resuming accepted delivery ${resumable.id}`);
+    await runDelivery(driver, resumable.id);
+    return;
+  }
 
   console.log(`\nSign into the app as ${CLIENT.phone}, then create an order.`);
   process.stdout.write('Waiting for a published order');
 
-  const order = await waitForOrder(driverToken);
+  const order = await waitForOrder(driver);
   console.log(`\n  found order ${order.id}`);
 
   const suggested = Number(order.minPriceSuggested ?? order.min_price_suggested ?? 20);
   const proposedPrice = Math.round(suggested * 1.1 * 100) / 100;
-  await call(`/orders/${order.id}/offers`, {
-    method: 'POST',
-    token: driverToken,
-    body: JSON.stringify({ proposedPrice }),
-  });
-  console.log(`  offered ${proposedPrice}`);
+  try {
+    await driver.call(`/orders/${order.id}/offers`, {
+      method: 'POST',
+      body: JSON.stringify({ proposedPrice }),
+    });
+    console.log(`  offered ${proposedPrice}`);
+  } catch (err) {
+    // A previous run of this script already bid on this order; the offer is
+    // still standing server-side, so resume waiting instead of dying. That is
+    // exactly what happens when the script is restarted after a token-expiry
+    // crash mid-demo.
+    if (!/409/.test((err as Error).message)) throw err;
+    console.log('  offer already standing, resuming');
+  }
 
   process.stdout.write('Waiting for the client to accept');
-  const delivery = await waitForAcceptance(driverToken, order.id);
+  const delivery = await waitForAcceptance(driver, order.id);
   console.log(`\n  accepted -> delivery ${delivery.id}`);
 
-  const socket = connectSocket(driverToken);
-  await call(`/deliveries/${delivery.id}/start`, { method: 'POST', token: driverToken });
+  await runDelivery(driver, delivery.id);
+}
+
+/** Polls until the client's payment is held in escrow -- /start refuses before. */
+async function waitForEscrow(driver: Session, deliveryId: string): Promise<void> {
+  process.stdout.write('Waiting for the client to pay (escrow)');
+  for (;;) {
+    const deliveries = await driver.call<Array<{ id: string; clientPaymentStatus: string }>>(
+      '/deliveries',
+    );
+    const mine = deliveries.find((d) => d.id === deliveryId);
+    if (mine?.clientPaymentStatus === 'escrow_held') {
+      console.log('\n  escrow held');
+      return;
+    }
+    process.stdout.write('.');
+    await sleep(POLL_INTERVAL_MS);
+  }
+}
+
+/** Start-to-delivered: the whole course, positions interleaved with states. */
+async function runDelivery(driver: Session, deliveryId: string): Promise<void> {
+  await waitForEscrow(driver, deliveryId);
+  const socket = connectSocket(driver.accessToken);
+  await driver.call(`/deliveries/${deliveryId}/start`, { method: 'POST' });
   console.log('  started (en route)');
 
   // Positions and state changes are interleaved so the client sees the marker
@@ -229,24 +328,22 @@ async function main(): Promise<void> {
     ticks += 1;
 
     if (ticks === 6) {
-      await call(`/deliveries/${delivery.id}/pickup`, {
+      await driver.call(`/deliveries/${deliveryId}/pickup`, {
         method: 'POST',
-        token: driverToken,
         body: JSON.stringify({}),
       });
       console.log('  picked up');
     }
     if (ticks === 10) {
-      await call(`/deliveries/${delivery.id}/transit`, { method: 'POST', token: driverToken });
+      await driver.call(`/deliveries/${deliveryId}/transit`, { method: 'POST' });
       console.log('  in transit');
     }
 
     await sleep(POSITION_INTERVAL_MS);
   }
 
-  await call(`/deliveries/${delivery.id}/confirm-delivery`, {
+  await driver.call(`/deliveries/${deliveryId}/confirm-delivery`, {
     method: 'POST',
-    token: driverToken,
     body: JSON.stringify({}),
   });
   console.log('  delivered');

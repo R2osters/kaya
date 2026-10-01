@@ -1,3 +1,4 @@
+import type { Href } from "expo-router";
 import type { AuthStatus } from "../state/authStore";
 
 /**
@@ -12,7 +13,10 @@ import type { AuthStatus } from "../state/authStore";
  *
  * Returns the path to redirect to, or `null` to stay where the app already is.
  */
-export function resolveAuthRedirect(status: AuthStatus, loc: string): string | null {
+// `Href`, not a bare string: every destination below is a literal, so a route
+// renamed out from under this guard is a compile error here rather than a
+// redirect to a screen that no longer exists.
+export function resolveAuthRedirect(status: AuthStatus, loc: string): Href | null {
   // Rule 1: while the status is unknown (token not read from the keychain
   // yet), hold on the splash route and go nowhere else. This is what stops a
   // signed-in driver seeing the welcome screen for a frame.

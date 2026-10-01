@@ -77,3 +77,40 @@ describe('StaticGeocodingProvider', () => {
     expect(osu?.lng).toBeCloseTo(-0.18, 1);
   });
 });
+
+describe('StaticGeocodingProvider.reverse', () => {
+  const provider = new StaticGeocodingProvider();
+
+  it('names a position from the nearest seeded landmark', async () => {
+    // Standing in Osu.
+    const result = await provider.reverse({ lat: 5.5606, lng: -0.1824 });
+
+    expect(result?.label).toContain('Osu');
+  });
+
+  it('keeps the caller position, not the landmark centroid', async () => {
+    // This backs "use my position": the position is the point, the label is
+    // context. Returning the landmark's coordinate would move a pickup pin
+    // and price the delivery from somewhere the user is not.
+    const here = { lat: 5.5701, lng: -0.1799 };
+
+    const result = await provider.reverse(here);
+
+    expect(result?.lat).toBe(here.lat);
+    expect(result?.lng).toBe(here.lng);
+  });
+
+  it('names a Lome position from a Togolese landmark, not a Ghanaian one', async () => {
+    const result = await provider.reverse({ lat: 6.1319, lng: 1.2228 });
+
+    expect(result?.countryCode).toBe('TG');
+  });
+
+  it('resolves null rather than naming a place hundreds of km away', async () => {
+    // A label saying "Osu, Accra" for someone far outside the launch cities
+    // is worse than no label: the driver reads it, and it is a lie.
+    const result = await provider.reverse({ lat: 9.4, lng: -0.84 });
+
+    expect(result).toBeNull();
+  });
+});

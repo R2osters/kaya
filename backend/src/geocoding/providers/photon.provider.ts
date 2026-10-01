@@ -4,6 +4,7 @@ import {
   GeocodeQuery,
   GeocodeSuggestion,
   GeocodingProvider,
+  ReverseGeocodeQuery,
 } from '../geocoding-provider.interface';
 import { StaticGeocodingProvider } from './static.provider';
 
@@ -95,6 +96,49 @@ export class PhotonProvider implements GeocodingProvider {
         `Photon geocoding failed (${(err as Error).message}); using the static provider.`,
       );
       return this.fallback.search(query);
+    }
+  }
+
+  /**
+   * Photon's `/reverse` endpoint. Backs "use my position" in the apps.
+   *
+   * Degrades the same way `search` does, and for the same reason: a user who
+   * tapped a button to save themselves typing gets the nearest seeded landmark
+   * instead of an error in the middle of creating an order.
+   */
+  async reverse(query: ReverseGeocodeQuery): Promise<GeocodeSuggestion | null> {
+    const baseUrl = this.config.get('PHOTON_BASE_URL').replace(/\/+$/, '');
+
+    try {
+      const url = new URL(`${baseUrl}/reverse`);
+      url.searchParams.set('lat', String(query.lat));
+      url.searchParams.set('lon', String(query.lng));
+      url.searchParams.set('limit', '1');
+      if (query.language) url.searchParams.set('lang', query.language);
+
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(PhotonProvider.TIMEOUT_MS),
+        headers: { 'User-Agent': 'kaya-backend' },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const body = (await res.json()) as PhotonResponse;
+      const feature = (Array.isArray(body.features) ? body.features : [])[0];
+      if (feature === undefined) return null;
+
+      const suggestion = toSuggestion(feature);
+      if (suggestion === null) return null;
+      // The requested position is what the order is priced and routed from;
+      // the address is a label for it. Photon answers with the matched
+      // feature's own centroid, which for a large feature (a whole
+      // neighbourhood) can sit hundreds of metres from where the user is
+      // standing -- and that difference would silently become the pickup pin.
+      return { ...suggestion, lat: query.lat, lng: query.lng };
+    } catch (err) {
+      this.logger.warn(
+        `Photon reverse geocoding failed (${(err as Error).message}); using the static provider.`,
+      );
+      return this.fallback.reverse(query);
     }
   }
 }

@@ -1,9 +1,10 @@
 import { toApiFailure } from "@kaya/core";
-import { KayaButton, KayaTextField, colors, radii, spacing, typography } from "@kaya/ui";
+import { KayaScreenHeader, KayaButton, KayaTextField, colors, radii, spacing, typography } from "@kaya/ui";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useGoBack } from "../../src/navigation/useGoBack";
 import { useSignIn } from "../../src/queries/auth";
 
 /**
@@ -24,6 +25,7 @@ import { useSignIn } from "../../src/queries/auth";
  */
 export default function LoginScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const router = useRouter();
   const [phone, setPhone] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -54,9 +56,7 @@ export default function LoginScreen() {
       testID="login-screen"
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={typography.screenTitle} testID="login-screen-title">
-        {t("screenLogin")}
-      </Text>
+      <KayaScreenHeader title={t("screenLogin")} onBack={goBack} testID="login-screen" />
 
       <View style={styles.notice}>
         <Text style={typography.caption} testID="login-dev-notice">
@@ -112,7 +112,7 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.xxl, gap: spacing.lg },
+  content: { padding: spacing.lg, gap: spacing.lg },
   notice: {
     backgroundColor: colors.amberTint,
     borderRadius: radii.cardTight,

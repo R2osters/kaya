@@ -1,8 +1,11 @@
 import { COUNTRIES, COUNTRY_CODES, toApiFailure } from "@kaya/core";
 import {
+  KayaAnimatedListItem,
   KayaButton,
   KayaCard,
+  KayaScreenHeader,
   KayaTextField,
+  KayaTimeline,
   colors,
   radii,
   spacing,
@@ -12,6 +15,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useGoBack } from "../../src/navigation/useGoBack";
 import { useRegister } from "../../src/queries/authFlows";
 
 const STEPS = ["authStepContact", "authStepIdentity", "authStepSecurity"] as const;
@@ -38,6 +42,7 @@ const STEPS = ["authStepContact", "authStepIdentity", "authStepSecurity"] as con
  */
 export default function RegisterScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const router = useRouter();
 
   const [step, setStep] = useState(0);
@@ -86,22 +91,24 @@ export default function RegisterScreen() {
       testID="register-screen"
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={typography.screenTitle} testID="register-screen-title">
-        {t("authRegister")}
-      </Text>
+      <KayaScreenHeader title={t("authRegister")} onBack={goBack} testID="register-screen" />
 
-      <View style={styles.steps} testID="register-steps">
-        {STEPS.map((label, index) => (
-          <View
-            key={label}
-            style={[styles.stepBar, index <= step && styles.stepBarDone]}
-            testID={`register-step-${index}${index <= step ? "-done" : ""}`}
-          />
-        ))}
+      <View testID="register-steps">
+        <KayaTimeline
+          count={STEPS.length}
+          step={step}
+          accessibilityLabel={t("authRegister")}
+          testID="register"
+        />
       </View>
-      <Text style={typography.bodyStrong} testID="register-step-label">
-        {t(STEPS[step] ?? STEPS[0])}
-      </Text>
+      {/* Keyed on the step so the heading arrives with the bar rather than
+          swapping under it -- the only feedback a wizard gives that "next"
+          did anything. */}
+      <KayaAnimatedListItem key={step}>
+        <Text style={typography.bodyStrong} testID="register-step-label">
+          {t(STEPS[step] ?? STEPS[0])}
+        </Text>
+      </KayaAnimatedListItem>
 
       {step === 0 && (
         <>
@@ -216,10 +223,7 @@ export default function RegisterScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.xxl, gap: spacing.md },
-  steps: { flexDirection: "row", gap: spacing.sm },
-  stepBar: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.borderSoft },
-  stepBarDone: { backgroundColor: colors.primary },
+  content: { padding: spacing.lg, gap: spacing.md },
   countries: { gap: spacing.sm },
   countryRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   country: {

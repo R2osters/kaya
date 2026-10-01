@@ -12,7 +12,11 @@ describe('DriverService.withdraw', () => {
       user: {
         findUniqueOrThrow: jest
           .fn()
-          .mockResolvedValue({ id: 'driver1', balance: new Prisma.Decimal('200.00'), countryCode: 'GHA' }),
+          .mockResolvedValue({
+            id: 'driver1',
+            balance: new Prisma.Decimal('200.00'),
+            countryCode: 'GHA',
+          }),
         update: jest.fn(),
       },
       countryConfig: {
@@ -34,7 +38,12 @@ describe('DriverService.withdraw', () => {
   };
 
   function service(prisma: unknown) {
-    return new DriverService(prisma as never, config as never, ledger as never, commission as never);
+    return new DriverService(
+      prisma as never,
+      config as never,
+      ledger as never,
+      commission as never,
+    );
   }
 
   beforeEach(() => jest.clearAllMocks());
@@ -43,7 +52,9 @@ describe('DriverService.withdraw', () => {
     const prisma = makePrisma();
     const tx = {
       user: { update: jest.fn() },
-      withdrawal: { create: jest.fn().mockResolvedValue({ id: 'w1', feeAmount: new Prisma.Decimal('1.50') }) },
+      withdrawal: {
+        create: jest.fn().mockResolvedValue({ id: 'w1', feeAmount: new Prisma.Decimal('1.50') }),
+      },
     };
     prisma.$transaction.mockImplementation(async (cb: (t: unknown) => unknown) => cb(tx));
 
@@ -62,7 +73,9 @@ describe('DriverService.withdraw', () => {
   it('rejects a second withdrawal on the same day', async () => {
     const prisma = makePrisma();
     prisma.withdrawal.count.mockResolvedValue(1);
-    await expect(service(prisma).withdraw('driver1', dto)).rejects.toBeInstanceOf(ConflictException);
+    await expect(service(prisma).withdraw('driver1', dto)).rejects.toBeInstanceOf(
+      ConflictException,
+    );
   });
 
   it('rejects an amount above the balance', async () => {
@@ -81,5 +94,32 @@ describe('DriverService.withdraw', () => {
     await expect(
       service(prisma).withdraw('driver1', { ...dto, method: WithdrawalMethod.bank_transfer }),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+});
+
+describe('setOnline', () => {
+  it('flips the flag and returns the stored value', async () => {
+    const prisma = {
+      user: {
+        update: jest.fn().mockResolvedValue({ isOnline: true }),
+      },
+    };
+    const service = new DriverService(prisma as never, {} as never, {} as never, {} as never);
+
+    await expect(service.setOnline('driver-1', true)).resolves.toEqual({ isOnline: true });
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: 'driver-1' },
+      data: { isOnline: true },
+      select: { isOnline: true },
+    });
+  });
+
+  it('can go offline again', async () => {
+    const prisma = {
+      user: { update: jest.fn().mockResolvedValue({ isOnline: false }) },
+    };
+    const service = new DriverService(prisma as never, {} as never, {} as never, {} as never);
+
+    await expect(service.setOnline('driver-1', false)).resolves.toEqual({ isOnline: false });
   });
 });

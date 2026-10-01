@@ -34,7 +34,11 @@ export class PaymentsService {
    * Client initializes an escrow payment for their accepted delivery. Creates a
    * pending payment_in ledger row and returns the hosted-checkout URL.
    */
-  async initialize(clientId: string, deliveryId: string) {
+  async initialize(
+    clientId: string,
+    deliveryId: string,
+    opts: { callbackUrl?: string; publicBaseUrl?: string } = {},
+  ) {
     const delivery = await this.prisma.delivery.findUnique({
       where: { id: deliveryId },
       include: { order: true },
@@ -81,6 +85,8 @@ export class PaymentsService {
       reference,
       customerEmail: client.email,
       customerPhone: client.phone,
+      callbackUrl: opts.callbackUrl,
+      publicBaseUrl: opts.publicBaseUrl,
       metadata: { deliveryId },
     });
 
@@ -187,6 +193,24 @@ export class PaymentsService {
       await this.ledger.markStatus(tx.id, TransactionStatus.failed);
     }
     return { reference, status: success ? 'success' : 'failed' };
+  }
+
+  /**
+   * Dev-only: what the mock checkout page needs to render -- the amount and
+   * where the payment stands. Read-only; the page's buttons go through
+   * `completeMock`.
+   */
+  async mockCheckout(reference: string) {
+    const tx = await this.ledger.findByReference(reference);
+    if (!tx) {
+      throw new NotFoundException('Payment not found.');
+    }
+    return {
+      reference,
+      amount: Number(tx.amount),
+      currency: tx.currency,
+      status: tx.status,
+    };
   }
 
   // --- internals ----------------------------------------------------------

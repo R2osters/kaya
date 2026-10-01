@@ -98,4 +98,25 @@ describe("queryKeys", () => {
       expect(queryKeys.priceQuote(null, null)).not.toEqual(queryKeys.priceQuote(OSU, null));
     });
   });
+
+  describe("driver money", () => {
+    it("nests balance, earnings and stats under one prefix", () => {
+      // Settling a delivery moves all three at once. The nesting is what lets
+      // that be a single invalidation instead of three that can drift apart.
+      const prefix = queryKeys.driver();
+
+      for (const key of [
+        queryKeys.driverBalance(),
+        queryKeys.driverEarnings(),
+        queryKeys.driverStats(),
+      ]) {
+        expect(key.slice(0, prefix.length)).toEqual([...prefix]);
+      }
+    });
+
+    it("keeps the three apart from each other", () => {
+      expect(queryKeys.driverBalance()).not.toEqual(queryKeys.driverEarnings());
+      expect(queryKeys.driverEarnings()).not.toEqual(queryKeys.driverStats());
+    });
+  });
 });

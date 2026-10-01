@@ -1,3 +1,5 @@
+import type { Href } from "expo-router";
+
 /**
  * Every route this app declares, grouped for the shell's route explorer.
  *
@@ -12,7 +14,16 @@
 export interface RouteGroup {
   /** i18n key for the group heading. */
   titleKey: string;
-  routes: { href: string; titleKey: string }[];
+  // Checked against the generated route tree, not a bare string: this index is
+  // a hand-maintained list of routes, exactly the kind that rots silently.
+  // Typed this way, a route deleted or renamed breaks the build here instead
+  // of leaving a dead entry in the explorer.
+  //
+  // The string arm of `Href` rather than `Href` itself: these values are also
+  // used as React keys and compared against `usePathname()`, neither of which
+  // accepts the `{ pathname, params }` form, and a static index has no use for
+  // it anyway.
+  routes: { href: Extract<Href, string>; titleKey: string }[];
 }
 
 export const ROUTE_GROUPS: RouteGroup[] = [

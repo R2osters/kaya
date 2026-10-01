@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useGoBack } from "../src/navigation/useGoBack";
 import {
   BottomSheetShell,
   EmptyState,
@@ -18,6 +19,7 @@ import {
   StatusPill,
   dropoffMarker,
   pickupMarker,
+  KayaScreenHeader,
   spacing,
   typography,
   vehicleMarker,
@@ -50,6 +52,7 @@ import {
  */
 export default function ShowcaseScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [fieldValue, setFieldValue] = useState("");
 
@@ -61,7 +64,7 @@ export default function ShowcaseScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.content} testID="showcase-screen">
-      <Text style={typography.screenTitle}>{t("screenShowcase")}</Text>
+      <KayaScreenHeader title={t("screenShowcase")} onBack={goBack} testID="showcase-screen" />
 
       <Section title="KayaButton">
         <KayaButton label={t("actionContinue")} onPress={() => {}} testID="showcase-button-primary" />

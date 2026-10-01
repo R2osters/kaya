@@ -11,6 +11,15 @@ export interface PaymentInitInput {
   reference: string;
   customerEmail: string;
   customerPhone?: string;
+  /** Deep link the hosted checkout sends the user back to when done. */
+  callbackUrl?: string;
+  /**
+   * The backend's own base URL as the paying device sees it (from the
+   * initialize request's Host header). Only the mock gateway needs it: its
+   * "hosted checkout" is a page this backend serves, and localhost on an
+   * emulator is the emulator, not this machine.
+   */
+  publicBaseUrl?: string;
   metadata?: Record<string, unknown>;
 }
 

@@ -37,6 +37,12 @@ export const colors = Object.freeze({
   // Colors.black54); this is the same idea, tinted from `ink` rather than
   // pure black to stay in the palette's own hue.
   scrim: "rgba(11, 18, 32, 0.55)",
+
+  // The tint a glass surface sits on: 78% white, so type on a floating bar
+  // stays legible over whatever the map happens to be showing underneath. The
+  // blur alone does not guarantee that — a dark satellite tile blurs to a dark
+  // smear — which is why the design specifies a tint *and* an intensity.
+  glassTint: "rgba(255, 255, 255, 0.78)",
 } as const);
 
 export type ColorToken = keyof typeof colors;

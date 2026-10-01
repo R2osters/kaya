@@ -32,6 +32,11 @@ export const typography = deepFreeze({
 
   price: { fontFamily: "Inter", fontSize: 20, fontWeight: "800", lineHeight: 22, letterSpacing: -0.3, color: colors.ink },
   priceLarge: { fontFamily: "Inter", fontSize: 26, fontWeight: "800", lineHeight: 29, letterSpacing: -0.4, color: colors.ink },
+  // One step above priceLarge, and it exists for exactly one job: an amount
+  // the user is *typing*. A driver entering a bid does it one-handed, in
+  // sunlight, often propped on a bike — 26 is the right size to read a price
+  // and too small to edit one. Everywhere else priceLarge stays the largest.
+  priceXL: { fontFamily: "Inter", fontSize: 34, fontWeight: "800", lineHeight: 38, letterSpacing: -0.6, color: colors.ink },
 
   overline: { fontFamily: "Inter", fontSize: 12, fontWeight: "700", letterSpacing: 1.1, color: colors.inkTertiary },
   button: { fontFamily: "Inter", fontSize: 16, fontWeight: "700", color: colors.surface },

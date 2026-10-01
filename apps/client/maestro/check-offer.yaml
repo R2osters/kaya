@@ -1,0 +1,44 @@
+appId: com.kaya.kaya_client
+name: See the driver's bid on the offers screen
+---
+- launchApp
+
+- extendedWaitUntil:
+    visible:
+      id: "welcome-screen"
+    timeout: 40000
+- tapOn:
+    id: "welcome-login"
+- extendedWaitUntil:
+    visible:
+      id: "login-screen"
+    timeout: 20000
+- tapOn:
+    id: "login-phone-input"
+- inputText: "+233209998887"
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 30000
+
+- tapOn: "Historique"
+- extendedWaitUntil:
+    visible:
+      id: "history-order-0"
+    timeout: 20000
+- tapOn:
+    id: "history-order-0"
+
+- extendedWaitUntil:
+    visible:
+      id: "offers-screen"
+    timeout: 20000
+- extendedWaitUntil:
+    visible:
+      id: "offer-0"
+    timeout: 20000
+- takeScreenshot: "offer-live"

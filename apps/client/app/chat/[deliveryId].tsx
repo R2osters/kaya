@@ -1,8 +1,10 @@
 import { toApiFailure, type Message } from "@kaya/core";
 import {
   EmptyState,
+  KayaAnimatedListItem,
   KayaButton,
   KayaSkeletonList,
+  KayaScreenHeader,
   KayaTextField,
   colors,
   radii,
@@ -14,6 +16,7 @@ import { MessageCircle } from "lucide-react-native";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList, StyleSheet, Text, View } from "react-native";
+import { useGoBack } from "../../src/navigation/useGoBack";
 import { useMessages, useSendMessage } from "../../src/queries/messages";
 import { useAuthStore } from "../../src/state/authStore";
 
@@ -32,6 +35,7 @@ import { useAuthStore } from "../../src/state/authStore";
  */
 export default function ChatScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const { deliveryId } = useLocalSearchParams<{ deliveryId: string }>();
 
   const messages = useMessages(deliveryId);
@@ -56,9 +60,7 @@ export default function ChatScreen() {
 
   return (
     <View style={styles.screen} testID="chat-screen">
-      <Text style={typography.screenTitle} testID="chat-screen-title">
-        {t("screenChat")}
-      </Text>
+      <KayaScreenHeader title={t("screenChat")} onBack={goBack} testID="chat-screen" />
 
       {messages.isPending ? (
         <KayaSkeletonList count={4} testID="chat-loading" />
@@ -108,20 +110,34 @@ export default function ChatScreen() {
 
 function Bubble({ message, mine, index }: { message: Message; mine: boolean; index: number }) {
   return (
-    <View
-      style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}
-      testID={`chat-message-${index}${mine ? "-mine" : ""}`}
+    // Inbound messages arrive over the socket while the user is reading the
+    // thread -- the one list in the app where a row appearing between two
+    // frames is indistinguishable from having misread the previous frame.
+    // Outbound ones arrive too, a beat after the composer empties, and the
+    // entrance is what ties the emptied field to the bubble that replaced it.
+    <KayaAnimatedListItem
+      index={index}
+      style={mine ? styles.bubbleRowMine : styles.bubbleRowTheirs}
     >
-      <Text style={mine ? styles.bubbleMineText : typography.body}>
-        {message.messageText ?? ""}
-      </Text>
-    </View>
+      <View
+        style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}
+        testID={`chat-message-${index}${mine ? "-mine" : ""}`}
+      >
+        <Text style={mine ? styles.bubbleMineText : typography.body}>
+          {message.messageText ?? ""}
+        </Text>
+      </View>
+    </KayaAnimatedListItem>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background, padding: spacing.xxl, gap: spacing.md },
+  screen: { flex: 1, backgroundColor: colors.background, padding: spacing.lg, gap: spacing.md },
   list: { gap: spacing.sm, paddingBottom: spacing.md },
+  // The animated wrapper now sits in the list, so the side a bubble takes is
+  // decided on it rather than on the bubble it contains.
+  bubbleRowMine: { alignItems: "flex-end" },
+  bubbleRowTheirs: { alignItems: "flex-start" },
   bubble: {
     maxWidth: "80%",
     paddingVertical: spacing.sm,

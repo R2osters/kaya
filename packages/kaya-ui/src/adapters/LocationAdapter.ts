@@ -2,6 +2,31 @@ import type { GeoPoint, LocationProvider, LocationWatchOptions } from "@kaya/cor
 import * as Location from "expo-location";
 
 /**
+ * How long a first fix is worth waiting for before falling back to the last
+ * known position. Long enough for a warm GPS outdoors, short enough that a
+ * screen waiting on it does not look frozen.
+ */
+const FIX_TIMEOUT_MS = 6_000;
+
+/** Resolves the promise's value, or null once `ms` have passed. */
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<null>((resolve) => {
+        timer = setTimeout(() => resolve(null), ms);
+      }),
+    ]);
+  } finally {
+    // The loser keeps running -- there is no cancelling a native read -- but
+    // its timer must not hold the JS runtime awake for six seconds after
+    // every call.
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
+/**
  * Platform-backed LocationProvider on expo-location. This is the concrete
  * half of the LocationProvider interface @kaya/core declares — see
  * packages/kaya-core/src/platform/location.ts.
@@ -18,8 +43,29 @@ export class LocationAdapter implements LocationProvider {
       return null;
     }
     try {
-      const position = await Location.getCurrentPositionAsync({});
-      return { lat: position.coords.latitude, lng: position.coords.longitude };
+      // Bounded, and last-known as the fallback. `getCurrentPositionAsync`
+      // does not fail when there is no satellite fix -- it waits, and it can
+      // wait forever: inside a covered market, in a stairwell, or on an
+      // emulator with no injected location. A caller awaiting it has no
+      // failure to render and no result either, so the screen sits on its
+      // loading state indefinitely (seen on the emulator, where the driver's
+      // nearby list showed skeletons that could never resolve).
+      //
+      // A position from a minute ago is worth far more here than a perfect
+      // one that never arrives: everything reading this -- a nearby search, a
+      // map's initial centre -- is answering "roughly where am I", and the
+      // watch that follows corrects it within seconds.
+      const position = await withTimeout(
+        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+        FIX_TIMEOUT_MS,
+      );
+      if (position !== null) {
+        return { lat: position.coords.latitude, lng: position.coords.longitude };
+      }
+      const lastKnown = await Location.getLastKnownPositionAsync();
+      return lastKnown === null
+        ? null
+        : { lat: lastKnown.coords.latitude, lng: lastKnown.coords.longitude };
     } catch {
       // A recoverable read failure (GPS off, no fix yet, a transient
       // platform error) degrades to null for the same reason

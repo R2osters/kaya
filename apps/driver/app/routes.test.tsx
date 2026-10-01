@@ -45,64 +45,68 @@ interface RouteRow {
   pathname: string;
   testID: string;
   key: keyof typeof resources.fr.translation;
+  /**
+   * Set once phase 3 replaced the placeholder with the real screen.
+   *
+   * It still has to exist and still has to resolve to its expected pathname --
+   * those two checks are what stop a route quietly disappearing -- but it no
+   * longer renders the placeholder body, and it may need providers (a
+   * QueryClient, a router) that this suite deliberately does not mount. Its
+   * own suite covers it instead.
+   */
+  implemented?: true;
 }
 
 const ROUTES: RouteRow[] = [
   { file: "splash.tsx", pathname: "/splash", testID: "splash-screen", key: "screenSplash" },
-  { file: "(auth)/welcome.tsx", pathname: "/welcome", testID: "welcome-screen", key: "screenWelcome" },
-  { file: "(auth)/login.tsx", pathname: "/login", testID: "login-screen", key: "screenLogin" },
+  { file: "(auth)/welcome.tsx", pathname: "/welcome", testID: "welcome-screen", key: "screenWelcome", implemented: true },
+  { file: "(auth)/login.tsx", pathname: "/login", testID: "login-screen", key: "screenLogin", implemented: true },
   {
     file: "(auth)/login-verify.tsx",
     pathname: "/login-verify",
     testID: "login-verify-screen",
     key: "screenLoginVerify",
   },
-  { file: "(auth)/register.tsx", pathname: "/register", testID: "register-screen", key: "screenRegister" },
+  { file: "(auth)/register.tsx", pathname: "/register", testID: "register-screen", key: "screenRegister", implemented: true },
   {
     file: "(auth)/password-reset.tsx",
     pathname: "/password-reset",
     testID: "password-reset-screen",
-    key: "screenPasswordReset",
-  },
+    key: "screenPasswordReset", implemented: true },
   {
     file: "verify-documents.tsx",
     pathname: "/verify-documents",
     testID: "verify-documents-screen",
-    key: "screenVerifyDocuments",
-  },
-  { file: "(tabs)/home.tsx", pathname: "/home", testID: "home-screen", key: "screenHome" },
-  { file: "(tabs)/earnings.tsx", pathname: "/earnings", testID: "earnings-screen", key: "screenEarnings" },
-  { file: "(tabs)/inbox.tsx", pathname: "/inbox", testID: "inbox-screen", key: "screenInbox" },
-  { file: "(tabs)/profile.tsx", pathname: "/profile", testID: "profile-screen", key: "screenProfile" },
-  { file: "propose/[orderId].tsx", pathname: "/propose/[orderId]", testID: "propose-screen", key: "screenPropose" },
+    key: "screenVerifyDocuments", implemented: true },
+  { file: "(tabs)/home.tsx", pathname: "/home", testID: "home-screen", key: "screenHome", implemented: true },
+  { file: "(tabs)/earnings.tsx", pathname: "/earnings", testID: "earnings-screen", key: "screenEarnings", implemented: true },
+  { file: "(tabs)/inbox.tsx", pathname: "/inbox", testID: "inbox-screen", key: "screenInbox", implemented: true },
+  { file: "(tabs)/profile.tsx", pathname: "/profile", testID: "profile-screen", key: "screenProfile", implemented: true },
+  { file: "propose/[orderId].tsx", pathname: "/propose/[orderId]", testID: "propose-screen", key: "screenPropose", implemented: true },
   {
     file: "delivery/[deliveryId].tsx",
     pathname: "/delivery/[deliveryId]",
     testID: "delivery-screen",
-    key: "screenDelivery",
-  },
+    key: "screenDelivery", implemented: true },
   {
     file: "delivery-detail/[deliveryId].tsx",
     pathname: "/delivery-detail/[deliveryId]",
     testID: "delivery-detail-screen",
-    key: "screenDeliveryDetail",
-  },
-  { file: "stats.tsx", pathname: "/stats", testID: "stats-screen", key: "screenStats" },
-  { file: "history.tsx", pathname: "/history", testID: "history-screen", key: "screenHistory" },
-  { file: "withdraw.tsx", pathname: "/withdraw", testID: "withdraw-screen", key: "screenWithdraw" },
-  { file: "chat/[deliveryId].tsx", pathname: "/chat/[deliveryId]", testID: "chat-screen", key: "screenChat" },
+    key: "screenDeliveryDetail", implemented: true },
+  { file: "stats.tsx", pathname: "/stats", testID: "stats-screen", key: "screenStats", implemented: true },
+  { file: "history.tsx", pathname: "/history", testID: "history-screen", key: "screenHistory", implemented: true },
+  { file: "withdraw.tsx", pathname: "/withdraw", testID: "withdraw-screen", key: "screenWithdraw", implemented: true },
+  { file: "chat/[deliveryId].tsx", pathname: "/chat/[deliveryId]", testID: "chat-screen", key: "screenChat", implemented: true },
   {
     file: "rating/[deliveryId].tsx",
     pathname: "/rating/[deliveryId]",
     testID: "rating-screen",
-    key: "screenRating",
-  },
+    key: "screenRating", implemented: true },
   {
     file: "notifications.tsx",
     pathname: "/notifications",
     testID: "notifications-screen",
-    key: "screenNotifications",
-  },
+    key: "screenNotifications", implemented: true },
 ];
 
 /** expo-router's own file-path -> pathname conversion (see the import above). */
@@ -124,14 +128,17 @@ describe("driver route tree (task 5)", () => {
     expect(pathnameFor(file)).toBe(pathname);
   });
 
-  it.each(ROUTES)("$file renders its own translated name under testID $testID", ({ file, testID, key }) => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports -- a
-    // dynamic require, one per table row (see .eslintrc.cjs's override for
-    // app/**/*.test.tsx), so a single missing/broken route file fails only
-    // its own row instead of a static import at the top of this file
-    // aborting the whole suite before any assertion runs. Dynamic `import()`
-    // was tried first and rejected: Jest's CJS transform needs
-    // --experimental-vm-modules to support it at all.
+  it.each(ROUTES.filter((r) => r.implemented !== true))(
+    "$file renders its own translated name under testID $testID", ({ file, testID, key }) => {
+    // A dynamic require, one per table row, so a single missing or broken
+    // route file fails only its own row instead of a static import at the top
+    // of this file aborting the whole suite before any assertion runs.
+    // Dynamic `import()` was tried first and rejected: Jest's CJS transform
+    // needs --experimental-vm-modules to support it at all.
+    //
+    // No eslint-disable directive: the rule is already off for test files
+    // (eslint.config.mjs). One was here, and ESLint now reports it as unused
+    // -- it went unnoticed while lint could not start at all.
     const Screen = require(`./${file}`).default as ComponentType;
 
     render(

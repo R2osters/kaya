@@ -2,6 +2,7 @@ import { toApiFailure } from "@kaya/core";
 import {
   KayaButton,
   KayaCard,
+  KayaScreenHeader,
   KayaTextField,
   RatingStars,
   colors,
@@ -12,6 +13,8 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text } from "react-native";
+import { useGoBack } from "../../src/navigation/useGoBack";
+import { useDelivery } from "../../src/queries/deliveries";
 import { useRateDelivery } from "../../src/queries/ratings";
 
 /**
@@ -25,16 +28,24 @@ import { useRateDelivery } from "../../src/queries/ratings";
  */
 export default function RatingScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const router = useRouter();
   const { deliveryId } = useLocalSearchParams<{ deliveryId: string }>();
 
   const [score, setScore] = useState(0);
   const [comment, setComment] = useState("");
+  // The backend wants to know *who* is being rated and checks it against the
+  // delivery's participants; from this side that is always the driver. Fetched
+  // rather than passed as a param so a hand-crafted link cannot rate someone
+  // else, and the delivery is in cache anyway (tracking led here).
+  const delivery = useDelivery(deliveryId);
   const rate = useRateDelivery(deliveryId);
 
+  const toUserId = delivery.data?.livreurId;
+
   const submit = () => {
-    if (score === 0) return;
-    rate.mutate({ score, comment }, { onSuccess: () => router.replace("/home") });
+    if (score === 0 || toUserId === undefined) return;
+    rate.mutate({ score, comment, toUserId }, { onSuccess: () => router.replace("/home") });
   };
 
   const error =
@@ -47,9 +58,7 @@ export default function RatingScreen() {
       testID="rating-screen"
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={typography.screenTitle} testID="rating-screen-title">
-        {t("rateTitle")}
-      </Text>
+      <KayaScreenHeader title={t("rateTitle")} onBack={goBack} testID="rating-screen" />
 
       <KayaCard testID="rating-card">
         <RatingStars value={score} onRate={setScore} size={36} testID="rating-stars" />
@@ -73,9 +82,10 @@ export default function RatingScreen() {
         label={t("rateSubmit")}
         onPress={submit}
         loading={rate.isPending}
-        // Nothing to send until a score is chosen, and a disabled button says
-        // that better than an error message after the fact.
-        disabled={score === 0}
+        // Nothing to send until a score is chosen and the delivery (whose
+        // driver is the ratee) has loaded; a disabled button says that better
+        // than an error message after the fact.
+        disabled={score === 0 || toUserId === undefined}
         expand
         testID="rating-submit"
       />
@@ -85,6 +95,6 @@ export default function RatingScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.xxl, gap: spacing.lg },
+  content: { padding: spacing.lg, gap: spacing.lg },
   error: { ...typography.caption, color: colors.danger },
 });

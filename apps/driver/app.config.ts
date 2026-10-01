@@ -49,6 +49,13 @@ const config: ExpoConfig = {
   },
   android: {
     package: APPLICATION_ID,
+    // expo-image-picker's plugin declares storage and audio but not CAMERA,
+    // and `ImagePicker.requestCameraPermissionsAsync()` -- which
+    // ImageAdapter.capture() calls first -- resolves "denied" on Android
+    // whenever the manifest does not carry it. The pickup photo would then
+    // silently never be taken: the run continues without evidence and
+    // nothing says why.
+    permissions: ["android.permission.CAMERA"],
     adaptiveIcon: {
       backgroundColor: "#FFFFFF",
       foregroundImage: "./assets/android-icon-foreground.png",
@@ -59,7 +66,31 @@ const config: ExpoConfig = {
   web: {
     favicon: "./assets/favicon.png",
   },
-  plugins: ["expo-router"],
+  plugins: [
+    "expo-router",
+    // Two config plugins, two native permissions, both load-bearing on this
+    // side. Without them the manifest carries neither, and the failure is
+    // silent in the worst way: LocationAdapter reports "denied" forever, so
+    // the driver goes online and is never offered work, and the camera
+    // simply never opens at pickup. The strings are what the OS shows in the
+    // prompt, so they say what the app does with it -- an unexplained
+    // location prompt on a delivery app is the one most often refused.
+    [
+      "expo-location",
+      {
+        locationAlwaysAndWhenInUsePermission:
+          "Kaya uses your position to show you nearby deliveries and to let the client follow their package.",
+      },
+    ],
+    [
+      "expo-image-picker",
+      {
+        cameraPermission:
+          "Kaya uses the camera so you can photograph a package at pickup.",
+        photosPermission: "Kaya uses your photos so you can submit your documents.",
+      },
+    ],
+  ],
   experiments: {
     typedRoutes: true,
   },

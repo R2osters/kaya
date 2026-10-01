@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
-    padding: spacing.xxl,
+    padding: spacing.lg,
     justifyContent: "space-between",
   },
   copy: { flex: 1, justifyContent: "center", gap: spacing.md },

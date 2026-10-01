@@ -145,9 +145,14 @@ describe("OffersScreen", () => {
     // To payment, not tracking: the delivery is in escrow until it is paid
     // for, and sending a client to watch a driver they have not paid skips the
     // step the whole model rests on.
-    expect(mockReplace).toHaveBeenCalledWith(
-      "/payment?deliveryId=delivery-1&amount=30&currency=GHS",
-    );
+    //
+    // The object form rather than a hand-built query string: concatenation
+    // widened the href to a bare `string`, which the generated route tree
+    // rejects, and it left the three values unencoded.
+    expect(mockReplace).toHaveBeenCalledWith({
+      pathname: "/payment",
+      params: { deliveryId: "delivery-1", amount: 30, currency: "GHS" },
+    });
   });
 
   it("stops every Accept button while one acceptance is in flight", () => {

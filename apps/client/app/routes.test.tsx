@@ -57,7 +57,15 @@ interface RouteRow {
 }
 
 const ROUTES: RouteRow[] = [
-  { file: "splash.tsx", pathname: "/splash", testID: "splash-screen", key: "screenSplash" },
+  {
+    file: "splash.tsx",
+    pathname: "/splash",
+    testID: "splash-screen",
+    key: "screenSplash",
+    // Real branded screen (no i18n title on purpose -- the locale is being
+    // read from storage at exactly the moment this renders).
+    implemented: true,
+  },
   { file: "(auth)/welcome.tsx", pathname: "/welcome", testID: "welcome-screen", key: "screenWelcome",
     // Phase 2 slice C: real screen, covered by app/(auth)/auth-screens.test.tsx.
     implemented: true,
@@ -188,13 +196,15 @@ describe("client route tree (task 5)", () => {
   it.each(ROUTES.filter((r) => r.implemented !== true))(
     "$file renders its own translated name under testID $testID",
     ({ file, testID, key }) => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports -- a
-    // dynamic require, one per table row (see .eslintrc.cjs's override for
-    // app/**/*.test.tsx), so a single missing/broken route file fails only
-    // its own row instead of a static import at the top of this file
-    // aborting the whole suite before any assertion runs. Dynamic `import()`
-    // was tried first and rejected: Jest's CJS transform needs
-    // --experimental-vm-modules to support it at all.
+    // A dynamic require, one per table row, so a single missing or broken
+    // route file fails only its own row instead of a static import at the top
+    // of this file aborting the whole suite before any assertion runs.
+    // Dynamic `import()` was tried first and rejected: Jest's CJS transform
+    // needs --experimental-vm-modules to support it at all.
+    //
+    // No eslint-disable directive: the rule is already off for test files
+    // (eslint.config.mjs). One was here, and ESLint now reports it as unused
+    // -- it went unnoticed while lint could not start at all.
     const Screen = require(`./${file}`).default as ComponentType;
 
     render(

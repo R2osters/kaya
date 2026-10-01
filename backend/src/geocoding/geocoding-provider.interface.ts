@@ -62,7 +62,28 @@ export interface GeocodeQuery {
  * that every external integration has a mock/sandbox implementation usable
  * without a key.
  */
+export interface ReverseGeocodeQuery {
+  lat: number;
+  lng: number;
+  /** UI language for the returned label; "fr" or "en" (the app's two). */
+  language?: string;
+}
+
 export interface GeocodingProvider {
   readonly name: string;
   search(query: GeocodeQuery): Promise<GeocodeSuggestion[]>;
+  /**
+   * Turns a position back into an address.
+   *
+   * Backs "use my position" in the apps: without it that button can only
+   * produce a coordinate with no street name, so the order the driver picks
+   * up shows a map pin where an address belongs -- and support, reading a
+   * complaint later, has nothing to read.
+   *
+   * Resolves null when the position has no known address (offshore, deep
+   * bush, a gap in coverage) rather than throwing. The caller falls back to
+   * the raw coordinate, which is worse but still usable, and both are better
+   * than a screen that fails.
+   */
+  reverse(query: ReverseGeocodeQuery): Promise<GeocodeSuggestion | null>;
 }

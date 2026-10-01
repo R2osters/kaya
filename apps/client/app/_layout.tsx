@@ -1,10 +1,13 @@
 import { KayaI18nProvider } from "@kaya/ui";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Redirect, Stack, usePathname } from "expo-router";
+import { Redirect, Stack, useGlobalSearchParams, usePathname, type Href } from "expo-router";
 import { useEffect, useState } from "react";
+import { StyleSheet } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { registerAppMapProvider } from "../src/map/register";
 import { resolveAuthRedirect } from "../src/navigation/authGuard";
+import { usePushMessages } from "../src/push/usePushMessages";
 import { usePushRegistration } from "../src/push/usePushRegistration";
 import { useSocketBridge } from "../src/realtime/useSocketBridge";
 import { useAuthStore } from "../src/state/authStore";
@@ -54,6 +57,19 @@ function useLocaleRestoration(): void {
 function AuthGuard(): React.ReactElement | null {
   const status = useAuthStore((s) => s.status);
   const pathname = usePathname();
+  // usePathname strips the query string, but a displaced deep link must be
+  // stashed *with* it -- /payment/return without its ?reference= verifies
+  // nothing. Rebuilt here rather than read from Linking so it works for any
+  // navigation source expo-router understands.
+  const params = useGlobalSearchParams<Record<string, string | string[]>>();
+  const query = Object.entries(params)
+    .flatMap(([key, value]) =>
+      (Array.isArray(value) ? value : [value]).map(
+        (v) => `${encodeURIComponent(key)}=${encodeURIComponent(String(v))}`,
+      ),
+    )
+    .join("&");
+  const href = query === "" ? pathname : `${pathname}?${query}`;
   // Nothing rendered from the root layout may navigate on the first pass:
   // the <Stack> sibling below is what creates the navigator, and expo-router
   // throws "Attempted to navigate before mounting the Root Layout component"
@@ -69,10 +85,16 @@ function AuthGuard(): React.ReactElement | null {
 
   if (!navigatorMounted) return null;
 
-  const target = resolveAuthRedirect(status, pathname);
+  const target = resolveAuthRedirect(status, pathname, href);
   if (target === null) return null;
 
-  return <Redirect href={target} />;
+  // The one `Href` cast in the app, and it is the honest one: rule 3 replays
+  // the path a cold start arrived on, which comes from a deep link and can
+  // name anything at all. The guard deliberately stays typed as `string` for
+  // that reason -- claiming `Href` there would be a claim about a value the
+  // system does not control. An unmatched path lands on the not-found route,
+  // which is exactly what should happen to a bad link.
+  return <Redirect href={target as Href} />;
 }
 
 /**
@@ -87,6 +109,10 @@ function AuthGuard(): React.ReactElement | null {
 function SessionServices(): null {
   useSocketBridge();
   usePushRegistration();
+  // Registration only tells the backend where to send them; this is what
+  // listens. Without it a push arriving while the app is open does nothing,
+  // and a tap opens the app on whatever screen it was left on.
+  usePushMessages();
   return null;
 }
 
@@ -117,9 +143,14 @@ export default function RootLayout() {
   const locale = useLocaleStore((s) => s.locale);
 
   return (
-    <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
-        <KayaI18nProvider locale={locale}>
+    // Outermost, and it has to be: react-native-gesture-handler routes touches
+    // through a native root view, and a gesture mounted outside one silently
+    // never fires on Android. Mounted in both apps rather than only the one
+    // that needs it today, so the two shells stay the same shape.
+    <GestureHandlerRootView style={styles.root}>
+      <SafeAreaProvider>
+        <QueryClientProvider client={queryClient}>
+          <KayaI18nProvider locale={locale}>
           {/* Order matters. React runs effects child-first and, among
               siblings, in render order -- so AuthGuard rendered before
               <Stack> fires its redirect while the navigator does not exist
@@ -128,11 +159,20 @@ export default function RootLayout() {
               is what guarantees the navigator has mounted first. AuthGuard's
               own deferral is the second half of the fix; neither half was
               enough on its own on a real device. */}
-          <Stack screenOptions={{ headerShown: false }} />
-          <AuthGuard />
-          <SessionServices />
-        </KayaI18nProvider>
-      </QueryClientProvider>
-    </SafeAreaProvider>
+          {/* The stack's animation is declared rather than inherited: with
+              only `headerShown` set, a pushed screen used whatever the
+              platform happened to default to, which differs between Android
+              and iOS and left the app with two different ideas of what "going
+              deeper" looks like. `slide_from_right` is the one that matches
+              the back gesture both platforms already have. */}
+            <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }} />
+            <AuthGuard />
+            <SessionServices />
+          </KayaI18nProvider>
+        </QueryClientProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({ root: { flex: 1 } });

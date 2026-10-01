@@ -11,6 +11,8 @@ import {
   parseSocialLoginOutcome,
 } from "../models/auth";
 import { type AddressSuggestion, addressSuggestionSchema } from "../models/address";
+import { type CountryConfig, countryConfigSchema } from "../models/countryConfig";
+import type { GeoPoint } from "../models/geo";
 import { type Delivery, deliverySchema } from "../models/delivery";
 import { type Message, messageSchema } from "../models/message";
 import { type AppNotification, appNotificationSchema } from "../models/notification";
@@ -22,6 +24,7 @@ import { transactionSchema } from "../models/transaction";
 import { type User, userSchema } from "../models/user";
 import { type Withdrawal, withdrawalSchema } from "../models/withdrawal";
 import {
+  boolLike,
   dateLike,
   dateLikeOrNull,
   decimalLike,
@@ -93,6 +96,47 @@ const paymentVerifySchema = z.object({
 });
 
 export type PaymentVerification = z.infer<typeof paymentVerifySchema>;
+
+/** `POST /driver/status` answers with the flag as it now stands. */
+const driverStatusSchema = z.object({ isOnline: boolLike(false) });
+
+/** `POST /uploads/:prefix` answers with the private object key. */
+const uploadResultSchema = z.object({ key: stringLike() });
+
+/**
+ * `GET /drivers/nearby` answers `{ drivers: [{ lat, lng }] }`.
+ *
+ * A row missing either coordinate is dropped rather than defaulted: a pin at
+ * (0, 0) is in the Gulf of Guinea, which on a map of Accra reads as a driver
+ * several hundred kilometres out to sea.
+ */
+const nearbyDriversSchema = z.object({
+  drivers: z.unknown().transform((raw): GeoPoint[] =>
+    (Array.isArray(raw) ? raw : [])
+      .map((row) => (isPlainObject(row) ? row : {}))
+      .filter((row) => row.lat != null && row.lng != null)
+      .map((row) => ({ lat: Number(row.lat), lng: Number(row.lng) }))
+      .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng)),
+  ),
+});
+
+/**
+ * A multipart body carrying one local file.
+ *
+ * React Native's FormData accepts this `{uri, name, type}` shape for a file
+ * part; the DOM typings do not describe it, hence the cast. Appending the uri
+ * as a plain string instead uploads the *path text* as the file -- a 40-byte
+ * "image" the backend stores without complaint.
+ */
+function filePart(file: { uri: string; name?: string; type?: string }): FormData {
+  const form = new FormData();
+  form.append("file", {
+    uri: file.uri,
+    name: file.name ?? "upload.jpg",
+    type: file.type ?? "image/jpeg",
+  } as unknown as Blob);
+  return form;
+}
 
 const balanceSchema = z.object({
   balance: decimalLike(0),
@@ -379,6 +423,28 @@ export class KayaApi {
     return listOf(addressSuggestionSchema)(res.data);
   }
 
+  /**
+   * The address at a position (`GET /geocoding/reverse`), for "use my
+   * position".
+   *
+   * Resolves null when the position has no known address -- offshore, deep
+   * bush, a gap in coverage. The caller falls back to showing the raw
+   * coordinate, which is worse than a street name but still routes a driver,
+   * and both beat a screen that fails.
+   *
+   * The returned `lat`/`lng` are the ones that were asked about, not the
+   * matched place's centroid: the order is priced and routed from where the
+   * user actually is, and the address is a label for it.
+   */
+  async reverseGeocode(params: {
+    lat: number;
+    lng: number;
+    language?: string;
+  }): Promise<AddressSuggestion | null> {
+    const res = await this.http.get("/geocoding/reverse", { params });
+    return isPlainObject(res.data) ? addressSuggestionSchema.parse(res.data) : null;
+  }
+
   // --- Orders ---------------------------------------------------------------
 
   /**
@@ -593,6 +659,115 @@ export class KayaApi {
   async listRatings(userId: string): Promise<RatingsPage> {
     const res = await this.http.get(`/users/${userId}/ratings`);
     return ratingsPageSchema.parse(res.data);
+  }
+
+  // --- Live supply ----------------------------------------------------------
+
+  /**
+   * Positions of online drivers around a point (`GET /drivers/nearby`).
+   *
+   * Positions and nothing else -- no id, no name. A map with nothing on it
+   * says the platform is empty; the same map with four moving pins says there
+   * is work being done nearby, which is the most useful thing a client can
+   * know before deciding to order. Identity stays out of it: see the
+   * endpoint's own note for why an id here would be a tracking device.
+   */
+  async nearbyDrivers(params: {
+    lat: number;
+    lng: number;
+    radiusKm?: number;
+  }): Promise<GeoPoint[]> {
+    const res = await this.http.get("/drivers/nearby", { params });
+    return nearbyDriversSchema.parse(res.data).drivers;
+  }
+
+  // --- Identity documents ---------------------------------------------------
+
+  /**
+   * Uploads the national ID card photo (`POST /auth/upload-id`) and returns
+   * the updated user.
+   *
+   * Distinct from `uploadImage` on purpose: these two write the key onto the
+   * user row themselves, into `idCardPhoto` and `driverLicensePhoto`. A
+   * generic upload would hand back a key nothing then stores, and a driver
+   * would submit documents that never reach their file.
+   */
+  async uploadIdCard(file: { uri: string; name?: string; type?: string }): Promise<User> {
+    const res = await this.http.post("/auth/upload-id", filePart(file), {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return userSchema.parse(res.data);
+  }
+
+  /** Uploads the driving licence photo (`POST /auth/upload-license`). */
+  async uploadLicense(file: { uri: string; name?: string; type?: string }): Promise<User> {
+    const res = await this.http.post("/auth/upload-license", filePart(file), {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return userSchema.parse(res.data);
+  }
+
+  // --- Uploads --------------------------------------------------------------
+
+  /**
+   * Uploads an image and returns the storage KEY to persist
+   * (`POST /uploads/:prefix`).
+   *
+   * A key, not a URL, and deliberately: the bucket is private, and reads go
+   * through short-lived presigned URLs the backend mints when a response
+   * carries the photo. What a caller does with this is put it in the field the
+   * photo belongs to -- `pickupDelivery(id, { photoUrl: key })`.
+   *
+   * `uri` is a local file path from the camera. Callers should compress before
+   * sending (ImageAdapter.compress in @kaya/ui): the endpoint caps a request
+   * at 8 MB, and a raw phone photo on a Ghanaian mobile connection is a long
+   * wait at the exact moment the driver is standing at a door.
+   */
+  async uploadImage(
+    prefix: "delivery-photos" | "profile-photos",
+    file: { uri: string; name?: string; type?: string },
+  ): Promise<{ key: string }> {
+    const res = await this.http.post(`/uploads/${prefix}`, filePart(file), {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return uploadResultSchema.parse(res.data);
+  }
+
+  // --- Country configuration ------------------------------------------------
+
+  /**
+   * The tariff card for one country (`GET /country-configs/:code`): price per
+   * km, base pickup fee, the four commission tiers, the litigation fee,
+   * search radius and the withdrawal methods available there.
+   *
+   * Read by the driver's bid screen, which cannot show an honest
+   * net-after-commission without the tiers and the fee, and by the withdrawal
+   * screen, which must not offer a method the country does not have.
+   */
+  async countryConfig(countryCode: string): Promise<CountryConfig> {
+    const res = await this.http.get(`/country-configs/${countryCode}`);
+    return countryConfigSchema.parse(res.data);
+  }
+
+  /** Every active country configuration. */
+  async countryConfigs(): Promise<CountryConfig[]> {
+    const res = await this.http.get("/country-configs");
+    return listOf(countryConfigSchema)(res.data);
+  }
+
+  // --- Driver status --------------------------------------------------------
+
+  /**
+   * Flips whether the driver is accepting work (`POST /driver/status`).
+   *
+   * The flag is a precondition, not a preference: `OffersService.create()`
+   * refuses a bid from an offline driver, so a driver who never went online
+   * can do nothing at all in this app. See the endpoint's own note in
+   * backend/src/driver/driver.service.ts for why it had to be added.
+   */
+  async setDriverStatus(online: boolean): Promise<{ isOnline: boolean }> {
+    const res = await this.http.post("/driver/status", { online });
+    return driverStatusSchema.parse(res.data);
   }
 
   // --- Driver money ---------------------------------------------------------

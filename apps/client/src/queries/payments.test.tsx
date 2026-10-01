@@ -14,6 +14,16 @@ jest.mock("../api/client", () => ({
   },
 }));
 
+// The hook builds the callback deep link through expo-linking, which needs a
+// native module in a real app. The value itself is what matters to these
+// tests: it must ride along on initialize.
+jest.mock("../payments/openGateway", () => ({
+  paymentReturnUrl: (deliveryId?: string) =>
+    deliveryId === undefined
+      ? "kayaclient://payment/return"
+      : `kayaclient://payment/return?deliveryId=${deliveryId}`,
+}));
+
 const INIT = {
   transactionId: "tx-1",
   reference: "ref-1",
@@ -45,7 +55,10 @@ describe("useInitializePayment", () => {
     result.current.mutate("delivery-1");
 
     await waitFor(() => expect(result.current.data).toEqual(INIT));
-    expect(mockInitializePayment).toHaveBeenCalledWith({ deliveryId: "delivery-1" });
+    expect(mockInitializePayment).toHaveBeenCalledWith({
+      deliveryId: "delivery-1",
+      callbackUrl: "kayaclient://payment/return?deliveryId=delivery-1",
+    });
   });
 
   it("never replays -- a second initialize is a second escrow hold", async () => {

@@ -2,9 +2,12 @@ import { KayaI18nProvider } from "@kaya/ui";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Redirect, Stack, usePathname } from "expo-router";
 import { useEffect, useState } from "react";
+import { StyleSheet } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { registerAppMapProvider } from "../src/map/register";
 import { resolveAuthRedirect } from "../src/navigation/authGuard";
+import { usePushMessages } from "../src/push/usePushMessages";
 import { usePushRegistration } from "../src/push/usePushRegistration";
 import { useSocketBridge } from "../src/realtime/useSocketBridge";
 import { useAuthStore } from "../src/state/authStore";
@@ -87,6 +90,10 @@ function AuthGuard(): React.ReactElement | null {
 function SessionServices(): null {
   useSocketBridge();
   usePushRegistration();
+  // Registration only tells the backend where to send them; this is what
+  // listens. Without it a push arriving while the app is open does nothing,
+  // and a tap opens the app on whatever screen it was left on.
+  usePushMessages();
   return null;
 }
 
@@ -117,9 +124,15 @@ export default function RootLayout() {
   const locale = useLocaleStore((s) => s.locale);
 
   return (
-    <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
-        <KayaI18nProvider locale={locale}>
+    // Outermost, and it has to be: react-native-gesture-handler routes touches
+    // through a native root view, and a gesture mounted outside one silently
+    // never fires on Android. The driver's home sheet is the first thing in
+    // either app to use a raw gesture -- navigation supplies its own root for
+    // its own gestures, which is why nothing needed this until now.
+    <GestureHandlerRootView style={styles.root}>
+      <SafeAreaProvider>
+        <QueryClientProvider client={queryClient}>
+          <KayaI18nProvider locale={locale}>
           {/* Order matters. React runs effects child-first and, among
               siblings, in render order -- so AuthGuard rendered before
               <Stack> fires its redirect while the navigator does not exist
@@ -128,11 +141,18 @@ export default function RootLayout() {
               is what guarantees the navigator has mounted first. AuthGuard's
               own deferral is the second half of the fix; neither half was
               enough on its own on a real device. */}
-          <Stack screenOptions={{ headerShown: false }} />
-          <AuthGuard />
-          <SessionServices />
-        </KayaI18nProvider>
-      </QueryClientProvider>
-    </SafeAreaProvider>
+          {/* Declared rather than inherited, same as the client's stack: with
+              only `headerShown` set, a pushed screen used whatever the
+              platform defaulted to, so the two apps and the two platforms
+              disagreed about what "going deeper" looks like. */}
+            <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }} />
+            <AuthGuard />
+            <SessionServices />
+          </KayaI18nProvider>
+        </QueryClientProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({ root: { flex: 1 } });

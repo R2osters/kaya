@@ -10,8 +10,9 @@
     "web": "expo start --web",
     "prebuild": "expo prebuild",
     "test": "jest",
-    "typecheck": "tsc --noEmit",
-    "lint": "cross-env ESLINT_USE_FLAT_CONFIG=false eslint app src app.config.ts --ext .ts,.tsx"
+    "routes:types": "node ../../scripts/regen-router-types.mjs apps/client",
+    "typecheck": "npm run routes:types && tsc --noEmit",
+    "lint": "eslint app src app.config.ts"
   },
   "dependencies": {
     "@kaya/core": "*",

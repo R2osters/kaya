@@ -7,8 +7,10 @@ import {
   stringLike,
   stringLikeOrNull,
 } from "../wire/coerce";
+import { isPlainObject } from "../wire/coerce";
 import { orderStatus } from "../wire/enums";
 import type { GeoPoint } from "./geo";
+import { participantSchema } from "./participant";
 
 /**
  * A delivery order created by a client. Mirrors backend `orders`, whose
@@ -35,6 +37,12 @@ export const orderSchema = z
     distanceKm: decimalLikeOrNull(),
     acceptedOfferId: stringLikeOrNull(),
     createdAt: dateLike(),
+    /**
+     * Present on participant-facing delivery reads (`GET /deliveries`,
+     * `GET /deliveries/:id`), absent everywhere else -- an order the driver
+     * is merely bidding on does not name its client.
+     */
+    client: z.unknown(),
   })
   .transform((o) => {
     const pickup: GeoPoint = { lat: o.pickupLat, lng: o.pickupLng };
@@ -57,6 +65,7 @@ export const orderSchema = z
       distanceKm: o.distanceKm,
       acceptedOfferId: o.acceptedOfferId,
       createdAt: o.createdAt,
+      client: isPlainObject(o.client) ? participantSchema.parse(o.client) : null,
     };
   });
 

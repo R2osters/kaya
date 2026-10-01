@@ -131,15 +131,17 @@ describe("useRateDelivery", () => {
   it("sends the score", async () => {
     const { result } = setup(() => useRateDelivery("d-1"));
 
-    result.current.mutate({ score: 4, comment: "" });
+    result.current.mutate({ score: 4, comment: "", toUserId: "u-2" });
 
-    await waitFor(() => expect(mockRateDelivery).toHaveBeenCalledWith("d-1", { score: 4 }));
+    await waitFor(() =>
+      expect(mockRateDelivery).toHaveBeenCalledWith("d-1", { score: 4, toUserId: "u-2" }),
+    );
   });
 
   it("omits a blank comment rather than sending an empty string", async () => {
     const { result } = setup(() => useRateDelivery("d-1"));
 
-    result.current.mutate({ score: 5, comment: "   " });
+    result.current.mutate({ score: 5, comment: "   ", toUserId: "u-2" });
 
     await waitFor(() => expect(mockRateDelivery).toHaveBeenCalled());
     expect(mockRateDelivery.mock.calls[0]?.[1]).not.toHaveProperty("comment");
@@ -149,7 +151,7 @@ describe("useRateDelivery", () => {
     mockRateDelivery.mockRejectedValue(new Error("500"));
     const { result } = setup(() => useRateDelivery("d-1"));
 
-    result.current.mutate({ score: 4, comment: "" });
+    result.current.mutate({ score: 4, comment: "", toUserId: "u-2" });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(mockRateDelivery).toHaveBeenCalledTimes(1);

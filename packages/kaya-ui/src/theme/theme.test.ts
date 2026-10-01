@@ -56,6 +56,9 @@ describe("design tokens", () => {
     expect(typography.body).toMatchObject({ fontSize: 15, fontWeight: "400" });
     expect(typography.price).toMatchObject({ fontSize: 20, fontWeight: "800" });
     expect(typography.priceLarge).toMatchObject({ fontSize: 26, fontWeight: "800" });
+    // The one style above priceLarge, for an amount being typed rather than
+    // read (the driver's bid screen).
+    expect(typography.priceXL).toMatchObject({ fontSize: 34, fontWeight: "800" });
     expect(typography.overline).toMatchObject({ fontSize: 12, letterSpacing: 1.1 });
     expect(typography.button).toMatchObject({ fontSize: 16, fontWeight: "700" });
   });

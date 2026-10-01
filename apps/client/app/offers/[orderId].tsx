@@ -1,10 +1,12 @@
 import { currencyForCountry, formatMoney, toApiFailure, type Currency, type OrderOffer } from "@kaya/core";
 import {
   EmptyState,
+  KayaAnimatedListItem,
   KayaAvatar,
   KayaButton,
   KayaCard,
   KayaSkeletonList,
+  KayaScreenHeader,
   RatingStars,
   colors,
   spacing,
@@ -14,6 +16,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Clock } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { FlatList, StyleSheet, Text, View } from "react-native";
+import { useGoBack } from "../../src/navigation/useGoBack";
 import { useAcceptOffer, useOffers } from "../../src/queries/offers";
 import { useAuthStore } from "../../src/state/authStore";
 
@@ -32,6 +35,7 @@ import { useAuthStore } from "../../src/state/authStore";
  */
 export default function OffersScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const router = useRouter();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
 
@@ -54,13 +58,20 @@ export default function OffersScreen() {
 
   return (
     <View style={styles.screen} testID="offers-screen">
-      <Text style={typography.screenTitle} testID="offers-screen-title">
-        {t("offersTitle")}
-      </Text>
+      <KayaScreenHeader title={t("offersTitle")} onBack={goBack} testID="offers-screen" />
 
       {offers.data?.minPrice != null && (
         <Text style={typography.caption} testID="offers-min-price">
           {`${t("offersAppSuggested")} · ${formatMoney(offers.data.minPrice, currency)}`}
+        </Text>
+      )}
+
+      {/* This list fills itself while the user watches it. Saying so is worth
+          a line: without it, a screen that is empty for ten seconds and then
+          suddenly is not reads as having been broken until it wasn't. */}
+      {rows.length > 0 && (
+        <Text style={typography.overline} testID="offers-live">
+          {t("offersLive")}
         </Text>
       )}
 
@@ -101,11 +112,19 @@ export default function OffersScreen() {
                   // they have not paid skips the step the whole model rests
                   // on. Payment routes on to the receipt, and the receipt to
                   // tracking.
+                  // The object form rather than a hand-built query string:
+                  // concatenation widened the href to a bare `string`, which
+                  // no longer typechecks against the route tree, and it left
+                  // the three values unencoded. expo-router encodes them.
                   onSuccess: (delivery) =>
-                    router.replace(
-                      `/payment?deliveryId=${delivery.id}` +
-                        `&amount=${item.proposedPrice}&currency=${currency}`,
-                    ),
+                    router.replace({
+                      pathname: "/payment",
+                      params: {
+                        deliveryId: delivery.id,
+                        amount: item.proposedPrice,
+                        currency,
+                      },
+                    }),
                 })
               }
             />
@@ -132,37 +151,51 @@ function OfferRow({
   const { t } = useTranslation();
 
   return (
-    <KayaCard testID={`offer-${index}`}>
-      <View style={styles.row}>
-        <KayaAvatar name={offer.livreurName} photoUrl={offer.livreurPhoto ?? undefined} />
-        <View style={styles.rowText}>
-          <Text style={typography.bodyStrong}>{offer.livreurName}</Text>
-          <View style={styles.rating}>
-            <RatingStars value={offer.livreurRating} size={14} testID={`offer-${index}-rating`} />
-            <Text style={typography.caption}>
-              {t("offersDeliveries", { count: offer.livreurTotalDeliveries })}
+    // The one list in the client app whose rows arrive on their own: a bid
+    // lands over the socket, `useOffers`' key is invalidated, and a row the
+    // user was not waiting for appears under their thumb. Without an entrance
+    // that is indistinguishable from the list having glitched -- and the row
+    // that just appeared is the one carrying a price they are about to accept.
+    <KayaAnimatedListItem index={index}>
+      <KayaCard testID={`offer-${index}`}>
+        <View style={styles.row}>
+          <KayaAvatar name={offer.livreurName} photoUrl={offer.livreurPhoto ?? undefined} />
+          <View style={styles.rowText}>
+            <Text style={typography.cardTitle} numberOfLines={1}>
+              {offer.livreurName}
             </Text>
+            <View style={styles.rating}>
+              <RatingStars value={offer.livreurRating} size={14} testID={`offer-${index}-rating`} />
+              <Text style={typography.caption}>
+                {t("offersDeliveries", { count: offer.livreurTotalDeliveries })}
+              </Text>
+            </View>
           </View>
+          {/* The price is what the client is choosing between, so it is the
+              largest thing on the row -- a name and a star rating are how they
+              break a tie, not what they are deciding. */}
+          <Text style={typography.priceLarge} testID={`offer-${index}-price`}>
+            {formatMoney(offer.proposedPrice, currency)}
+          </Text>
         </View>
-        <Text style={typography.bodyStrong} testID={`offer-${index}-price`}>
-          {formatMoney(offer.proposedPrice, currency)}
-        </Text>
-      </View>
 
-      <KayaButton
-        label={t("offersAccept")}
-        onPress={onAccept}
-        disabled={disabled}
-        expand
-        testID={`offer-${index}-accept`}
-      />
-    </KayaCard>
+        <KayaButton
+          label={t("offersAccept")}
+          onPress={onAccept}
+          disabled={disabled}
+          expand
+          testID={`offer-${index}-accept`}
+        />
+      </KayaCard>
+    </KayaAnimatedListItem>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background, padding: spacing.xxl, gap: spacing.md },
-  list: { gap: spacing.sm, paddingBottom: spacing.xxl },
+  // The design's screen margin is 16, not 24: on a 360dp phone the extra
+  // 16 across the pair cost a fifth of the price column's width.
+  screen: { flex: 1, backgroundColor: colors.background, padding: spacing.lg, gap: spacing.md },
+  list: { gap: spacing.md, paddingBottom: spacing.xxl },
   row: { flexDirection: "row", alignItems: "center", gap: spacing.md, marginBottom: spacing.md },
   rowText: { flex: 1, gap: spacing.xs },
   rating: { flexDirection: "row", alignItems: "center", gap: spacing.sm },

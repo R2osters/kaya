@@ -24,6 +24,36 @@ import { RealtimeService } from '../realtime/realtime.service';
 import type { AuthUser } from '../common/decorators/current-user.decorator';
 import { localDayStartUtc } from '../common/country-timezone';
 
+/**
+ * What one participant may see of the other on a shared delivery.
+ *
+ * The two of them are meeting in person over a package, so a name to greet, a
+ * face to recognise, a phone to call when the address is wrong, and a rating
+ * to know who they are dealing with. Nothing else -- not the email, not the
+ * balance, not the documents.
+ *
+ * It exists because `listForUser` and `findOne` included only `order`, so both
+ * apps rendered `delivery.driver` (and, on this side, the client) as null on
+ * every row: the client's inbox fell back to showing an address where a name
+ * belongs, and the driver had no one to call. Nothing failed -- the field was
+ * simply always absent.
+ */
+const PARTICIPANT_SELECT = {
+  id: true,
+  fullName: true,
+  profilePhoto: true,
+  phone: true,
+  ratingDriver: true,
+  ratingClient: true,
+  totalDeliveries: true,
+} as const;
+
+/** Delivery with both participants attached, for participant-facing reads. */
+const WITH_PARTICIPANTS = {
+  order: { include: { client: { select: PARTICIPANT_SELECT } } },
+  livreur: { select: PARTICIPANT_SELECT },
+} as const;
+
 @Injectable()
 export class DeliveriesService {
   private readonly logger = new Logger(DeliveriesService.name);
@@ -42,14 +72,14 @@ export class DeliveriesService {
         OR: [{ livreurId: user.id }, { order: { clientId: user.id } }],
       },
       orderBy: { createdAt: 'desc' },
-      include: { order: true },
+      include: WITH_PARTICIPANTS,
     });
   }
 
   async findOne(id: string, user: AuthUser): Promise<Delivery> {
     const delivery = await this.prisma.delivery.findUnique({
       where: { id },
-      include: { order: true },
+      include: WITH_PARTICIPANTS,
     });
     if (!delivery) {
       throw new NotFoundException('Delivery not found.');
@@ -73,7 +103,9 @@ export class DeliveriesService {
     if (delivery.clientPaymentStatus !== ClientPaymentStatus.escrow_held) {
       throw new BadRequestException('Client payment is not secured in escrow yet.');
     }
-    return this.transition(delivery.id, delivery.orderId, OrderStatus.driver_en_route, { startTime: new Date() });
+    return this.transition(delivery.id, delivery.orderId, OrderStatus.driver_en_route, {
+      startTime: new Date(),
+    });
   }
 
   /** Step 3: driver picked up the package (optional photo). */
@@ -368,7 +400,11 @@ export class DeliveriesService {
     return delivery;
   }
 
-  private async notifySettled(clientId: string, driverId: string, deliveryId: string): Promise<void> {
+  private async notifySettled(
+    clientId: string,
+    driverId: string,
+    deliveryId: string,
+  ): Promise<void> {
     await this.notifications.notify(clientId, {
       type: NotificationType.delivery,
       title: 'Delivered',

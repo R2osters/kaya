@@ -56,6 +56,20 @@ export const queryKeys = {
       ? (["orders", "nearby"] as const)
       : (["orders", "nearby", params] as const),
 
+  /**
+   * Client-side: positions of online drivers around a point
+   * (`GET /drivers/nearby`).
+   *
+   * Coordinates are rounded into the key by the caller for the same reason
+   * `priceQuote` rounds them: a phone at rest jitters in the sixth decimal,
+   * and keying on raw values would make every jitter its own cache entry and
+   * its own request.
+   */
+  nearbyDrivers: (params?: Readonly<Record<string, unknown>>) =>
+    params === undefined
+      ? (["drivers", "nearby"] as const)
+      : (["drivers", "nearby", params] as const),
+
   /** One delivery and everything nested under it. */
   deliveries: () => ["deliveries"] as const,
   deliveryList: (params?: Readonly<Record<string, unknown>>) =>
@@ -103,8 +117,22 @@ export const queryKeys = {
   /** Notification inbox. */
   notifications: () => ["notifications"] as const,
 
-  /** Driver earnings and stats. */
+  /**
+   * A country's tariff card. Changed by an admin, from another app, at most a
+   * few times a year -- so screens read it with a long staleTime rather than
+   * refetching it alongside the data it annotates.
+   */
+  countryConfig: (countryCode: string) => ["countryConfigs", countryCode] as const,
+
+  /**
+   * Driver money. All prefixed by `["driver"]` so settling a delivery can
+   * invalidate the balance, the earnings list and the stats header in one
+   * call -- they all move together the moment escrow is released.
+   */
+  driver: () => ["driver"] as const,
   driverStats: () => ["driver", "stats"] as const,
+  driverBalance: () => ["driver", "balance"] as const,
+  driverEarnings: () => ["driver", "earnings"] as const,
   transactions: () => ["transactions"] as const,
   withdrawals: () => ["withdrawals"] as const,
 } as const;

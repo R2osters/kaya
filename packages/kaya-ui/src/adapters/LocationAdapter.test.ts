@@ -8,6 +8,7 @@ jest.mock("expo-location", () => ({
   requestForegroundPermissionsAsync: jest.fn(),
   getForegroundPermissionsAsync: jest.fn(),
   getCurrentPositionAsync: jest.fn(),
+  getLastKnownPositionAsync: jest.fn(),
   watchPositionAsync: jest.fn(),
   Accuracy: { Balanced: 3 },
 }));
@@ -15,6 +16,7 @@ jest.mock("expo-location", () => ({
 const mockedRequest = Location.requestForegroundPermissionsAsync as jest.Mock;
 const mockedGetPermissions = Location.getForegroundPermissionsAsync as jest.Mock;
 const mockedGetCurrent = Location.getCurrentPositionAsync as jest.Mock;
+const mockedLastKnown = Location.getLastKnownPositionAsync as jest.Mock;
 const mockedWatch = Location.watchPositionAsync as jest.Mock;
 
 // Flushes microtasks so the watch() IIFE's internal awaits settle before
@@ -66,6 +68,40 @@ describe("LocationAdapter", () => {
       const adapter = new LocationAdapter();
 
       await expect(adapter.getCurrent()).resolves.toBeNull();
+    });
+
+    it("falls back to the last known position when no fix arrives in time", async () => {
+      // getCurrentPositionAsync does not fail without a satellite fix -- it
+      // waits, and it can wait forever (a covered market, a stairwell, an
+      // emulator with no injected location). A caller has neither a failure
+      // to render nor a result, so the screen sits on its loading state for
+      // good. Seen on the emulator: the driver's nearby list showed skeletons
+      // that could never resolve.
+      jest.useFakeTimers();
+      mockedGetPermissions.mockResolvedValue({ status: "granted" });
+      mockedGetCurrent.mockReturnValue(new Promise(() => undefined));
+      mockedLastKnown.mockResolvedValue({ coords: { latitude: 5.55, longitude: -0.2 } });
+      const adapter = new LocationAdapter();
+
+      const pending = adapter.getCurrent();
+      await jest.advanceTimersByTimeAsync(6_000);
+
+      await expect(pending).resolves.toEqual({ lat: 5.55, lng: -0.2 });
+      jest.useRealTimers();
+    });
+
+    it("resolves null when there is no fix and nothing was ever known", async () => {
+      jest.useFakeTimers();
+      mockedGetPermissions.mockResolvedValue({ status: "granted" });
+      mockedGetCurrent.mockReturnValue(new Promise(() => undefined));
+      mockedLastKnown.mockResolvedValue(null);
+      const adapter = new LocationAdapter();
+
+      const pending = adapter.getCurrent();
+      await jest.advanceTimersByTimeAsync(6_000);
+
+      await expect(pending).resolves.toBeNull();
+      jest.useRealTimers();
     });
   });
 

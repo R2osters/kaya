@@ -17,6 +17,44 @@ jest.mock("../../src/queries/orderList", () => ({
   useMyOrders: () => mockOrders,
 }));
 
+// Home now draws the drivers actually working around the user, on a map
+// centred on them. Both are mocked: this suite is about the screens' own
+// logic, not about GPS or the network.
+let mockNearbyDrivers: { data?: unknown } = { data: [] };
+jest.mock("../../src/queries/nearbyDrivers", () => ({
+  useNearbyDrivers: () => mockNearbyDrivers,
+}));
+
+let mockLocation = {
+  position: null as { lat: number; lng: number } | null,
+  permission: "unknown" as "unknown" | "granted" | "denied",
+  request: jest.fn(),
+};
+jest.mock("@kaya/ui", () => {
+  const actual = jest.requireActual("@kaya/ui");
+  const { View } = jest.requireActual("react-native");
+  return {
+    ...actual,
+    useDeviceLocation: () => mockLocation,
+    MapView: (props: { testID?: string }) => <View testID={props.testID} />,
+  };
+});
+
+// The greeting reads the signed-in user's first name off the session.
+let mockUser: { fullName: string; countryCode?: string } | null = null;
+jest.mock("../../src/state/authStore", () => ({
+  useAuthStore: (selector: (state: { user: unknown }) => unknown) => selector({ user: mockUser }),
+}));
+
+// History routes a row by whether its order already has a delivery.
+let mockDeliveries: { data?: Array<{ id: string; orderId: string }> } = { data: [] };
+// Home's bell reads the same module for its unread badge.
+let mockNotifications: { data?: { unread: number } } = { data: { unread: 0 } };
+jest.mock("../../src/queries/inbox", () => ({
+  useMyDeliveries: () => mockDeliveries,
+  useNotifications: () => mockNotifications,
+}));
+
 function order(overrides: Record<string, unknown> = {}) {
   return orderSchema.parse({
     id: "order-1",
@@ -49,6 +87,11 @@ beforeEach(() => {
   resetMapProvider();
   mockPush.mockReset();
   mockOrders = { data: page([order()]), isPending: false };
+  mockDeliveries = { data: [] };
+  mockNearbyDrivers = { data: [] };
+  mockNotifications = { data: { unread: 0 } };
+  mockLocation = { position: null, permission: "unknown", request: jest.fn() };
+  mockUser = null;
 });
 
 describe("splitHistory", () => {
@@ -93,6 +136,30 @@ describe("splitHistory", () => {
 });
 
 describe("HomeScreen", () => {
+  it("greets the signed-in user by their first name", () => {
+    // Both branches of this used to render the same string: the name was read
+    // off the session, interpolated into nothing, and the greeting never
+    // personalised for anyone.
+    mockUser = { fullName: "Ama Serwaa Mensah" };
+    renderScreen(HomeScreen);
+
+    // The first name only -- a title bar is no place for three names.
+    expect(screen.getByTestId("home-screen-title")).toHaveTextContent(
+      resources.fr.translation.homeWhatMovingNamed.replace("{name}", "Ama"),
+    );
+  });
+
+  it("falls back to the plain question while the session is still restoring", () => {
+    mockUser = null;
+    renderScreen(HomeScreen);
+
+    const title = screen.getByTestId("home-screen-title");
+
+    expect(title).toHaveTextContent(resources.fr.translation.homeWhatMoving);
+    // No stray separator from an interpolation with nothing to interpolate.
+    expect(title).not.toHaveTextContent(",");
+  });
+
   it("offers the create-order action", () => {
     renderScreen(HomeScreen);
 
@@ -134,6 +201,24 @@ describe("HomeScreen", () => {
     renderScreen(HomeScreen);
 
     expect(screen.queryByTestId("home-scheduled")).toBeNull();
+  });
+
+  it("wears the unread count, and only when there is one", () => {
+    renderScreen(HomeScreen);
+    expect(screen.queryByTestId("home-notifications-badge")).toBeNull();
+
+    screen.unmount();
+    mockNotifications = { data: { unread: 3 } };
+    renderScreen(HomeScreen);
+
+    expect(screen.getByTestId("home-notifications-badge")).toHaveTextContent("3");
+  });
+
+  it("caps the badge rather than letting it stretch the bell", () => {
+    mockNotifications = { data: { unread: 42 } };
+    renderScreen(HomeScreen);
+
+    expect(screen.getByTestId("home-notifications-badge")).toHaveTextContent("9+");
   });
 
   it("opens notifications", () => {
@@ -186,11 +271,22 @@ describe("HistoryScreen", () => {
     );
   });
 
-  it("opens an order's offers", () => {
+  it("opens an order's offers while no delivery exists", () => {
     renderScreen(HistoryScreen);
 
     fireEvent.press(screen.getByTestId("history-order-0"));
 
     expect(mockPush).toHaveBeenCalledWith("/offers/order-1");
+  });
+
+  it("opens the tracking once the order has a delivery", () => {
+    // The offers screen for an accepted order is a dead end whose Accept
+    // button can only 409 -- the first live course led straight back to it.
+    mockDeliveries = { data: [{ id: "delivery-1", orderId: "order-1" }] };
+    renderScreen(HistoryScreen);
+
+    fireEvent.press(screen.getByTestId("history-order-0"));
+
+    expect(mockPush).toHaveBeenCalledWith("/tracking/delivery-1");
   });
 });

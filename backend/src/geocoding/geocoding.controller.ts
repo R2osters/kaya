@@ -2,6 +2,7 @@ import { Controller, Get, Inject, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, AuthUser } from '../common/decorators/current-user.decorator';
 import { GeocodeSearchDto } from './dto/geocode-search.dto';
+import { ReverseGeocodeDto } from './dto/reverse-geocode.dto';
 import {
   COUNTRY_CODE_ALPHA2,
   GEOCODING_PROVIDER,
@@ -48,6 +49,28 @@ export class GeocodingController {
       countryCode,
       language: query.language,
       limit: query.limit,
+    });
+  }
+
+  /**
+   * A position turned back into an address, for "use my position".
+   *
+   * The apps have a coordinate from the device and need something a human can
+   * read: an order whose pickup is a bare lat/lng shows the driver a map pin
+   * where an address belongs, and support reading a complaint later has
+   * nothing to go on.
+   *
+   * The response keeps the *requested* coordinate, not the matched feature's
+   * centroid -- see the providers. The order is priced and routed from where
+   * the user actually is; the address is a label for it.
+   */
+  @Get('reverse')
+  @ApiOperation({ summary: 'The address at a position, or null when none is known.' })
+  reverse(@Query() query: ReverseGeocodeDto): Promise<GeocodeSuggestion | null> {
+    return this.geocoder.reverse({
+      lat: query.lat,
+      lng: query.lng,
+      language: query.language,
     });
   }
 }

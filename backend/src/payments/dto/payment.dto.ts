@@ -5,6 +5,19 @@ export class InitializePaymentDto {
   @ApiProperty({ description: 'The accepted delivery to pay for.' })
   @IsUUID()
   deliveryId!: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Deep link the hosted checkout redirects to when the user is done ' +
+      '(e.g. kayaclient://payment/return). Hosted checkouts need somewhere ' +
+      'to send the user back to; without it the mock checkout page shows a ' +
+      '"return to the app" dead end.',
+    example: 'kayaclient://payment/return',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  callbackUrl?: string;
 }
 
 export class VerifyPaymentDto {

@@ -26,12 +26,25 @@ export type GatewayReturn = "returned" | "dismissed";
  * through the redirect or dismissed the tab, and the caller then asks the
  * backend.
  */
-export async function openPaymentGateway(authorizationUrl: string): Promise<GatewayReturn> {
-  // The gateway redirects here when it is done. `createURL` builds it from the
-  // app's own scheme (kayaclient://), so it cannot drift from app.config.ts.
-  const returnUrl = Linking.createURL("payment/return");
+/**
+ * The deep link the gateway sends the user back to. Built from the app's own
+ * scheme (kayaclient://) so it cannot drift from app.config.ts. Exported
+ * because it is part of the initialize request too: the backend forwards it to
+ * the gateway so the hosted page knows where "done" leads.
+ */
+export function paymentReturnUrl(deliveryId?: string): string {
+  // The deliveryId rides in the callback so the return route knows which
+  // delivery it is finishing; the gateway appends the payment reference
+  // itself. openAuthSessionAsync matches the bare path as a prefix, so the
+  // query parameters do not break the session's resolution.
+  return Linking.createURL(
+    "payment/return",
+    deliveryId === undefined ? undefined : { queryParams: { deliveryId } },
+  );
+}
 
-  const result = await WebBrowser.openAuthSessionAsync(authorizationUrl, returnUrl);
+export async function openPaymentGateway(authorizationUrl: string): Promise<GatewayReturn> {
+  const result = await WebBrowser.openAuthSessionAsync(authorizationUrl, paymentReturnUrl());
 
   // "success" means the redirect fired. Anything else -- the user pressed
   // back, swiped the tab away, or the OS closed it -- is a dismissal, and is

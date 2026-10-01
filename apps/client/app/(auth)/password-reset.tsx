@@ -1,9 +1,10 @@
 import { toApiFailure } from "@kaya/core";
-import { KayaButton, KayaTextField, colors, spacing, typography } from "@kaya/ui";
+import { KayaScreenHeader, KayaButton, KayaTextField, colors, spacing, typography } from "@kaya/ui";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text } from "react-native";
+import { useGoBack } from "../../src/navigation/useGoBack";
 import { useResetPassword, useSendVerificationCode } from "../../src/queries/authFlows";
 
 /**
@@ -21,6 +22,7 @@ import { useResetPassword, useSendVerificationCode } from "../../src/queries/aut
  */
 export default function PasswordResetScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const router = useRouter();
 
   const [phone, setPhone] = useState("");
@@ -61,9 +63,7 @@ export default function PasswordResetScreen() {
         contentContainerStyle={styles.content}
         testID="password-reset-screen"
       >
-        <Text style={typography.screenTitle} testID="password-reset-screen-title">
-          {t("authResetPasswordTitle")}
-        </Text>
+        <KayaScreenHeader title={t("authResetPasswordTitle")} onBack={goBack} testID="password-reset-screen" />
         <Text style={typography.bodyStrong} testID="password-reset-success">
           {t("authResetPasswordSuccess")}
         </Text>
@@ -150,6 +150,6 @@ export default function PasswordResetScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.xxl, gap: spacing.lg },
+  content: { padding: spacing.lg, gap: spacing.lg },
   error: { ...typography.caption, color: colors.danger },
 });

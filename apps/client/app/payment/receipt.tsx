@@ -6,16 +6,31 @@ import {
   type Delivery,
 } from "@kaya/core";
 import {
+  ENTER_MS,
+  KayaAnimatedListItem,
   KayaButton,
   KayaCard,
   KayaSkeletonCard,
+  KayaScreenHeader,
   colors,
+  radii,
   spacing,
+  springs,
   typography,
 } from "@kaya/ui";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { Check } from "lucide-react-native";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import Animated, {
+  ReduceMotion,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+} from "react-native-reanimated";
+import { useGoBack } from "../../src/navigation/useGoBack";
 import { useDelivery } from "../../src/queries/deliveries";
 import { useAuthStore } from "../../src/state/authStore";
 
@@ -36,6 +51,7 @@ import { useAuthStore } from "../../src/state/authStore";
  */
 export default function ReceiptScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const router = useRouter();
   const { deliveryId } = useLocalSearchParams<{ deliveryId: string }>();
 
@@ -54,9 +70,7 @@ export default function ReceiptScreen() {
       contentContainerStyle={styles.content}
       testID="payment-receipt-screen"
     >
-      <Text style={typography.screenTitle} testID="payment-receipt-screen-title">
-        {t("payReceipt")}
-      </Text>
+      <KayaScreenHeader title={t("payReceipt")} onBack={goBack} testID="payment-receipt-screen" />
 
       {error !== null && (
         <Text style={styles.error} testID="receipt-error">
@@ -89,6 +103,12 @@ function Breakdown({ delivery, currency }: { delivery: Delivery; currency: Curre
 
   return (
     <KayaCard testID="receipt-card">
+      {/* The moment the money left. A receipt that fades in as a block of
+          numbers says a page loaded; a mark that lands first, then rows that
+          arrive under it, says something completed -- which is the only thing
+          the user is on this screen to find out. */}
+      <PaidMark />
+
       <Text style={typography.caption}>{t("payEscrowNote")}</Text>
 
       <Row
@@ -96,20 +116,60 @@ function Breakdown({ delivery, currency }: { delivery: Delivery; currency: Curre
         // The Dart original slices the id to eight characters and upper-cases
         // it; a full uuid is not something anyone reads out over the phone.
         value={`#${delivery.orderId.slice(0, 8).toUpperCase()}`}
+        index={0}
         testID="receipt-order"
       />
       <Row
         label={t("payDeliveryPrice")}
         value={formatMoney(price, currency)}
+        index={1}
         testID="receipt-price"
       />
       <Row
         label={t("payLitigationFee")}
         value={formatMoney(fee, currency)}
+        index={2}
         testID="receipt-fee"
       />
-      <Row label={t("payTotal")} value={formatMoney(total, currency)} strong testID="receipt-total" />
+      <Row
+        label={t("payTotal")}
+        value={formatMoney(total, currency)}
+        strong
+        index={3}
+        testID="receipt-total"
+      />
     </KayaCard>
+  );
+}
+
+/**
+ * The paid mark: a tick that lands once, on arrival.
+ *
+ * Deliberately a single settle rather than anything that repeats or lingers.
+ * The escrow is held, not spent -- the client's money is committed but the
+ * driver has not been paid yet -- so this is an acknowledgement, not a
+ * celebration, and the copy beside it (`payEscrowNote`) is what explains the
+ * difference.
+ */
+function PaidMark() {
+  const scale = useSharedValue(0);
+
+  useEffect(() => {
+    scale.value = withDelay(
+      ENTER_MS / 2,
+      withSpring(1, { ...springs.sheet, reduceMotion: ReduceMotion.System }),
+    );
+  }, [scale]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: scale.value,
+  }));
+
+  return (
+    <Animated.View style={[styles.paidMark, animatedStyle]} testID="receipt-paid-mark">
+      <Check size={22} color={colors.success} strokeWidth={3} />
+    </Animated.View>
   );
 }
 
@@ -117,31 +177,45 @@ function Row({
   label,
   value,
   strong = false,
+  index,
   testID,
 }: {
   label: string;
   value: string;
   strong?: boolean;
+  index: number;
   testID: string;
 }) {
   return (
-    <View style={styles.row} testID={testID}>
-      <Text style={typography.caption}>{label}</Text>
-      <Text style={strong ? typography.bodyStrong : typography.body} testID={`${testID}-value`}>
-        {value}
-      </Text>
-    </View>
+    <KayaAnimatedListItem index={index}>
+      <View style={styles.row} testID={testID}>
+        <Text style={typography.caption}>{label}</Text>
+        <Text style={strong ? typography.bodyStrong : typography.body} testID={`${testID}-value`}>
+          {value}
+        </Text>
+      </View>
+    </KayaAnimatedListItem>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.xxl, gap: spacing.lg },
+  content: { padding: spacing.lg, gap: spacing.lg },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginTop: spacing.md,
+  },
+  paidMark: {
+    alignSelf: "flex-start",
+    width: 44,
+    height: 44,
+    borderRadius: radii.pill,
+    backgroundColor: colors.successTint,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacing.md,
   },
   error: { ...typography.caption, color: colors.danger },
 });

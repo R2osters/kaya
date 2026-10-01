@@ -2,8 +2,10 @@ import { formatMoney, toApiFailure } from "@kaya/core";
 import {
   KayaButton,
   KayaCard,
+  KayaScreenHeader,
   KayaSkeleton,
   colors,
+  radii,
   spacing,
   typography,
 } from "@kaya/ui";
@@ -11,6 +13,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, Text } from "react-native";
+import { useGoBack } from "../../src/navigation/useGoBack";
 import { openPaymentGateway } from "../../src/payments/openGateway";
 import {
   paymentOutcome,
@@ -45,6 +48,7 @@ import {
  */
 export default function PaymentScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const router = useRouter();
   const { deliveryId, amount, currency } = useLocalSearchParams<{
     deliveryId: string;
@@ -102,20 +106,23 @@ export default function PaymentScreen() {
       contentContainerStyle={styles.content}
       testID="payment-screen"
     >
-      <Text style={typography.screenTitle} testID="payment-screen-title">
-        {t("payTitle")}
-      </Text>
+      <KayaScreenHeader title={t("payTitle")} onBack={goBack} testID="payment-screen" />
 
-      <KayaCard testID="payment-summary">
-        <Text style={typography.caption}>{t("payAmount")}</Text>
+      {/* Escrow is the model's whole premise, so the card that holds the
+          amount is tinted rather than neutral: this money is being committed,
+          not spent, and the note under it is the one line explaining that.
+          The amount takes priceLarge -- the largest money style in the system,
+          reserved for the number a decision is being made about. */}
+      <KayaCard color={colors.primaryTint} border={false} radius={radii.cardTight} testID="payment-summary">
+        <Text style={typography.overline}>{t("payAmount")}</Text>
         {amount === undefined ? (
           <KayaSkeleton height={32} testID="payment-amount-loading" />
         ) : (
-          <Text style={typography.screenTitle} testID="payment-amount">
+          <Text style={typography.priceLarge} testID="payment-amount">
             {formatMoney(Number(amount), currency === "XOF" ? "XOF" : "GHS")}
           </Text>
         )}
-        <Text style={typography.caption}>{t("payEscrowNote")}</Text>
+        <Text style={[typography.caption, styles.escrowNote]}>{t("payEscrowNote")}</Text>
       </KayaCard>
 
       <Text style={typography.caption} testID="payment-gateway-note">
@@ -159,7 +166,8 @@ export default function PaymentScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.xxl, gap: spacing.lg },
+  content: { padding: spacing.lg, gap: spacing.lg },
+  escrowNote: { marginTop: spacing.xs },
   error: { ...typography.caption, color: colors.danger },
   notice: { ...typography.caption, color: colors.inkSecondary },
 });

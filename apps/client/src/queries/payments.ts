@@ -1,6 +1,7 @@
 import { queryKeys, type PaymentInit, type PaymentVerification } from "@kaya/core";
 import { useMutation, useQueryClient, type UseMutationResult } from "@tanstack/react-query";
 import { api } from "../api/client";
+import { paymentReturnUrl } from "../payments/openGateway";
 
 /**
  * Starts an escrow payment for a delivery (`POST /payments/initialize`).
@@ -17,7 +18,12 @@ import { api } from "../api/client";
  */
 export function useInitializePayment(): UseMutationResult<PaymentInit, unknown, string> {
   return useMutation({
-    mutationFn: (deliveryId: string) => api.initializePayment({ deliveryId }),
+    // callbackUrl rides along so the hosted checkout knows where to send the
+    // user when they finish -- openPaymentGateway waits on exactly this deep
+    // link. Without it the mock gateway's page ends in "return to the app
+    // yourself", which on a first demo reads as the flow being broken.
+    mutationFn: (deliveryId: string) =>
+      api.initializePayment({ deliveryId, callbackUrl: paymentReturnUrl(deliveryId) }),
   });
 }
 

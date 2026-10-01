@@ -42,3 +42,43 @@ export const pressIn = Object.freeze({
 
 /** How far a pressed control sinks. Visible, not cartoonish. */
 export const PRESS_SCALE = 0.97;
+
+/**
+ * The gap between one list item's entrance and the next.
+ *
+ * A list that fades in as a single block reads as one object appearing; the
+ * same list staggered reads as several, which is what it is. Kept small on
+ * purpose: at 40ms a five-row list is fully in within 200ms, so the stagger
+ * is felt as texture rather than waited through.
+ */
+export const STAGGER_MS = 40;
+
+/**
+ * The stagger stops accumulating past this rank. Without a cap, row 30 of a
+ * history list would wait 1.2s to appear — the effect that reads as
+ * "considered" at the top of a list reads as broken further down, and
+ * anything below the fold has no entrance to make anyway.
+ */
+export const STAGGER_MAX_STEPS = 6;
+
+/**
+ * How long an element takes to arrive (fade + rise). Longer than the press
+ * response because nothing is waiting on it: an entrance is allowed to be
+ * seen, whereas feedback must be instantaneous.
+ */
+export const ENTER_MS = 260;
+
+/**
+ * Progress that advances on its own — a delivery moving from picked-up to
+ * in-transit, a wizard step completing.
+ *
+ * Slower than `springs.settle`, deliberately: this is the one piece of motion
+ * in the app that carries information rather than acknowledging input. The
+ * fill has to be watchable — a status change that snaps into place is
+ * indistinguishable from a re-render, and the client watching a timeline is
+ * exactly the person who needs to see that something moved.
+ */
+export const progress = Object.freeze({
+  duration: 550,
+  dampingRatio: 1,
+}) satisfies WithSpringConfig;

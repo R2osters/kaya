@@ -3,6 +3,7 @@ import {
   EmptyState,
   KayaCard,
   KayaSkeletonList,
+  KayaScreenHeader,
   colors,
   spacing,
   typography,
@@ -11,6 +12,7 @@ import {
 import { Bell } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import {FlatList, StyleSheet, Text, View} from "react-native";
+import { useGoBack } from "../src/navigation/useGoBack";
 import { useMarkNotificationRead, useNotifications } from "../src/queries/inbox";
 
 /**
@@ -22,6 +24,7 @@ import { useMarkNotificationRead, useNotifications } from "../src/queries/inbox"
  */
 export default function NotificationsScreen() {
   const { t } = useTranslation();
+  const goBack = useGoBack();
   const notifications = useNotifications();
   const markRead = useMarkNotificationRead();
 
@@ -29,9 +32,7 @@ export default function NotificationsScreen() {
 
   return (
     <View style={styles.screen} testID="notifications-screen">
-      <Text style={typography.screenTitle} testID="notifications-screen-title">
-        {t("notifTitle")}
-      </Text>
+      <KayaScreenHeader title={t("notifTitle")} onBack={goBack} testID="notifications-screen" />
 
       {notifications.isPending ? (
         <KayaSkeletonList count={4} testID="notifications-loading" />
@@ -97,7 +98,7 @@ function NotificationRow({
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background, padding: spacing.xxl, gap: spacing.md },
+  screen: { flex: 1, backgroundColor: colors.background, padding: spacing.lg, gap: spacing.md },
   list: { gap: spacing.sm, paddingBottom: spacing.xxl },
   row: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   rowText: { flex: 1 },

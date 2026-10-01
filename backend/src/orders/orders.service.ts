@@ -5,7 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { CountryCode, NotificationType, Order, OrderStatus, Prisma } from '@prisma/client';
+import { CountryCode, NotificationType, Order, OrderStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PricingService, PriceQuote } from '../pricing/pricing.service';
 import { GeoService } from '../geo/geo.service';
@@ -118,7 +118,7 @@ export class OrdersService {
     if (!order) {
       throw new NotFoundException('Order not found.');
     }
-    if (!(await this.canViewOrder(order.id, order.clientId, user))) {
+    if (!(await this.canViewOrder(order.id, order.clientId, order.status, user))) {
       throw new ForbiddenException('You do not have access to this order.');
     }
     const { _count, ...rest } = order;
@@ -129,9 +129,25 @@ export class OrdersService {
   private async canViewOrder(
     orderId: string,
     ownerClientId: string,
+    status: OrderStatus,
     user: AuthUser,
   ): Promise<boolean> {
     if (user.id === ownerClientId || user.role === 'admin') {
+      return true;
+    }
+    // A driver may read an order that is open for bids. `GET /orders/nearby`
+    // already hands every online driver the same fields for the same rows, so
+    // refusing the single-order read while allowing the list read protected
+    // nothing -- it only made the bid screen impossible: it loads the order to
+    // learn `minPriceSuggested`, the floor the whole screen is built around,
+    // and got a 403 for an order the driver had just been shown.
+    //
+    // Deliberately not "any status": once an order is accepted it stops being
+    // a listing and becomes a job with two named participants, and the checks
+    // below are what decide who those are.
+    const openToDrivers: OrderStatus[] = [OrderStatus.published, OrderStatus.offers_received];
+    const isDriver = user.role === Role.livreur || user.role === Role.both;
+    if (isDriver && openToDrivers.includes(status)) {
       return true;
     }
     const [bid, delivery] = await Promise.all([
@@ -147,7 +163,12 @@ export class OrdersService {
     return bid !== null || delivery !== null;
   }
 
-  async update(id: string, country: CountryCode, clientId: string, dto: UpdateOrderDto): Promise<Order> {
+  async update(
+    id: string,
+    country: CountryCode,
+    clientId: string,
+    dto: UpdateOrderDto,
+  ): Promise<Order> {
     const order = await this.getOwnedOrder(id, clientId);
     if (!EDITABLE.includes(order.status) || order.acceptedOfferId) {
       throw new BadRequestException(
@@ -256,7 +277,8 @@ export class OrdersService {
       );
     }
 
-    const radiusKm = query.radiusKm ?? (await this.searchRadiusKm(driver.countryCode as CountryCode));
+    const radiusKm =
+      query.radiusKm ?? (await this.searchRadiusKm(driver.countryCode as CountryCode));
     const rows = await this.geo.findPublishedOrdersNearby(lat, lng, radiusKm, driver.id);
 
     return rows.map((r) => ({
@@ -284,7 +306,10 @@ export class OrdersService {
    */
   async publishDueScheduledOrders(now = new Date()): Promise<number> {
     const configs = await this.loadConfigMap();
-    const maxBufferMin = Math.max(5, ...[...configs.values()].map((c) => c.scheduledPublishBufferMin));
+    const maxBufferMin = Math.max(
+      5,
+      ...[...configs.values()].map((c) => c.scheduledPublishBufferMin),
+    );
     const horizon = new Date(now.getTime() + maxBufferMin * 60_000);
 
     const due = await this.prisma.order.findMany({
@@ -379,7 +404,7 @@ export class OrdersService {
 
   private async fanOutToNearbyDrivers(order: Order): Promise<void> {
     const config = await this.prisma.countryConfig.findFirst({
-      where: { countryCode: (await this.clientCountry(order.clientId)) },
+      where: { countryCode: await this.clientCountry(order.clientId) },
     });
     const radiusKm = config?.searchRadiusKm ?? 5;
 

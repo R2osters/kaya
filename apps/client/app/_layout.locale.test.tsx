@@ -21,8 +21,9 @@ jest.mock("../src/push/usePushRegistration", () => ({ usePushRegistration: jest.
 
 jest.mock("expo-router", () => ({
   Stack: () => null,
-  useRouter: () => ({ replace: jest.fn() }),
   usePathname: () => "/splash",
+  useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
+  useGlobalSearchParams: () => ({}),
 }));
 
 // authStore stays mocked exactly as in _layout.test.tsx: unrelated to this

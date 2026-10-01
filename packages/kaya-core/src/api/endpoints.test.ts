@@ -697,6 +697,132 @@ describe("KayaApi", () => {
     expect(rating.score).toBe(5);
   });
 
+  it("names a position via GET /geocoding/reverse, keeping the asked-about coordinate", async () => {
+    const { api, mock } = build();
+    mock.onGet("/geocoding/reverse").reply(200, {
+      label: "Osu, Accra, Ghana",
+      name: "Osu",
+      city: "Accra",
+      countryCode: "GH",
+      lat: 5.5606,
+      lng: -0.1824,
+    });
+
+    const found = await api.reverseGeocode({ lat: 5.5606, lng: -0.1824 });
+    expect(found?.label).toBe("Osu, Accra, Ghana");
+    expect(found?.lat).toBe(5.5606);
+  });
+
+  it("reads 'no address here' as null rather than as a failure", async () => {
+    const { api, mock } = build();
+    mock.onGet("/geocoding/reverse").reply(200, null);
+
+    await expect(api.reverseGeocode({ lat: 0, lng: 0 })).resolves.toBeNull();
+  });
+
+  // --- Live supply -------------------------------------------------------
+
+  it("reads nearby driver positions via GET /drivers/nearby", async () => {
+    const { api, mock } = build();
+    mock.onGet("/drivers/nearby").reply(200, {
+      drivers: [
+        { lat: 5.5606, lng: -0.1824 },
+        { lat: "5.6037", lng: "-0.187" },
+      ],
+    });
+
+    await expect(api.nearbyDrivers({ lat: 5.56, lng: -0.18 })).resolves.toEqual([
+      { lat: 5.5606, lng: -0.1824 },
+      { lat: 5.6037, lng: -0.187 },
+    ]);
+  });
+
+  it("drops a driver row missing a coordinate rather than pinning it at (0,0)", async () => {
+    // (0, 0) is in the Gulf of Guinea: on a map of Accra that reads as a
+    // driver a few hundred kilometres out to sea.
+    const { api, mock } = build();
+    mock.onGet("/drivers/nearby").reply(200, {
+      drivers: [{ lat: 5.56 }, { lng: -0.18 }, {}, { lat: 5.5606, lng: -0.1824 }],
+    });
+
+    await expect(api.nearbyDrivers({ lat: 5.56, lng: -0.18 })).resolves.toEqual([
+      { lat: 5.5606, lng: -0.1824 },
+    ]);
+  });
+
+  it("reads an empty or malformed answer as no drivers, not as a failure", async () => {
+    const { api, mock } = build();
+    mock.onGet("/drivers/nearby").reply(200, {});
+
+    await expect(api.nearbyDrivers({ lat: 5.56, lng: -0.18 })).resolves.toEqual([]);
+  });
+
+  // --- Country configuration --------------------------------------------
+
+  it("reads a country's tariff card via GET /country-configs/:code, tiers collapsed to an array", async () => {
+    const { api, mock } = build();
+    mock.onGet("/country-configs/GHA").reply(200, {
+      countryCode: "GHA",
+      countryName: "Ghana",
+      currencyCode: "GHS",
+      currencySymbol: "₵",
+      pricePerKm: 2.5,
+      basePickupFee: 5,
+      commissionTier1: 0.2,
+      commissionTier2: 0.15,
+      commissionTier3: 0.12,
+      commissionTier4: 0.09,
+      litigationFee: 1,
+      searchRadiusKm: 5,
+      withdrawalMethods: ["momo", "bank_transfer"],
+      momoProviders: ["mtn", "vodafone"],
+    });
+
+    const config = await api.countryConfig("GHA");
+    expect(config.currency).toBe("GHS");
+    expect(config.commissionTiers).toEqual([0.2, 0.15, 0.12, 0.09]);
+    expect(config.litigationFee).toBe(1);
+    expect(config.withdrawalMethods).toEqual(["momo", "bank_transfer"]);
+  });
+
+  it("lists every country configuration", async () => {
+    const { api, mock } = build();
+    mock.onGet("/country-configs").reply(200, [
+      { countryCode: "GHA", currencyCode: "GHS" },
+      { countryCode: "TGO", currencyCode: "XOF" },
+    ]);
+
+    const configs = await api.countryConfigs();
+    expect(configs.map((c) => c.currency)).toEqual(["GHS", "XOF"]);
+  });
+
+  // --- Driver status ----------------------------------------------------
+
+  it("goes online via POST /driver/status and reports the flag as it now stands", async () => {
+    const { api, mock } = build();
+    mock.onPost("/driver/status").reply(200, { isOnline: true });
+
+    await expect(api.setDriverStatus(true)).resolves.toEqual({ isOnline: true });
+    expect(JSON.parse(mock.history.post[0]?.data as string)).toEqual({ online: true });
+  });
+
+  it("goes offline through the same endpoint", async () => {
+    const { api, mock } = build();
+    mock.onPost("/driver/status").reply(200, { isOnline: false });
+
+    await expect(api.setDriverStatus(false)).resolves.toEqual({ isOnline: false });
+    expect(JSON.parse(mock.history.post[0]?.data as string)).toEqual({ online: false });
+  });
+
+  it("reads a missing flag as offline rather than throwing", async () => {
+    // Being wrongly told you are online is the worse failure: the driver
+    // waits for work that will never be offered to them.
+    const { api, mock } = build();
+    mock.onPost("/driver/status").reply(200, {});
+
+    await expect(api.setDriverStatus(true)).resolves.toEqual({ isOnline: false });
+  });
+
   // --- Driver money -----------------------------------------------------
 
   // CORRECTED: `driver.service.ts` `getBalance()` also returns
